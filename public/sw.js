@@ -1,0 +1,6 @@
+const VERSION='v20-business-status';
+const CACHE=`perkdrop-${VERSION}`;
+const CORE=['/','/app.js?v=v20-business-status','/styles.css?v=v20-business-status','/icon.svg','/manifest.webmanifest'];
+self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting()))});
+self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('perkdrop-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
+self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;const u=new URL(e.request.url);if(u.origin!==location.origin)return;if(u.pathname.startsWith('/deals/')||['/food','/drinks','/events','/free','/kids','/shopping','/weekend','/ending-soon','/near-me','/search','/map','/saved','/business','/terms','/privacy','/contact'].includes(u.pathname)){e.respondWith(fetch(e.request).catch(()=>caches.match('/')));return}e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(resp=>{const copy=resp.clone();caches.open(CACHE).then(c=>c.put(e.request,copy));return resp}).catch(()=>caches.match('/'))))});
