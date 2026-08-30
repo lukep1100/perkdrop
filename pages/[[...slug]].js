@@ -14,10 +14,10 @@ function PerkDropShell({deal}){
    h("meta",{charSet:"utf-8"}),h("meta",{name:"viewport",content:"width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"}),h("meta",{name:"theme-color",content:"#08090e"}),h("meta",{name:"description",content:description}),h("link",{rel:"canonical",href:canonical}),
    h("meta",{property:"og:type",content:"website"}),h("meta",{property:"og:site_name",content:"PerkDrop"}),h("meta",{property:"og:title",content:title}),h("meta",{property:"og:description",content:description}),h("meta",{property:"og:url",content:canonical}),deal&&deal.image?h("meta",{property:"og:image",content:deal.image}):null,
    h("meta",{name:"twitter:card",content:deal&&deal.image?"summary_large_image":"summary"}),h("meta",{name:"twitter:title",content:title}),h("meta",{name:"twitter:description",content:description}),deal&&deal.image?h("meta",{name:"twitter:image",content:deal.image}):null,
-   h("link",{rel:"manifest",href:"/manifest.webmanifest"}),h("link",{rel:"icon",href:"/icon.svg"}),h("title",null,title),h("link",{href:"https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap",rel:"stylesheet"}),h("link",{rel:"stylesheet",href:"https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"}),h("link",{rel:"stylesheet",href:"/styles.css?v=v21-capacity-drop"}),h("script",{src:"https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js",defer:true})
+   h("link",{rel:"manifest",href:"/manifest.webmanifest"}),h("link",{rel:"icon",href:"/icon.svg"}),h("title",null,title),h("link",{href:"https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap",rel:"stylesheet"}),h("link",{rel:"stylesheet",href:"https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"}),h("link",{rel:"stylesheet",href:"/styles.css?v=v22-legal"}),h("script",{src:"https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js",defer:true})
   ),
   h("div",{id:"app"},h("div",{className:"boot"},h("img",{src:"/icon.svg",className:"boot-icon",alt:""}),h("div",{className:"boot-logo"},"Perk",h("span",null,"Drop")),h("div",null,"Loading nearby Drops…"))),
-  h("script",{src:"/app.js?v=v21-capacity-drop",defer:true})
+  h("script",{src:"/app.js?v=v22-legal",defer:true})
  );
 }
 
