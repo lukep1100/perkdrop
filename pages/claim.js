@@ -10,7 +10,11 @@ export async function getServerSideProps({ query, res }) {
 
   try {
     const upstream = await fetch(portalUrl, {
-      headers: { Accept: 'text/html' },
+      headers: {
+        Accept: 'text/html',
+        'X-PerkDrop-Portal-Proxy': '1',
+      },
+      cache: 'no-store',
     });
     if (!upstream.ok) throw new Error(`portal_status_${upstream.status}`);
     const html = await upstream.text();
