@@ -1,6 +1,6 @@
 (()=>{
 'use strict';
-const VERSION='v20-business-status';
+const VERSION='v23-operations';
 const API='https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-catalogue-api?limit=200';
 const SUBMIT_API='https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-merchant-submit';
 const CLAIM_PORTAL='/claim';

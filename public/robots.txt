@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /claim
+Disallow: /saved
+Disallow: /search
+Sitemap: https://perkdrop.au/sitemap.xml
