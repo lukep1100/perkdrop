@@ -3,7 +3,7 @@
 const VERSION='v20-business-status';
 const API='https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-catalogue-api?limit=200';
 const SUBMIT_API='https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-merchant-submit';
-const CLAIM_PORTAL='https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-portal';
+const CLAIM_PORTAL='/claim';
 const TRACK_API='https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-track';
 const CITY_CENTERS={adelaide:[-34.9285,138.6007],sydney:[-33.8688,151.2093],melbourne:[-37.8136,144.9631],brisbane:[-27.4698,153.0251],perth:[-31.9523,115.8613],darwin:[-12.4634,130.8456],canberra:[-35.2809,149.13],hobart:[-42.8821,147.3272],'gold-coast':[-28.0167,153.4]};
 const CITY_LABELS={adelaide:'Adelaide',sydney:'Sydney',melbourne:'Melbourne',brisbane:'Brisbane',perth:'Perth',darwin:'Darwin',canberra:'Canberra',hobart:'Hobart','gold-coast':'Gold Coast'};
@@ -50,7 +50,7 @@ function merchantStateLabel(d){
  return'UNCLAIMED'
 }
 function merchantBadge(d){const s=merchantState(d);return`<span class="merchant-status status-${s}">${esc(merchantStateLabel(d))}</span>`}
-function claimUrlFor(d){return d.claimUrl||CLAIM_PORTAL}
+function claimUrlFor(d){try{const u=new URL(d.claimUrl||CLAIM_PORTAL,location.origin),merchant=u.searchParams.get('merchant');return merchant?`${CLAIM_PORTAL}?merchant=${encodeURIComponent(merchant)}`:CLAIM_PORTAL}catch{return CLAIM_PORTAL}}
 function merchantTrust(d){
  const s=merchantState(d);
  if(s==='exclusive')return`<div class="business-trust trust-exclusive"><b>🔥 PerkDrop Exclusive</b><span>This business currently has an exclusive PerkDrop offer.</span></div>`;
