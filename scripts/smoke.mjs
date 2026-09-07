@@ -1,6 +1,6 @@
 const base=(process.env.SMOKE_BASE_URL||'http://localhost:3000').replace(/\/$/,'');
 const catalogueUrl='https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-catalogue-api?limit=1';
-const routes=['/','/food','/map','/business','/terms','/privacy','/merchant-terms','/drop-terms','/verification','/affiliate','/contact','/claim','/admin','/api/health'];
+const routes=['/','/food','/map','/business','/terms','/privacy','/merchant-terms','/drop-terms','/verification','/affiliate','/contact','/claim','/admin','/api/health','/deals/union-hotel-20-off-lunch','/api/union-booking'];
 
 let liveDealRoute='';
 try{

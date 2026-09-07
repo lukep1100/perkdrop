@@ -5,7 +5,11 @@
   "scripts": {
     "build": "next build",
     "start": "next start",
-    "test:smoke": "node scripts/smoke.mjs"
+    "test:smoke": "node scripts/smoke.mjs",
+    "test:union": "node --test scripts/union-pilot-unit.mjs",
+    "test:union:smoke": "node scripts/union-pilot-smoke.mjs",
+    "test:priority": "node scripts/catalogue-priority-test.mjs",
+    "test:union:capacity": "node scripts/union-capacity-stress.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",

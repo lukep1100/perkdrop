@@ -1,0 +1,5 @@
+# Local production media and render tooling are not part of the web deployment.
+assets/
+*.mp4
+scripts/*reel*.ass
+scripts/render-perkdrop-reel*.ps1

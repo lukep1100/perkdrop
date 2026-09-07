@@ -1,6 +1,6 @@
-const VERSION='v23-operations';
+const VERSION='v24-live-priority';
 const CACHE=`perkdrop-${VERSION}`;
-const STATIC=['/','/app.js?v=v23-operations','/styles.css?v=v23-operations','/icon.svg','/manifest.webmanifest'];
+const STATIC=['/','/app.js?v=v24-live-priority','/styles.css?v=v24-live-priority','/icon.svg','/manifest.webmanifest'];
 const ROUTES=['/','/food','/drinks','/events','/free','/kids','/shopping','/weekend','/ending-soon','/near-me','/map','/business','/terms','/privacy','/merchant-terms','/drop-terms','/verification','/affiliate','/contact'];
 const neverCache=p=>p==='/admin'||p==='/claim'||p.startsWith('/api/')||p.startsWith('/functions/')||p.includes('perkdrop-catalogue-api');
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(STATIC)).then(()=>self.skipWaiting())));
