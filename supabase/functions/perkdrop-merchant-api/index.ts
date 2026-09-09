@@ -49,7 +49,7 @@ Deno.serve(async(req)=>{
    }
    const since=new Date(Date.now()-30*86400000).toISOString();
    const [merchantsR,offersR,termsR,campaignsR,eventsR,conversionsR,redemptionsR,ledgerR,profileR,ownershipR]=await Promise.all([
-    service.from('merchants').select('id,name,slug,listing_status,partner_tier,claimable,description,cuisine,venue_type,primary_city,primary_state,primary_location,website_url,booking_url,instagram_url,facebook_url,tiktok_url,public_phone,public_email,logo_url,hero_image_url,opening_hours,facilities,media_rights_confirmed,image_rights_status,partner_since,verified_at,updated_at').in('id',merchantIds),
+    service.from('merchants').select('id,name,slug,business_group_id,listing_status,partner_tier,claimable,description,cuisine,venue_type,primary_city,primary_state,primary_location,website_url,booking_url,instagram_url,facebook_url,tiktok_url,public_phone,public_email,logo_url,hero_image_url,opening_hours,facilities,media_rights_confirmed,image_rights_status,partner_since,verified_at,updated_at').in('id',merchantIds),
     service.from('merchant_offers').select('*').in('merchant_id',merchantIds).order('created_at',{ascending:false}).limit(250),
     service.from('merchant_commercial_terms').select('id,merchant_id,model,commission_flat,commission_rate,click_rate,monthly_fee,currency,affiliate_network,status,effective_from,effective_to').in('merchant_id',merchantIds).order('created_at',{ascending:false}),
     service.from('featured_campaigns').select('*').in('merchant_id',merchantIds).order('created_at',{ascending:false}).limit(100),
