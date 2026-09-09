@@ -21,11 +21,11 @@ Deno.serve(async(req)=>{
   if(offerId){const {data}=await service.from('merchant_offers').select('id,merchant_id,published_drop_id,title,action_type').eq('id',offerId).eq('status','active').maybeSingle();offer=data}
   if(!offer&&dropId){const {data}=await service.from('merchant_offers').select('id,merchant_id,published_drop_id,title,action_type').eq('published_drop_id',dropId).eq('status','active').maybeSingle();offer=data}
   if(!offer)return json(req,{ok:false,error:'redemption_not_available'},404);
-  if(offer.action_type==='booking_claim'&&partySize>6)return json(req,{ok:false,error:'invalid_party_size'},400);
+  if(offer.action_type==='booking_claim')return json(req,{ok:false,error:'booking_confirmation_required'},409);
   const {data,error}=await service.rpc('claim_merchant_offer',{p_offer_id:offer.id,p_drop_id:dropId||null,p_session_id:sessionId,p_party_size:partySize,p_redemption_code:code()});
   if(error){
     const m=String(error.message||'');
-    const known=['invalid_party_size','redemption_not_available','offer_not_started','offer_ended','insufficient_capacity','no_eligible_service'];
+    const known=['invalid_party_size','redemption_not_available','offer_not_started','offer_ended','insufficient_capacity','no_eligible_service','direct_claim_not_allowed','identity_required'];
     const name=known.find(x=>m.includes(x));
     const status=name==='insufficient_capacity'?409:name==='no_eligible_service'?409:400;
     return json(req,{ok:false,error:name||'redeem_failed'},status)

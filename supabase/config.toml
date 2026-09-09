@@ -79,4 +79,5 @@ verify_jwt = false
 verify_jwt = true
 [functions.perkdrop-merchant-floor]
 verify_jwt = false
-
+[functions.perkdrop-marketplace]
+verify_jwt = false

@@ -65,7 +65,14 @@ begin
   if v_result#>>'{redemption,redemption_code}' <> v_code then raise exception 'claim code mismatch'; end if;
   if (v_result#>>'{redemption,party_size}')::int <> 5 then raise exception 'confirmed party size mismatch'; end if;
   if (select capacity_remaining from public.offer_sessions where merchant_offer_id=v_offer and service_date=v_date) <> 15 then raise exception 'confirmation changed held capacity incorrectly'; end if;
-  v_result := public.redeem_merchant_redemption(v_merchant,v_code,'merchant-audit');
+  -- Future service must not be redeemable yet. Advance only this isolated fixture's
+  -- entitlement window, then exercise spend capture through the production RPC.
+  v_blocked := false;
+  begin perform public.redeem_merchant_redemption(v_merchant,v_code,'merchant-audit');
+  exception when others then if sqlerrm like '%service_not_started%' then v_blocked:=true; else raise; end if; end;
+  if not v_blocked then raise exception 'future service redeemed early'; end if;
+  update public.redemptions set metadata=metadata||jsonb_build_object('valid_from',now()-interval '1 hour') where redemption_code=v_code;
+  v_result := public.redeem_merchant_redemption_with_spend(v_merchant,v_code,'merchant-audit',84);
   if v_result->>'status' <> 'redeemed' or (v_result->>'party_size')::int <> 5 then raise exception 'merchant redemption did not preserve party size'; end if;
 end $$;
 
