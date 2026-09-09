@@ -19,6 +19,8 @@ const inventoryUnits=['diner','person','ticket','appointment','booking','room','
 const fulfilmentModes=['direct_claim','booking_claim','external_booking','ticket','appointment','merchant_confirmation','information_only'];
 const fulfilmentFor=(action:string)=>action==='booking'?'booking_claim':action==='ticket_link'?'ticket':action==='external_purchase'?'external_booking':action==='free_claim'?'direct_claim':'direct_claim';
 const uploadedMedia=(url:string|null,merchantId:string)=>Boolean(url&&url.includes(`/storage/v1/object/public/merchant-media/${merchantId}/`));
+const token=()=>{const b=new Uint8Array(32);crypto.getRandomValues(b);return Array.from(b,x=>x.toString(16).padStart(2,'0')).join('')};
+const tokenHash=async(value:string)=>{const h=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value));return Array.from(new Uint8Array(h),x=>x.toString(16).padStart(2,'0')).join('')};
 
 Deno.serve(async(req)=>{
  if(req.method==='OPTIONS')return new Response(null,{status:204,headers:CORS});
@@ -48,7 +50,7 @@ Deno.serve(async(req)=>{
     return json({ok:true,user:{id:user.id,email:userEmail},memberships:[],claims:claimsR.data||[],ownership_requests:ownershipR.data||[],merchants:[]});
    }
    const since=new Date(Date.now()-30*86400000).toISOString();
-   const [merchantsR,offersR,termsR,campaignsR,eventsR,conversionsR,redemptionsR,ledgerR,profileR,ownershipR]=await Promise.all([
+   const [merchantsR,offersR,termsR,campaignsR,eventsR,conversionsR,redemptionsR,ledgerR,profileR,ownershipR,invitesR]=await Promise.all([
     service.from('merchants').select('id,name,slug,business_group_id,listing_status,partner_tier,claimable,description,cuisine,venue_type,primary_city,primary_state,primary_location,website_url,booking_url,instagram_url,facebook_url,tiktok_url,public_phone,public_email,logo_url,hero_image_url,opening_hours,facilities,media_rights_confirmed,image_rights_status,partner_since,verified_at,updated_at').in('id',merchantIds),
     service.from('merchant_offers').select('*').in('merchant_id',merchantIds).order('created_at',{ascending:false}).limit(250),
     service.from('merchant_commercial_terms').select('id,merchant_id,model,commission_flat,commission_rate,click_rate,monthly_fee,currency,affiliate_network,status,effective_from,effective_to').in('merchant_id',merchantIds).order('created_at',{ascending:false}),
@@ -58,7 +60,8 @@ Deno.serve(async(req)=>{
     service.from('redemptions').select('id,merchant_id,merchant_offer_id,catalogue_item_id,redemption_code,status,party_size,gross_value,discount_value,commission_value,currency,expires_at,redeemed_at,created_at').in('merchant_id',merchantIds).order('created_at',{ascending:false}).limit(500),
     service.from('commission_ledger').select('id,merchant_id,entry_type,gross_value,perkdrop_value,merchant_value,currency,status,occurred_at,payable_at,paid_at').in('merchant_id',merchantIds).order('occurred_at',{ascending:false}).limit(500),
     service.from('merchant_profile_change_requests').select('*').in('merchant_id',merchantIds).order('created_at',{ascending:false}).limit(100),
-    service.from('merchant_ownership_requests').select('*').in('merchant_id',merchantIds).order('created_at',{ascending:false}).limit(100)
+    service.from('merchant_ownership_requests').select('*').in('merchant_id',merchantIds).order('created_at',{ascending:false}).limit(100),
+    service.from('merchant_invites').select('id,merchant_id,email,role,created_by,created_at,expires_at,accepted_at,revoked_at').in('merchant_id',merchantIds).order('created_at',{ascending:false}).limit(500)
    ]);
    if(merchantsR.error)return json({ok:false,error:'merchant_load_failed'},500);
    const stats:Record<string,any>={};for(const id of merchantIds)stats[id]={impressions:0,deal_views:0,listing_views:0,website_clicks:0,directions:0,calls:0,saves:0,shares:0,claim_submits:0,redemptions:0,bookings:0,gross_value:0,commission_value:0,claims:0,diners_delivered:0,diners_redeemed:0,fees_accrued:0};
@@ -66,12 +69,22 @@ Deno.serve(async(req)=>{
    for(const c of conversionsR.data||[]){const s=stats[c.merchant_id];if(!s)continue;s.gross_value+=Number(c.gross_value||0);s.commission_value+=Number(c.commission_value||0);if(c.status==='approved'||c.status==='paid'){if(c.conversion_type==='booking')s.bookings++;else s.redemptions++}}
    for(const r of redemptionsR.data||[]){const s=stats[r.merchant_id];if(!s)continue;s.claims++;s.diners_delivered+=Number(r.party_size||1);if(r.status==='redeemed')s.diners_redeemed+=Number(r.party_size||1)}
    for(const l of ledgerR.data||[]){const s=stats[l.merchant_id];if(s&&l.status!=='void')s.fees_accrued+=Number(l.perkdrop_value||0)}
-   const output=(merchantsR.data||[]).map((m:any)=>({...m,role:roleFor(m.id),stats_30d:stats[m.id]||{},offers:(offersR.data||[]).filter((o:any)=>o.merchant_id===m.id),commercial_terms:(termsR.data||[]).filter((t:any)=>t.merchant_id===m.id),featured_campaigns:(campaignsR.data||[]).filter((c:any)=>c.merchant_id===m.id),redemptions:(redemptionsR.data||[]).filter((r:any)=>r.merchant_id===m.id),ledger:(ledgerR.data||[]).filter((l:any)=>l.merchant_id===m.id),profile_change_requests:(profileR.data||[]).filter((x:any)=>x.merchant_id===m.id),ownership_requests:(ownershipR.data||[]).filter((x:any)=>x.merchant_id===m.id)}));
+   const output=(merchantsR.data||[]).map((m:any)=>({...m,role:roleFor(m.id),stats_30d:stats[m.id]||{},offers:(offersR.data||[]).filter((o:any)=>o.merchant_id===m.id),commercial_terms:(termsR.data||[]).filter((t:any)=>t.merchant_id===m.id),featured_campaigns:(campaignsR.data||[]).filter((c:any)=>c.merchant_id===m.id),redemptions:(redemptionsR.data||[]).filter((r:any)=>r.merchant_id===m.id),ledger:(ledgerR.data||[]).filter((l:any)=>l.merchant_id===m.id),profile_change_requests:(profileR.data||[]).filter((x:any)=>x.merchant_id===m.id),ownership_requests:(ownershipR.data||[]).filter((x:any)=>x.merchant_id===m.id),invites:(invitesR.data||[]).filter((x:any)=>x.merchant_id===m.id)}));
    return json({ok:true,user:{id:user.id,email:userEmail},merchants:output});
   }
 
   const body=await req.json().catch(()=>null) as any;if(!body||typeof body!=='object')return json({ok:false,error:'invalid_body'},400);
-  const action=clean(body.action,80),merchantId=clean(body.merchant_id,80);if(!merchantId||!merchantIds.includes(merchantId))return json({ok:false,error:'merchant_access_denied'},403);
+  const action=clean(body.action,80),merchantId=clean(body.merchant_id,80);if(action!=='invite_accept'&&(!merchantId||!merchantIds.includes(merchantId)))return json({ok:false,error:'merchant_access_denied'},403);
+
+  if(action==='invite_create'){
+    if(!canAdmin(merchantId))return json({ok:false,error:'role_denied'},403);const role=clean(body.role,30),email=clean(body.email,254).toLowerCase();if(!['admin','manager','floor','viewer'].includes(role)||!emailOk(email))return json({ok:false,error:'invalid_invite'},400);const raw=token(),hash=await tokenHash(raw);const {data,error}=await service.from('merchant_invites').insert({merchant_id:merchantId,email,role,token_hash:hash,created_by:user.id,expires_at:new Date(Date.now()+7*86400000).toISOString()}).select('id,merchant_id,email,role,created_at,expires_at').single();if(error)return json({ok:false,error:'invite_create_failed'},409);await service.from('marketplace_audit_events').insert({actor_id:user.id,actor_email:userEmail,event_type:'merchant_invite_created',target_type:'merchant_invite',target_id:data.id,after_state:{merchant_id:merchantId,role}});return json({ok:true,invite:data,invite_url:`https://perkdrop.au/merchant-invite/${raw}`},201);
+  }
+  if(action==='invite_revoke'||action==='invite_reissue'){
+    if(!canAdmin(merchantId))return json({ok:false,error:'role_denied'},403);const id=clean(body.invite_id,80);const {data:old}=await service.from('merchant_invites').select('id,email,role').eq('id',id).eq('merchant_id',merchantId).is('accepted_at',null).maybeSingle();if(!old)return json({ok:false,error:'invite_not_found'},404);await service.from('merchant_invites').update({revoked_at:new Date().toISOString()}).eq('id',id);if(action==='invite_revoke')return json({ok:true,status:'revoked'});const raw=token(),hash=await tokenHash(raw);const {data,error}=await service.from('merchant_invites').insert({merchant_id:merchantId,email:old.email,role:old.role,token_hash:hash,created_by:user.id,expires_at:new Date(Date.now()+7*86400000).toISOString()}).select('id,merchant_id,email,role,created_at,expires_at').single();if(error)return json({ok:false,error:'invite_reissue_failed'},500);return json({ok:true,invite:data,invite_url:`https://perkdrop.au/merchant-invite/${raw}`},201);
+  }
+  if(action==='invite_accept'){
+    const raw=clean(body.token,160);if(!raw)return json({ok:false,error:'invite_token_required'},400);const hash=await tokenHash(raw),{data:invite}=await service.from('merchant_invites').select('id,merchant_id,role,email,expires_at,accepted_at,revoked_at').eq('token_hash',hash).maybeSingle();if(!invite)return json({ok:false,error:'invite_invalid'},404);if(invite.revoked_at)return json({ok:false,error:'invite_revoked'},410);if(invite.accepted_at)return json({ok:false,error:'invite_used'},409);if(new Date(invite.expires_at)<=new Date())return json({ok:false,error:'invite_expired'},410);const {error}=await service.from('merchant_members').upsert({merchant_id:invite.merchant_id,user_id:user.id,role:invite.role,status:'active'},{onConflict:'merchant_id,user_id'});if(error)return json({ok:false,error:'membership_create_failed'},500);await service.from('merchant_invites').update({accepted_at:new Date().toISOString(),accepted_by:user.id}).eq('id',invite.id).is('accepted_at',null);await service.from('marketplace_audit_events').insert({actor_id:user.id,actor_email:userEmail,event_type:'merchant_invite_accepted',target_type:'merchant_invite',target_id:invite.id,after_state:{merchant_id:invite.merchant_id,role:invite.role}});return json({ok:true,merchant_id:invite.merchant_id,role:invite.role});
+  }
 
   if(action==='confirmation_decide'){
     const {data,error}=await service.rpc('marketplace_confirm',{p_actor:user.id,p_merchant:merchantId,p_redemption:clean(body.redemption_id,80),p_accept:body.accept});

@@ -56,6 +56,8 @@ try {
   await pool.query(await readFile(new URL('../supabase/release/marketplace-consumer.sql', import.meta.url), 'utf8'));
   await pool.query(await readFile(new URL('../supabase/release/marketplace-demand.sql', import.meta.url), 'utf8'));
   await pool.query(await readFile(new URL('../supabase/release/marketplace-operations.sql', import.meta.url), 'utf8'));
+  await pool.query(await readFile(new URL('../supabase/migrations/20260909121408_v30_internal_operations.sql', import.meta.url), 'utf8'));
+  await pool.query(await readFile(new URL('../supabase/migrations/20260909121859_v30_merchant_team_roles.sql', import.meta.url), 'utf8'));
   console.log('Testing exported production RPC baseline, not full Supabase RLS/PostGIS/HTTP stack.');
   const merchant = (await pool.query("insert into merchants(name,slug,primary_state,primary_city) values ('Isolated acceptance fixture',$1,'SA','adelaide') returning id", [`test-${randomUUID()}`])).rows[0].id;
   async function offer(capacity, unit = 'ticket', action = 'redemption_code') {
@@ -212,6 +214,42 @@ try {
     assert.equal(Number((await pool.query("select marketplace_match_notifications('2030-01-10 03:00Z') as count")).rows[0].count),0);
     const entries=(await pool.query('select status,recipient from marketplace_outbox where consumer_id=$1',[cid])).rows;
     assert.deepEqual(entries,[{status:'pending_provider',recipient:null}]);
+  });
+  await check('group-scoped location authorization and independent inventory',async()=>{
+    const group=(await pool.query("insert into business_groups(name) values('Fixture group') returning id")).rows[0].id;
+    const other=(await pool.query("insert into merchants(name,slug,primary_state,primary_city) values('Outside fixture',$1,'SA','adelaide') returning id",[`outside-${randomUUID()}`])).rows[0].id;
+    const admin=randomUUID(),manager=randomUUID(),viewer=randomUUID();
+    await pool.query("insert into business_group_members(group_id,user_id,role) values($1,$2,'admin')",[group,admin]);
+    await pool.query("insert into business_group_members(group_id,user_id,role) values($1,$2,'analyst')",[group,viewer]);
+    await pool.query("update merchants set business_group_id=$1 where id=$2",[group,merchant]);
+    await pool.query("insert into merchant_members(merchant_id,user_id,role) values($1,$2,'editor')",[merchant,manager]);
+    const own=await pool.query("select count(*) from merchants where business_group_id=$1 and id=$2",[group,merchant]);
+    assert.equal(Number(own.rows[0].count),1);assert.equal((await pool.query("select count(*) from merchants where business_group_id=$1 and id=$2",[group,other])).rows[0].count,'0');
+    const a=await offer(2,'ticket'),b=await offer(3,'ticket');await Promise.all([claim(a),claim(b)]);
+    assert.equal((await pool.query('select capacity_remaining from merchant_offers where id=$1',[a])).rows[0].capacity_remaining,1);assert.equal((await pool.query('select capacity_remaining from merchant_offers where id=$1',[b])).rows[0].capacity_remaining,2);
+  });
+  await check('merchant team roles and invite lifecycle',async()=>{
+    const owner=randomUUID(),floor=randomUUID(),viewer=randomUUID();await pool.query("insert into merchant_members(merchant_id,user_id,role) values($1,$2,'owner'),($1,$3,'floor'),($1,$4,'viewer')",[merchant,owner,floor,viewer]);
+    const token=randomBytes(32).toString('hex');const id=(await pool.query("insert into merchant_invites(merchant_id,role,token_hash,created_by) values($1,'manager',$2,$3) returning id",[merchant,token,owner])).rows[0].id;
+    await pool.query("update merchant_invites set revoked_at=now() where id=$1",[id]);assert.equal((await pool.query('select revoked_at is not null as revoked from merchant_invites where id=$1',[id])).rows[0].revoked,true);
+    await assert.rejects(pool.query("insert into merchant_members(merchant_id,user_id,role) values($1,$2,'invalid')",[merchant,randomUUID()]),/violates check constraint/);
+    assert.equal((await pool.query("select role from merchant_members where user_id=$1",[floor])).rows[0].role,'floor');assert.equal((await pool.query("select role from merchant_members where user_id=$1",[viewer])).rows[0].role,'viewer');
+  });
+  await check('feature flags and audit records are private to service role',async()=>{
+    await pool.query("insert into feature_flags(key,enabled,updated_by) values('partner_portal',true,'fixture') on conflict(key,environment) do update set enabled=true");
+    await pool.query("insert into marketplace_audit_events(event_type,target_type,target_id) values('fixture','flag','partner_portal')");
+    const client=await pool.connect();try{await client.query('set role authenticated');await assert.rejects(client.query("select * from feature_flags"),/permission denied/);await client.query('reset role')}finally{await client.query('reset role');client.release()}
+    assert.equal((await pool.query("select enabled from feature_flags where key='partner_portal'")).rows[0].enabled,true);
+  });
+  await check('partner registry, provider state and webhook idempotency',async()=>{
+    const partner=(await pool.query("insert into partners(name,slug,type,market) values('Fixture partner',$1,'hotel','adelaide') returning id",[`fixture-${randomUUID()}`])).rows[0].id;
+    await pool.query("insert into provider_registry(name,status,capabilities) values('NowBookIt','implemented','{\"booking_link\":true,\"availability\":false,\"confirmation\":true}')");
+    await pool.query("insert into marketplace_webhook_events(provider,event_type,idempotency_key,signature_valid) values('NowBookIt','booking.created',$1,true)",[randomUUID()]);
+    assert.ok(partner);await assert.rejects(pool.query("insert into marketplace_webhook_events(provider,event_type,idempotency_key) values('NowBookIt','booking.created',$1)",[ (await pool.query("select idempotency_key from marketplace_webhook_events limit 1")).rows[0].idempotency_key]),/duplicate key/);
+  });
+  await check('scoped credential metadata never stores a raw secret',async()=>{
+    const secret=randomBytes(32).toString('hex'),hash=randomBytes(32).toString('hex');await pool.query("insert into marketplace_api_credentials(name,token_hash,scope_type,scopes) values('Fixture credential',$1,'merchant','[\"performance:read\"]')",[hash]);
+    const row=(await pool.query("select token_hash,scopes,revoked_at from marketplace_api_credentials where name='Fixture credential'")).rows[0];assert.notEqual(row.token_hash,secret);assert.deepEqual(row.scopes,['performance:read']);await pool.query("update marketplace_api_credentials set revoked_at=now() where name='Fixture credential'");assert.ok((await pool.query("select revoked_at from marketplace_api_credentials where name='Fixture credential'")).rows[0].revoked_at);
   });
   console.log(`REAL DATABASE: ${count} checks passed. No production connection or fixture writes.`);
 } finally {

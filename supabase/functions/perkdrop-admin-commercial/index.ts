@@ -22,7 +22,7 @@ Deno.serve(async(req)=>{
     const userEmail=async(userId:string|null)=>{if(!userId)return '';try{const {data}=await service.auth.admin.getUserById(userId);return String(data.user?.email||'').toLowerCase()}catch{return ''}};
 
     if(req.method==='GET'){
-      const [claims,offers,submissions,campaigns,terms,profileChanges,ownership,notifications,merchants,redemptions,ledger,demand,pilots,autopilot,reports,groups,groupMembers]=await Promise.all([
+      const [claims,offers,submissions,campaigns,terms,profileChanges,ownership,notifications,merchants,redemptions,ledger,demand,pilots,autopilot,reports,groups,groupMembers,partners,flags,providers,webhooks,credentials]=await Promise.all([
         service.from('merchant_claims').select('*,merchants:merchant_id(id,name,slug,listing_status,partner_tier)').order('created_at',{ascending:false}).limit(200),
         service.from('merchant_offers').select('*,merchants:merchant_id(id,name,slug,listing_status,partner_tier)').in('status',['pending','active','paused','rejected']).order('created_at',{ascending:false}).limit(300),
         service.from('merchant_submissions').select('id,merchant_id,merchant_offer_id,status,business_name,contact_name,contact_email,offer_title,category,city,state,created_at').order('created_at',{ascending:false}).limit(200),
@@ -39,9 +39,14 @@ Deno.serve(async(req)=>{
         service.from('merchant_autopilot').select('merchant_id,rule,updated_at,updated_by,merchants:merchant_id(name,slug)').order('updated_at',{ascending:false}).limit(500),
         service.from('merchant_report_snapshots').select('id,merchant_id,offer_id,snapshot,created_at,merchants:merchant_id(name,slug)').order('created_at',{ascending:false}).limit(500),
         service.from('business_groups').select('id,name,created_at').order('name').limit(200),
-        service.from('business_group_members').select('group_id,user_id,role,active,created_at').limit(1000)
+        service.from('business_group_members').select('group_id,user_id,role,active,created_at').limit(1000),
+        service.from('partners').select('id,name,slug,type,status,market,location,latitude,longitude,contact,campaign,notes,created_at,updated_at').order('updated_at',{ascending:false}).limit(500),
+        service.from('feature_flags').select('key,environment,enabled,description,updated_by,updated_at').order('key').limit(100),
+        service.from('provider_registry').select('id,name,status,capabilities,booking_url,updated_by,updated_at').order('name').limit(100),
+        service.from('marketplace_webhook_events').select('id,provider,event_type,received_at,signature_valid,idempotency_key,processing_status,attempt,processed_at,error').order('received_at',{ascending:false}).limit(500),
+        service.from('marketplace_api_credentials').select('id,name,scope_type,scope_id,scopes,created_by,created_at,last_used_at,revoked_at').order('created_at',{ascending:false}).limit(500)
       ]);
-      return json({ok:true,claims:claims.data||[],offers:offers.data||[],submissions:submissions.data||[],featured_campaigns:campaigns.data||[],commercial_terms:terms.data||[],profile_changes:profileChanges.data||[],ownership_requests:ownership.data||[],notifications:notifications.data||[],merchants:merchants.data||[],redemptions:redemptions.data||[],ledger:ledger.data||[],demand:demand.data||[],pilots:pilots.data||[],autopilot:autopilot.data||[],reports:reports.data||[],groups:groups.data||[],group_members:groupMembers.data||[]});
+      return json({ok:true,claims:claims.data||[],offers:offers.data||[],submissions:submissions.data||[],featured_campaigns:campaigns.data||[],commercial_terms:terms.data||[],profile_changes:profileChanges.data||[],ownership_requests:ownership.data||[],notifications:notifications.data||[],merchants:merchants.data||[],redemptions:redemptions.data||[],ledger:ledger.data||[],demand:demand.data||[],pilots:pilots.data||[],autopilot:autopilot.data||[],reports:reports.data||[],groups:groups.data||[],group_members:groupMembers.data||[],partners:partners.data||[],feature_flags:flags.data||[],providers:providers.data||[],webhooks:webhooks.data||[],credentials:credentials.data||[]});
     }
 
     const body=await req.json().catch(()=>null) as any;if(!body||typeof body!=='object')return json({ok:false,error:'invalid_body'},400);const action=clean(body.action,80);
@@ -86,6 +91,15 @@ Deno.serve(async(req)=>{
     }
     if(action==='featured_activate'){
       const campaignId=clean(body.campaign_id,80);const {data,error}=await service.from('featured_campaigns').update({status:'active'}).eq('id',campaignId).in('status',['draft','scheduled','paused']).select('*').maybeSingle();if(error||!data)return json({ok:false,error:'campaign_activate_failed'},409);if(data.catalogue_item_id)await service.from('catalogue_items').update({featured:true}).eq('id',data.catalogue_item_id);if(data.merchant_offer_id)await service.from('merchant_offers').update({featured:true}).eq('id',data.merchant_offer_id);return json({ok:true,campaign:data});
+    }
+    if(action==='partner_create'){
+      const name=clean(body.name,180),type=clean(body.type,40),slug=clean(body.slug,120)||name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,100);if(!name||!['hotel','workplace','university','tourism','venue','creator','merchant_group','other'].includes(type)||!slug)return json({ok:false,error:'invalid_partner'},400);const {data,error}=await service.from('partners').insert({name,type,slug,market:clean(body.market,100)||null,location:clean(body.location,400)||null,campaign:clean(body.campaign,180)||null,notes:clean(body.notes,2000)||null,created_by:user.id}).select('id,name,slug,type,status,market,location,campaign,notes,created_at,updated_at').single();if(error)return json({ok:false,error:'partner_create_failed'},409);await service.from('marketplace_audit_events').insert({actor_id:user.id,actor_email:user.email,event_type:'partner_created',target_type:'partner',target_id:data.id,after_state:data});return json({ok:true,partner:data},201);
+    }
+    if(action==='partner_status'){
+      const id=clean(body.partner_id,80),status=clean(body.status,30);if(!['active','paused','archived'].includes(status))return json({ok:false,error:'invalid_partner_status'},400);const {data,error}=await service.from('partners').update({status,updated_at:new Date().toISOString()}).eq('id',id).select('id,name,slug,type,status,market,location,campaign,notes,created_at,updated_at').maybeSingle();if(error||!data)return json({ok:false,error:'partner_not_found'},404);await service.from('marketplace_audit_events').insert({actor_id:user.id,actor_email:user.email,event_type:'partner_status_changed',target_type:'partner',target_id:id,after_state:{status}});return json({ok:true,partner:data});
+    }
+    if(action==='feature_flag_set'){
+      const key=clean(body.key,100),environment=clean(body.environment,40)||'production';if(!['autopilot_execution','reverse_marketplace','email_delivery','partner_portal','experimental_provider','public_market_visibility'].includes(key))return json({ok:false,error:'unknown_feature_flag'},400);const {data,error}=await service.from('feature_flags').upsert({key,environment,enabled:body.enabled===true,updated_by:user.email,updated_at:new Date().toISOString()},{onConflict:'key,environment'}).select('*').single();if(error)return json({ok:false,error:'feature_flag_failed'},500);await service.from('marketplace_audit_events').insert({actor_id:user.id,actor_email:user.email,event_type:'feature_flag_changed',target_type:'feature_flag',target_id:key,after_state:data});return json({ok:true,flag:data});
     }
     return json({ok:false,error:'unknown_action'},400);
   }catch(e){console.error('perkdrop-admin-commercial',e);return json({ok:false,error:'admin_commercial_failed'},500)}
