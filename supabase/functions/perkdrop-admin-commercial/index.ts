@@ -22,7 +22,7 @@ Deno.serve(async(req)=>{
     const userEmail=async(userId:string|null)=>{if(!userId)return '';try{const {data}=await service.auth.admin.getUserById(userId);return String(data.user?.email||'').toLowerCase()}catch{return ''}};
 
     if(req.method==='GET'){
-      const [claims,offers,submissions,campaigns,terms,profileChanges,ownership,notifications,merchants,redemptions,ledger,demand]=await Promise.all([
+      const [claims,offers,submissions,campaigns,terms,profileChanges,ownership,notifications,merchants,redemptions,ledger,demand,pilots,autopilot,reports,groups,groupMembers]=await Promise.all([
         service.from('merchant_claims').select('*,merchants:merchant_id(id,name,slug,listing_status,partner_tier)').order('created_at',{ascending:false}).limit(200),
         service.from('merchant_offers').select('*,merchants:merchant_id(id,name,slug,listing_status,partner_tier)').in('status',['pending','active','paused','rejected']).order('created_at',{ascending:false}).limit(300),
         service.from('merchant_submissions').select('id,merchant_id,merchant_offer_id,status,business_name,contact_name,contact_email,offer_title,category,city,state,created_at').order('created_at',{ascending:false}).limit(200),
@@ -34,9 +34,14 @@ Deno.serve(async(req)=>{
         service.from('merchants').select('id,name,slug,listing_status,partner_tier,primary_city,primary_state,business_group_id,verified_at,created_at,updated_at').order('name').limit(1000),
         service.from('redemptions').select('id,merchant_id,merchant_offer_id,status,party_size,gross_value,discount_value,commission_value,created_at,redeemed_at,expires_at').order('created_at',{ascending:false}).limit(5000),
         service.from('commission_ledger').select('id,merchant_id,redemption_id,entry_type,gross_value,perkdrop_value,merchant_value,currency,status,occurred_at,paid_at').order('occurred_at',{ascending:false}).limit(5000),
-        service.from('demand_signals').select('city,vertical,drop_type,inventory_unit,quantity,status,expires_at,created_at').eq('status','open').gt('expires_at',new Date().toISOString()).limit(2000)
+        service.from('demand_signals').select('city,vertical,drop_type,inventory_unit,quantity,status,expires_at,created_at').eq('status','open').gt('expires_at',new Date().toISOString()).limit(2000),
+        service.from('merchant_pilots').select('id,merchant_id,stage,owner_email,goal,starts_at,ends_at,created_at,updated_at,merchants:merchant_id(name,slug)').order('updated_at',{ascending:false}).limit(500),
+        service.from('merchant_autopilot').select('merchant_id,rule,updated_at,updated_by,merchants:merchant_id(name,slug)').order('updated_at',{ascending:false}).limit(500),
+        service.from('merchant_report_snapshots').select('id,merchant_id,offer_id,snapshot,created_at,merchants:merchant_id(name,slug)').order('created_at',{ascending:false}).limit(500),
+        service.from('business_groups').select('id,name,created_at').order('name').limit(200),
+        service.from('business_group_members').select('group_id,user_id,role,active,created_at').limit(1000)
       ]);
-      return json({ok:true,claims:claims.data||[],offers:offers.data||[],submissions:submissions.data||[],featured_campaigns:campaigns.data||[],commercial_terms:terms.data||[],profile_changes:profileChanges.data||[],ownership_requests:ownership.data||[],notifications:notifications.data||[],merchants:merchants.data||[],redemptions:redemptions.data||[],ledger:ledger.data||[],demand:demand.data||[]});
+      return json({ok:true,claims:claims.data||[],offers:offers.data||[],submissions:submissions.data||[],featured_campaigns:campaigns.data||[],commercial_terms:terms.data||[],profile_changes:profileChanges.data||[],ownership_requests:ownership.data||[],notifications:notifications.data||[],merchants:merchants.data||[],redemptions:redemptions.data||[],ledger:ledger.data||[],demand:demand.data||[],pilots:pilots.data||[],autopilot:autopilot.data||[],reports:reports.data||[],groups:groups.data||[],group_members:groupMembers.data||[]});
     }
 
     const body=await req.json().catch(()=>null) as any;if(!body||typeof body!=='object')return json({ok:false,error:'invalid_body'},400);const action=clean(body.action,80);
