@@ -2,7 +2,6 @@
   "name":"perkdrop",
   "version":"24.0.0",
   "private":true,
-  "scripts":{"build":"next build","start":"next start","test:smoke":"node scripts/smoke.mjs"},
+  "scripts":{"build":"next build","start":"next start","test:smoke":"node scripts/smoke.mjs","test:harness":"node scripts/marketplace-harness.mjs","test":"npm run test:harness && npm run test:smoke"},
   "dependencies":{"@supabase/supabase-js":"^2.57.4","@vercel/analytics":"^2.0.1","@vercel/speed-insights":"^2.0.0","next":"16.3.3","react":"19.2.3","react-dom":"19.2.3"}
 }
-
