@@ -1,0 +1,28 @@
+[Script Info]
+Title: PerkDrop — Rundle Mall 50th Reel
+ScriptType: v4.00+
+PlayResX: 1080
+PlayResY: 1920
+WrapStyle: 0
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name,Fontname,Fontsize,PrimaryColour,SecondaryColour,OutlineColour,BackColour,Bold,Italic,Underline,StrikeOut,ScaleX,ScaleY,Spacing,Angle,BorderStyle,Outline,Shadow,Alignment,MarginL,MarginR,MarginV,Encoding
+Style: Hook,Arial,104,&H00FFFFFF,&H000000FF,&H9908090E,&H9908090E,-1,0,0,0,100,100,1,0,1,14,0,8,74,74,185,1
+Style: Headline,Arial,80,&H00FFFFFF,&H000000FF,&H9C08090E,&H9C08090E,-1,0,0,0,100,100,0,0,1,13,0,8,68,68,205,1
+Style: Detail,Arial,58,&H00FFFFFF,&H000000FF,&H9808090E,&H9808090E,-1,0,0,0,100,100,0,0,1,10,0,8,78,78,265,1
+Style: Brand,Arial,92,&H00FFFFFF,&H000000FF,&H0008090E,&H0008090E,-1,0,0,0,100,100,2,0,1,0,0,8,74,74,250,1
+Style: Credit,Arial,22,&HCCFFFFFF,&H000000FF,&H9808090E,&H9808090E,0,0,0,0,100,100,0,0,1,5,0,2,50,50,78,1
+
+[Events]
+Format: Layer,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text
+Dialogue: 2,0:00:00.00,0:00:23.00,Credit,,0,0,0,,Photo: Yu Chu Chin / Wikimedia Commons • CC BY-SA 4.0
+Dialogue: 1,0:00:00.00,0:00:02.00,Hook,,0,0,0,,{\fad(120,180)}{\c&H00B84DFF&}ADELAIDE{\c&H00FFFFFF&}\NTHIS IS FREE
+Dialogue: 1,0:00:02.00,0:00:05.00,Headline,,0,0,0,,{\fad(160,160)}RUNDLE MALL\NJUST TURNED {\c&H0000C7FF&}50
+Dialogue: 1,0:00:05.00,0:00:08.00,Headline,,0,0,0,,{\fad(160,160)}{\c&H00B84DFF&}FREE{\c&H00FFFFFF&}\NCAROUSEL RIDES
+Dialogue: 1,0:00:08.00,0:00:10.00,Hook,,0,0,0,,{\fad(130,150)}FOR {\c&H00C1E030&}EVERYONE
+Dialogue: 1,0:00:10.00,0:00:13.00,Headline,,0,0,0,,{\fad(160,160)}{\c&H0000C7FF&}1–6{\c&H00FFFFFF&}\NSEPTEMBER
+Dialogue: 1,0:00:13.00,0:00:16.00,Detail,,0,0,0,,{\fad(160,160)}SAT–THU 10AM–5PM\N{\c&H00B84DFF&}FRIDAY 10AM–9PM
+Dialogue: 1,0:00:16.00,0:00:19.00,Detail,,0,0,0,,{\fad(160,160)}PLUS {\c&H00C1E030&}FREE PHOTOBOOTH{\c&H00FFFFFF&}\N+ MEMORY LANE
+Dialogue: 1,0:00:19.00,0:00:21.00,Hook,,0,0,0,,{\fad(130,150)}SAVE THIS FOR\N{\c&H0000C7FF&}THIS WEEK
+Dialogue: 1,0:00:21.00,0:00:23.00,Brand,,0,0,0,,{\fad(130,180)}{\c&H00B84DFF&}PERK{\c&H00FFFFFF&}DROP\N{\fs34}DEALS WORTH KNOWING ABOUT{\fs34}\N{\c&H00C1E030&}perkdrop.au

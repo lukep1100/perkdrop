@@ -1,0 +1,30 @@
+[Script Info]
+Title: PerkDrop — Rundle Mall 50th Reel v2
+ScriptType: v4.00+
+PlayResX: 1080
+PlayResY: 1920
+WrapStyle: 0
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name,Fontname,Fontsize,PrimaryColour,SecondaryColour,OutlineColour,BackColour,Bold,Italic,Underline,StrikeOut,ScaleX,ScaleY,Spacing,Angle,BorderStyle,Outline,Shadow,Alignment,MarginL,MarginR,MarginV,Encoding
+Style: Hook,Arial,92,&H00FFFFFF,&H000000FF,&H9C08090E,&H9C08090E,-1,0,0,0,100,100,1,0,1,13,0,8,74,74,195,1
+Style: Detail,Arial,66,&H00FFFFFF,&H000000FF,&H9C08090E,&H9C08090E,-1,0,0,0,100,100,0,0,1,11,0,8,75,75,220,1
+Style: Brand,Arial,102,&H00FFFFFF,&H000000FF,&H0008090E,&H0008090E,-1,0,0,0,100,100,2,0,1,0,0,8,74,74,255,1
+Style: Credit,Arial,20,&HCCFFFFFF,&H000000FF,&H9808090E,&H9808090E,0,0,0,0,100,100,0,0,1,5,0,2,45,45,74,1
+
+[Events]
+Format: Layer,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text
+Dialogue: 2,0:00:00.00,0:00:21.50,Credit,,0,0,0,,Photo: Yu Chu Chin / Wikimedia Commons • CC BY-SA 4.0
+Dialogue: 1,0:00:00.00,0:00:01.80,Hook,,0,0,0,,{\fad(80,120)}{\c&H00B84DFF&}ADELAIDE{\c&H00FFFFFF&} — THIS IS FREE
+Dialogue: 1,0:00:01.80,0:00:03.80,Hook,,0,0,0,,{\fad(90,120)}RUNDLE MALL JUST\NTURNED {\c&H0000C7FF&}50
+Dialogue: 1,0:00:03.80,0:00:05.80,Detail,,0,0,0,,{\fad(90,120)}AND THEY’RE CELEBRATING\N{\c&H00C1E030&}ALL WEEK
+Dialogue: 1,0:00:05.80,0:00:08.00,Hook,,0,0,0,,{\fad(90,120)}{\c&H00B84DFF&}FREE{\c&H00FFFFFF&} MERRY-GO-MALL\NRIDES
+Dialogue: 1,0:00:08.00,0:00:09.80,Hook,,0,0,0,,{\fad(80,110)}YEP — FREE FOR\N{\c&H00C1E030&}EVERYONE
+Dialogue: 1,0:00:09.80,0:00:11.80,Hook,,0,0,0,,{\fad(90,120)}{\c&H0000C7FF&}1–6{\c&H00FFFFFF&}\NSEPTEMBER
+Dialogue: 1,0:00:11.80,0:00:14.00,Detail,,0,0,0,,{\fad(90,120)}SAT–THU • {\c&H0000C7FF&}10AM–5PM
+Dialogue: 1,0:00:14.00,0:00:15.80,Detail,,0,0,0,,{\fad(80,110)}FRIDAY • {\c&H00B84DFF&}10AM–9PM
+Dialogue: 1,0:00:15.80,0:00:18.00,Detail,,0,0,0,,{\fad(90,120)}PLUS {\c&H00C1E030&}FREE PHOTOBOOTH
+Dialogue: 1,0:00:18.00,0:00:19.80,Hook,,0,0,0,,{\fad(80,110)}{\c&H0000C7FF&}MEMORY LANE
+Dialogue: 1,0:00:19.80,0:00:21.50,Hook,,0,0,0,,{\fad(80,110)}SAVE THIS FOR\N{\c&H00B84DFF&}THIS WEEK
+Dialogue: 1,0:00:21.50,0:00:23.00,Brand,,0,0,0,,{\fad(100,140)}{\c&H00B84DFF&}PERK{\c&H00FFFFFF&}DROP\N{\fs34}DEALS WORTH KNOWING ABOUT\N{\c&H00C1E030&}perkdrop.au

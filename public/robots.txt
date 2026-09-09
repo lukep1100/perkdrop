@@ -2,6 +2,9 @@ User-agent: *
 Allow: /
 Disallow: /admin
 Disallow: /claim
+Disallow: /merchant-floor
 Disallow: /saved
 Disallow: /search
 Sitemap: https://perkdrop.au/sitemap.xml
+
+
