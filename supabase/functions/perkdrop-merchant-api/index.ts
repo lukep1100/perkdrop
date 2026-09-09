@@ -38,7 +38,7 @@ Deno.serve(async(req)=>{
   if(groupError)return json({ok:false,error:'group_membership_failed'},500);
   if(groupMemberships?.length){const {data:groupMerchants,error}=await service.from('merchants').select('id,business_group_id').in('business_group_id',groupMemberships.map(g=>g.group_id));if(error)return json({ok:false,error:'group_membership_failed'},500);for(const m of groupMerchants||[]){if(!members?.some(x=>x.merchant_id===m.id))members?.push({merchant_id:m.id,role:groupMemberships.find(g=>g.group_id===m.business_group_id)?.role==='admin'?'admin':'analyst',status:'active'})}}
   const merchantIds=(members||[]).map((m:any)=>m.merchant_id),roleFor=(id:string)=>members?.find((m:any)=>m.merchant_id===id)?.role||null;
-  const canEdit=(id:string)=>['owner','admin','editor'].includes(roleFor(id)||''),canAdmin=(id:string)=>['owner','admin'].includes(roleFor(id)||'');
+  const canEdit=(id:string)=>['owner','admin','manager','editor'].includes(roleFor(id)||''),canAdmin=(id:string)=>['owner','admin'].includes(roleFor(id)||'');
   const queue=async(eventType:string,merchantId:string|null,recipient:string,payload:any={})=>{if(!emailOk(recipient))return;try{await service.from('merchant_notification_outbox').insert({merchant_id:merchantId,event_type:eventType,recipient_email:recipient,payload})}catch{}};
 
   if(req.method==='GET'){
