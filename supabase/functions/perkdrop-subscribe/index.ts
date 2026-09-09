@@ -16,8 +16,10 @@ Deno.serve(async req=>{
   const ip=(req.headers.get('x-forwarded-for')||req.headers.get('cf-connecting-ip')||'').split(',')[0].trim();const ipHash=ip?await hash(ip):null;
   const service=createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,{auth:{persistSession:false,autoRefreshToken:false}});
   if(ipHash){const since=new Date(Date.now()-3600000).toISOString();const {count}=await service.from('email_subscribers').select('id',{count:'exact',head:true}).eq('source_ip_hash',ipHash).gte('consent_at',since);if((count||0)>=10)return reply(req,{ok:false,error:'rate_limited'},429)}
-  const row={email,city:'Adelaide',state:'SA',interests:['food','experiences','last-minute'],status:'subscribed',consent_at:new Date().toISOString(),source_page:clean(b?.source_page,500)||'/deals/union-hotel-20-off-lunch',utm_source:clean(b?.utm_source,60)||null,utm_medium:clean(b?.utm_medium,60)||null,utm_campaign:clean(b?.utm_campaign,140)||null,source_ip_hash:ipHash};
+  const allowed=['food','events','beauty','wellness','experiences','activities','fitness','stay','shopping','free','last-minute'];const interests=Array.isArray(b?.interests)?b.interests.map((x:any)=>clean(x,40).toLowerCase()).filter((x:string)=>allowed.includes(x)).slice(0,12):['food','experiences','last-minute'];const preferences={city:clean(b?.city,120)||'Adelaide',areas:Array.isArray(b?.areas)?b.areas.map((x:any)=>clean(x,120)).filter(Boolean).slice(0,10):[],radius_km:Number.isFinite(Number(b?.radius_km))?Math.max(1,Math.min(100,Number(b.radius_km))):25,time_preferences:Array.isArray(b?.time_preferences)?b.time_preferences.map((x:any)=>clean(x,40)).filter(Boolean).slice(0,10):[]};const row={email,city:preferences.city,state:clean(b?.state,80)||'SA',interests:interests.length?interests:['food'],preferences,status:'subscribed',consent_at:new Date().toISOString(),source_page:clean(b?.source_page,500)||'/deals/union-hotel-20-off-lunch',utm_source:clean(b?.utm_source,60)||null,utm_medium:clean(b?.utm_medium,60)||null,utm_campaign:clean(b?.utm_campaign,140)||null,source_ip_hash:ipHash};
   const {error}=await service.from('email_subscribers').upsert(row,{onConflict:'email'});if(error)throw error;
   return reply(req,{ok:true},201);
  }catch(e){console.error('perkdrop-subscribe',e);return reply(req,{ok:false,error:'subscribe_failed'},500)}
 });
+
+
