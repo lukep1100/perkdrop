@@ -1,6 +1,6 @@
 const base=(process.env.SMOKE_BASE_URL||'http://localhost:3000').replace(/\/$/,'');
 const catalogueUrl='https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-catalogue-api?limit=1';
-const routes=['/','/food','/drinks','/events','/beauty','/experiences','/activities','/stay','/last-minute','/free','/shopping','/map','/near-me','/about','/business','/terms','/privacy','/merchant-terms','/contact','/claim','/merchant-floor','/admin','/api/health','/sitemap.xml','/robots.txt','/manifest.webmanifest','/sw.js','/deals/union-hotel-20-off-lunch?utm_source=meta&utm_medium=paid_social&utm_campaign=union_hotel_launch&fbclid=codex-smoke'];
+const routes=['/','/food','/drinks','/events','/beauty','/experiences','/activities','/stay','/last-minute','/now','/free','/shopping','/map','/near-me','/about','/business','/terms','/privacy','/merchant-terms','/contact','/claim','/merchant-floor','/admin','/api/health','/sitemap.xml','/robots.txt','/manifest.webmanifest','/sw.js','/deals/union-hotel-20-off-lunch?utm_source=meta&utm_medium=paid_social&utm_campaign=union_hotel_launch&fbclid=codex-smoke'];
 
 let liveDealRoute='';
 try{
