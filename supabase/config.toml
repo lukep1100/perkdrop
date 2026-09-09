@@ -1,0 +1,82 @@
+# Generated from the live Supabase Edge Function deployment metadata for khzpdyyywiucfhubxkev.
+# Keep verify_jwt aligned with the deployed function versions; source is in each function directory.
+
+[functions.perkdrop-ingest]
+verify_jwt = false
+[functions.perkdrop-go]
+verify_jwt = false
+[functions.perkdrop-bootstrap-catalogue]
+verify_jwt = false
+[functions.perkdrop-catalogue-api]
+verify_jwt = false
+[functions.perkdrop-social-setup]
+verify_jwt = false
+[functions.perkdrop-social-publisher]
+verify_jwt = false
+[functions.perkdrop-merchant-submit]
+verify_jwt = false
+[functions.perkdrop-quality-backfill]
+verify_jwt = false
+[functions.perkdrop-location-backfill]
+verify_jwt = false
+[functions.perkdrop-track]
+verify_jwt = false
+[functions.perkdrop-claim]
+verify_jwt = false
+[functions.perkdrop-merchant-api]
+verify_jwt = true
+[functions.perkdrop-redeem]
+verify_jwt = false
+[functions.perkdrop-nav]
+verify_jwt = false
+[functions.perkdrop-admin-commercial]
+verify_jwt = true
+[functions.perkdrop-portal]
+verify_jwt = false
+[functions.perkdrop-business-directory]
+verify_jwt = false
+[functions.perkdrop-unsubscribe]
+verify_jwt = false
+[functions.perkdrop-nearby-api]
+verify_jwt = false
+[functions.perkdrop-national-seed]
+verify_jwt = false
+[functions.perkdrop-national-trigger]
+verify_jwt = false
+[functions.perkdrop-merchant-media]
+verify_jwt = true
+[functions.perkdrop-contact-harvest]
+verify_jwt = false
+[functions.perkdrop-owner-bootstrap]
+verify_jwt = false
+[functions.perkdrop-owner-analytics]
+verify_jwt = true
+[functions.perkdrop-consumer-claim]
+verify_jwt = false
+[functions.perkdrop-legal]
+verify_jwt = false
+[functions.perkdrop-video-asset-bridge]
+verify_jwt = false
+[functions.perkdrop-video-chunk-reader]
+verify_jwt = false
+[functions.perkdrop-video-image-reader]
+verify_jwt = false
+[functions.perkdrop-video-image-chunk]
+verify_jwt = false
+[functions.perkdrop-booking-claim]
+verify_jwt = false
+[functions.perkdrop-booking-page]
+verify_jwt = false
+[functions.perkdrop-booking-preview]
+verify_jwt = false
+[functions.perkdrop-publish-union-preview]
+verify_jwt = false
+[functions.perkdrop-union-slideshow]
+verify_jwt = false
+[functions.perkdrop-subscribe]
+verify_jwt = false
+[functions.perkdrop-owner-union-funnel]
+verify_jwt = true
+[functions.perkdrop-merchant-floor]
+verify_jwt = false
+

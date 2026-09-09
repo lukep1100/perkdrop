@@ -37,5 +37,3 @@ Deno.serve(async(req)=>{
     return Response.redirect(target.toString(),302);
   }catch(e){console.error("perkdrop-go",e);return Response.redirect("https://perkdrop.au/deals",302)}
 });
-
-

@@ -1,0 +1,111 @@
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "npm:@supabase/supabase-js@2.57.4";
+
+const CORS={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization, content-type, apikey, x-client-info','Access-Control-Allow-Methods':'GET, POST, OPTIONS','Cache-Control':'no-store'};
+const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{...CORS,'Content-Type':'application/json; charset=utf-8'}});
+const clean=(v:unknown,max=1000)=>String(v??'').trim().slice(0,max);
+const httpsUrl=(v:unknown)=>{const s=clean(v,1600);if(!s)return null;try{const u=new URL(s);return u.protocol==='https:'?u.toString():null}catch{return null}};
+const num=(v:unknown,max=10000000)=>{if(v===null||v===''||v===undefined)return null;const n=Number(v);return Number.isFinite(n)&&n>=0&&n<=max?n:null};
+const date=(v:unknown)=>{const s=clean(v,100);if(!s)return null;const d=new Date(s);return Number.isNaN(d.getTime())?null:d.toISOString()};
+const capacity=(v:unknown)=>{const n=Number(v);return Number.isInteger(n)&&n>=1&&n<=10000?n:null};
+const emailOk=(v:string)=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)&&v.length<=254;
+const discountTypes=['percent','fixed','deal_price','free','bogo','custom'];
+const actionTypes=['redemption_code','booking','ticket_link','promo_code','external_purchase','affiliate_link','in_store_claim','free_claim'];
+const uploadedMedia=(url:string|null,merchantId:string)=>Boolean(url&&url.includes(`/storage/v1/object/public/merchant-media/${merchantId}/`));
+
+Deno.serve(async(req)=>{
+ if(req.method==='OPTIONS')return new Response(null,{status:204,headers:CORS});
+ if(!['GET','POST'].includes(req.method))return json({ok:false,error:'method_not_allowed'},405);
+ try{
+  const service=createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+  const auth=req.headers.get('authorization')||'',token=auth.toLowerCase().startsWith('bearer ')?auth.slice(7).trim():'';
+  if(!token)return json({ok:false,error:'unauthorized'},401);
+  const {data:userData,error:userError}=await service.auth.getUser(token),user=userData.user;
+  if(userError||!user)return json({ok:false,error:'unauthorized'},401);
+  const userEmail=clean(user.email,254).toLowerCase();
+  const {data:members,error:memberError}=await service.from('merchant_members').select('merchant_id,role,status').eq('user_id',user.id).eq('status','active');
+  if(memberError)return json({ok:false,error:'membership_failed'},500);
+  const merchantIds=(members||[]).map((m:any)=>m.merchant_id),roleFor=(id:string)=>members?.find((m:any)=>m.merchant_id===id)?.role||null;
+  const canEdit=(id:string)=>['owner','admin','editor'].includes(roleFor(id)||''),canAdmin=(id:string)=>['owner','admin'].includes(roleFor(id)||'');
+  const queue=async(eventType:string,merchantId:string|null,recipient:string,payload:any={})=>{if(!emailOk(recipient))return;try{await service.from('merchant_notification_outbox').insert({merchant_id:merchantId,event_type:eventType,recipient_email:recipient,payload})}catch{}};
+
+  if(req.method==='GET'){
+   if(!merchantIds.length){
+    const [claimsR,ownershipR]=await Promise.all([
+     service.from('merchant_claims').select('id,merchant_id,status,created_at,reviewed_at,metadata,merchants:merchant_id(name,slug,listing_status)').eq('user_id',user.id).order('created_at',{ascending:false}),
+     service.from('merchant_ownership_requests').select('id,merchant_id,request_type,status,created_at,admin_notes,merchants:merchant_id(name,slug,listing_status)').eq('user_id',user.id).order('created_at',{ascending:false})
+    ]);
+    return json({ok:true,user:{id:user.id,email:userEmail},memberships:[],claims:claimsR.data||[],ownership_requests:ownershipR.data||[],merchants:[]});
+   }
+   const since=new Date(Date.now()-30*86400000).toISOString();
+   const [merchantsR,offersR,termsR,campaignsR,eventsR,conversionsR,redemptionsR,ledgerR,profileR,ownershipR]=await Promise.all([
+    service.from('merchants').select('id,name,slug,listing_status,partner_tier,claimable,description,cuisine,venue_type,primary_city,primary_state,primary_location,website_url,booking_url,instagram_url,facebook_url,tiktok_url,public_phone,public_email,logo_url,hero_image_url,opening_hours,facilities,media_rights_confirmed,image_rights_status,partner_since,verified_at,updated_at').in('id',merchantIds),
+    service.from('merchant_offers').select('*').in('merchant_id',merchantIds).order('created_at',{ascending:false}).limit(250),
+    service.from('merchant_commercial_terms').select('id,merchant_id,model,commission_flat,commission_rate,click_rate,monthly_fee,currency,affiliate_network,status,effective_from,effective_to').in('merchant_id',merchantIds).order('created_at',{ascending:false}),
+    service.from('featured_campaigns').select('*').in('merchant_id',merchantIds).order('created_at',{ascending:false}).limit(100),
+    service.from('engagement_events').select('merchant_id,event_type,created_at').in('merchant_id',merchantIds).gte('created_at',since).limit(10000),
+    service.from('conversions').select('merchant_id,conversion_type,gross_value,commission_value,status,created_at').in('merchant_id',merchantIds).gte('created_at',since).limit(5000),
+    service.from('redemptions').select('id,merchant_id,merchant_offer_id,catalogue_item_id,redemption_code,status,party_size,gross_value,discount_value,commission_value,currency,expires_at,redeemed_at,created_at').in('merchant_id',merchantIds).order('created_at',{ascending:false}).limit(500),
+    service.from('commission_ledger').select('id,merchant_id,entry_type,gross_value,perkdrop_value,merchant_value,currency,status,occurred_at,payable_at,paid_at').in('merchant_id',merchantIds).order('occurred_at',{ascending:false}).limit(500),
+    service.from('merchant_profile_change_requests').select('*').in('merchant_id',merchantIds).order('created_at',{ascending:false}).limit(100),
+    service.from('merchant_ownership_requests').select('*').in('merchant_id',merchantIds).order('created_at',{ascending:false}).limit(100)
+   ]);
+   if(merchantsR.error)return json({ok:false,error:'merchant_load_failed'},500);
+   const stats:Record<string,any>={};for(const id of merchantIds)stats[id]={impressions:0,deal_views:0,listing_views:0,website_clicks:0,directions:0,calls:0,saves:0,shares:0,claim_submits:0,redemptions:0,bookings:0,gross_value:0,commission_value:0,claims:0,diners_delivered:0,diners_redeemed:0,fees_accrued:0};
+   for(const e of eventsR.data||[]){const s=stats[e.merchant_id];if(!s)continue;const map:any={impression:'impressions',deal_view:'deal_views',deal_open:'deal_views',listing_view:'listing_views',website_click:'website_clicks',official_deal_click:'website_clicks',directions:'directions',directions_click:'directions',call:'calls',save:'saves',save_toggle:'saves',share:'shares',claim_submit:'claim_submits',redemption_complete:'redemptions',booking_complete:'bookings'};const k=map[e.event_type];if(k)s[k]++}
+   for(const c of conversionsR.data||[]){const s=stats[c.merchant_id];if(!s)continue;s.gross_value+=Number(c.gross_value||0);s.commission_value+=Number(c.commission_value||0);if(c.status==='approved'||c.status==='paid'){if(c.conversion_type==='booking')s.bookings++;else s.redemptions++}}
+   for(const r of redemptionsR.data||[]){const s=stats[r.merchant_id];if(!s)continue;s.claims++;s.diners_delivered+=Number(r.party_size||1);if(r.status==='redeemed')s.diners_redeemed+=Number(r.party_size||1)}
+   for(const l of ledgerR.data||[]){const s=stats[l.merchant_id];if(s&&l.status!=='void')s.fees_accrued+=Number(l.perkdrop_value||0)}
+   const output=(merchantsR.data||[]).map((m:any)=>({...m,role:roleFor(m.id),stats_30d:stats[m.id]||{},offers:(offersR.data||[]).filter((o:any)=>o.merchant_id===m.id),commercial_terms:(termsR.data||[]).filter((t:any)=>t.merchant_id===m.id),featured_campaigns:(campaignsR.data||[]).filter((c:any)=>c.merchant_id===m.id),redemptions:(redemptionsR.data||[]).filter((r:any)=>r.merchant_id===m.id),ledger:(ledgerR.data||[]).filter((l:any)=>l.merchant_id===m.id),profile_change_requests:(profileR.data||[]).filter((x:any)=>x.merchant_id===m.id),ownership_requests:(ownershipR.data||[]).filter((x:any)=>x.merchant_id===m.id)}));
+   return json({ok:true,user:{id:user.id,email:userEmail},merchants:output});
+  }
+
+  const body=await req.json().catch(()=>null) as any;if(!body||typeof body!=='object')return json({ok:false,error:'invalid_body'},400);
+  const action=clean(body.action,80),merchantId=clean(body.merchant_id,80);if(!merchantId||!merchantIds.includes(merchantId))return json({ok:false,error:'merchant_access_denied'},403);
+
+  if(action==='profile_update'){
+   if(!canEdit(merchantId))return json({ok:false,error:'role_denied'},403);const patch:any={};
+   for(const f of ['description','cuisine','venue_type','public_phone','public_email'])if(body[f]!==undefined)patch[f]=clean(body[f],f==='description'?3000:500)||null;
+   for(const f of ['website_url','booking_url','instagram_url','facebook_url','tiktok_url','logo_url','hero_image_url'])if(body[f]!==undefined)patch[f]=httpsUrl(body[f]);
+   if(body.media_rights_confirmed!==undefined)patch.media_rights_confirmed=body.media_rights_confirmed===true;
+   if(body.hero_image_url!==undefined){const hero=httpsUrl(body.hero_image_url);if(hero&&body.media_rights_confirmed===true){patch.image_rights_status='merchant_authorised';patch.image_candidate_url=hero;patch.image_candidate_source_url=hero}else if(!hero)patch.image_rights_status='missing'}
+   if(body.opening_hours!==undefined)patch.opening_hours=body.opening_hours&&typeof body.opening_hours==='object'&&!Array.isArray(body.opening_hours)?body.opening_hours:{};
+   if(body.facilities!==undefined)patch.facilities=Array.isArray(body.facilities)?body.facilities.slice(0,50).map((x:any)=>clean(x,120)).filter(Boolean):[];
+   const {data,error}=await service.from('merchants').update(patch).eq('id',merchantId).select('id,name,slug,listing_status,partner_tier,updated_at').single();if(error)return json({ok:false,error:'profile_update_failed'},500);await queue('profile_updated',merchantId,userEmail,{merchant_name:data.name});return json({ok:true,merchant:data});
+  }
+
+  if(action==='profile_change_request'){
+   if(!canAdmin(merchantId))return json({ok:false,error:'role_denied'},403);const requested:any={};if(body.name!==undefined)requested.name=clean(body.name,180);if(body.primary_location!==undefined)requested.primary_location=clean(body.primary_location,500);if(body.primary_city!==undefined)requested.primary_city=clean(body.primary_city,120).toLowerCase().replace(/\s+/g,'-');if(body.primary_state!==undefined)requested.primary_state=clean(body.primary_state,80).toUpperCase();if(!Object.keys(requested).length||Object.values(requested).every(v=>!v))return json({ok:false,error:'no_sensitive_changes'},400);const {data,error}=await service.from('merchant_profile_change_requests').insert({merchant_id:merchantId,user_id:user.id,requested_patch:requested,status:'pending'}).select('*').single();if(error)return json({ok:false,error:'profile_change_request_failed'},500);await queue('profile_change_received',merchantId,userEmail,{request_id:data.id,requested_patch:requested});return json({ok:true,request:data},201);
+  }
+
+  if(action==='ownership_issue'){
+   if(!canAdmin(merchantId))return json({ok:false,error:'role_denied'},403);const requestType=['dispute','transfer'].includes(clean(body.request_type,40))?clean(body.request_type,40):'dispute',reason=clean(body.reason,3000),contactName=clean(body.contact_name,180)||clean(user.user_metadata?.full_name,180)||'Business representative';if(!reason)return json({ok:false,error:'reason_required'},400);const {data,error}=await service.from('merchant_ownership_requests').insert({merchant_id:merchantId,user_id:user.id,request_type:requestType,contact_name:contactName,contact_email:userEmail,reason,evidence_url:httpsUrl(body.evidence_url),status:'pending'}).select('*').single();if(error)return json({ok:false,error:'ownership_request_failed'},500);await queue('ownership_request_received',merchantId,userEmail,{request_id:data.id,request_type:requestType});return json({ok:true,request:data},201);
+  }
+
+  if(action==='offer_create'){
+   if(!canEdit(merchantId))return json({ok:false,error:'role_denied'},403);const title=clean(body.title,220),description=clean(body.description,4000);if(!title||!description)return json({ok:false,error:'title_and_description_required'},400);const cap=capacity(body.capacity_total);if(cap===null)return json({ok:false,error:'capacity_required_1_to_10000'},400);const discountType=discountTypes.includes(clean(body.discount_type,40))?clean(body.discount_type,40):'custom',actionType=actionTypes.includes(clean(body.action_type,40))?clean(body.action_type,40):'redemption_code',starts=date(body.starts_at),ends=date(body.ends_at);if(starts&&ends&&new Date(ends)<=new Date(starts))return json({ok:false,error:'end_must_be_after_start'},400);const media=httpsUrl(body.media_url),rights=body.media_rights_confirmed===true||uploadedMedia(media,merchantId);const payload:any={merchant_id:merchantId,created_by:user.id,title,description,category:clean(body.category,100)||null,cuisine:clean(body.cuisine,120)||null,venue_type:clean(body.venue_type,120)||null,discount_type:discountType,action_type:actionType,discount_percent:num(body.discount_percent,100),normal_price:num(body.normal_price),deal_price:num(body.deal_price),promo_code:clean(body.promo_code,120)||null,conditions:clean(body.conditions,4000)||null,starts_at:starts,ends_at:ends,recurring_schedule:(body.recurring_schedule&&typeof body.recurring_schedule==='object')?body.recurring_schedule:{},capacity_total:cap,capacity_remaining:cap,redemption_limit_per_user:Number.isInteger(Number(body.redemption_limit_per_user))&&Number(body.redemption_limit_per_user)>0?Number(body.redemption_limit_per_user):1,location:clean(body.location,400)||null,city:clean(body.city,100)||null,state:clean(body.state,80)||null,latitude:num(body.latitude,90),longitude:num(body.longitude,180),booking_url:httpsUrl(body.booking_url),media_url:media,exclusive:body.exclusive===true,affiliate_url:httpsUrl(body.affiliate_url),affiliate_network:clean(body.affiliate_network,120)||null,status:'draft',metadata:{media_rights_confirmed:Boolean(media&&rights),media_authorised_by_user:media&&rights?user.id:null,media_authorised_at:media&&rights?new Date().toISOString():null}};const {data,error}=await service.from('merchant_offers').insert(payload).select('*').single();if(error){console.error(error);return json({ok:false,error:'offer_create_failed'},500)}return json({ok:true,offer:data},201);
+  }
+
+  if(action==='offer_update'){
+   if(!canEdit(merchantId))return json({ok:false,error:'role_denied'},403);const offerId=clean(body.offer_id,80);const {data:offer}=await service.from('merchant_offers').select('id,status,capacity_total,capacity_remaining,starts_at,ends_at,metadata,media_url').eq('id',offerId).eq('merchant_id',merchantId).maybeSingle();if(!offer)return json({ok:false,error:'offer_not_found'},404);if(!['draft','paused','rejected'].includes(offer.status))return json({ok:false,error:'offer_locked'},409);const patch:any={};for(const f of ['title','description','category','cuisine','venue_type','promo_code','conditions','location','city','state','affiliate_network','action_type'])if(body[f]!==undefined)patch[f]=clean(body[f],f==='description'||f==='conditions'?4000:500)||null;for(const f of ['booking_url','media_url','affiliate_url'])if(body[f]!==undefined)patch[f]=httpsUrl(body[f]);for(const f of ['discount_percent','normal_price','deal_price'])if(body[f]!==undefined)patch[f]=num(body[f],f==='discount_percent'?100:10000000);for(const f of ['starts_at','ends_at'])if(body[f]!==undefined)patch[f]=date(body[f]);if(body.exclusive!==undefined)patch.exclusive=body.exclusive===true;if(body.recurring_schedule&&typeof body.recurring_schedule==='object')patch.recurring_schedule=body.recurring_schedule;if(body.action_type!==undefined&&!actionTypes.includes(clean(body.action_type,40)))return json({ok:false,error:'invalid_action_type'},400);if(body.discount_type!==undefined){const dt=clean(body.discount_type,40);if(!discountTypes.includes(dt))return json({ok:false,error:'invalid_discount_type'},400);patch.discount_type=dt}if(body.capacity_total!==undefined){const cap=capacity(body.capacity_total);if(cap===null)return json({ok:false,error:'capacity_required_1_to_10000'},400);const used=Math.max(0,Number(offer.capacity_total||0)-Number(offer.capacity_remaining||0));if(cap<used)return json({ok:false,error:'capacity_below_already_claimed'},409);patch.capacity_total=cap;patch.capacity_remaining=cap-used}const finalStarts=patch.starts_at!==undefined?patch.starts_at:offer.starts_at,finalEnds=patch.ends_at!==undefined?patch.ends_at:offer.ends_at;if(finalStarts&&finalEnds&&new Date(finalEnds)<=new Date(finalStarts))return json({ok:false,error:'end_must_be_after_start'},400);if(body.media_url!==undefined||body.media_rights_confirmed!==undefined){const media=patch.media_url!==undefined?patch.media_url:offer.media_url,rights=body.media_rights_confirmed===true||uploadedMedia(media,merchantId);patch.metadata={...(offer.metadata||{}),media_rights_confirmed:Boolean(media&&rights),media_authorised_by_user:media&&rights?user.id:null,media_authorised_at:media&&rights?new Date().toISOString():null}}const {data,error}=await service.from('merchant_offers').update(patch).eq('id',offerId).eq('merchant_id',merchantId).select('*').single();if(error)return json({ok:false,error:'offer_update_failed'},500);return json({ok:true,offer:data});
+  }
+
+  if(action==='offer_submit'){
+   if(!canEdit(merchantId))return json({ok:false,error:'role_denied'},403);const offerId=clean(body.offer_id,80);const {data:ready}=await service.from('merchant_offers').select('id,title,capacity_total,starts_at,ends_at').eq('id',offerId).eq('merchant_id',merchantId).maybeSingle();if(!ready||!ready.capacity_total||Number(ready.capacity_total)<1)return json({ok:false,error:'capacity_required_before_submit'},409);if(ready.starts_at&&ready.ends_at&&new Date(ready.ends_at)<=new Date(ready.starts_at))return json({ok:false,error:'end_must_be_after_start'},400);const {data,error}=await service.from('merchant_offers').update({status:'pending',review_notes:null}).eq('id',offerId).eq('merchant_id',merchantId).in('status',['draft','paused','rejected']).select('*').maybeSingle();if(error||!data)return json({ok:false,error:'offer_submit_failed'},409);await queue('drop_submitted',merchantId,userEmail,{offer_id:offerId,title:ready.title});return json({ok:true,offer:data});
+  }
+
+  if(action==='offer_pause'){
+   if(!canEdit(merchantId))return json({ok:false,error:'role_denied'},403);const offerId=clean(body.offer_id,80);const {data,error}=await service.from('merchant_offers').update({status:'paused'}).eq('id',offerId).eq('merchant_id',merchantId).eq('status','active').select('*').maybeSingle();if(error||!data)return json({ok:false,error:'offer_pause_failed'},409);if(data.published_drop_id)await service.from('catalogue_items').update({active:false}).eq('id',data.published_drop_id);await queue('drop_paused',merchantId,userEmail,{offer_id:offerId,published_drop_id:data.published_drop_id||null,title:data.title});return json({ok:true,offer:data});
+  }
+
+  if(action==='featured_request'){
+   if(!canAdmin(merchantId))return json({ok:false,error:'role_denied'},403);const starts=date(body.starts_at),ends=date(body.ends_at);if(!starts||!ends||new Date(ends)<=new Date(starts))return json({ok:false,error:'invalid_dates'},400);const placement=['feed','city_top','category_top','map','social','push','email','bundle'].includes(clean(body.placement,40))?clean(body.placement,40):'feed';const {data,error}=await service.from('featured_campaigns').insert({merchant_id:merchantId,merchant_offer_id:clean(body.offer_id,80)||null,placement,pricing_model:'flat',starts_at:starts,ends_at:ends,status:'draft',metadata:{requested_by:user.id}}).select('*').single();if(error)return json({ok:false,error:'featured_request_failed'},500);return json({ok:true,campaign:data},201);
+  }
+
+  if(action==='redeem'){
+   if(!canEdit(merchantId))return json({ok:false,error:'role_denied'},403);const code=clean(body.redemption_code,100).toUpperCase();if(!code)return json({ok:false,error:'code_required'},400);const {data,error}=await service.rpc('redeem_merchant_redemption',{p_merchant_id:merchantId,p_redemption_code:code,p_merchant_reference:clean(body.merchant_reference,200)||null});if(error){const m=String(error.message||'');const name=['redemption_not_found','redemption_not_available','redemption_expired'].find(x=>m.includes(x));return json({ok:false,error:name||'redeem_failed'},name?409:500)}try{await service.from('engagement_events').insert({merchant_id:merchantId,merchant_offer_id:data.merchant_offer_id,catalogue_item_id:data.catalogue_item_id,event_type:'redemption_complete',metadata:{redemption_id:data.id,party_size:data.party_size}})}catch{}return json({ok:true,redemption:data});
+  }
+
+  return json({ok:false,error:'unknown_action'},400);
+ }catch(e){console.error('perkdrop-merchant-api',e);return json({ok:false,error:'merchant_api_failed'},500)}
+});
