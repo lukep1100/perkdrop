@@ -1,6 +1,6 @@
-const VERSION='v25-multi-vertical';
+const VERSION='v26-local-discovery';
 const CACHE=`perkdrop-${VERSION}`;
-const STATIC=['/','/app.js?v=v25-multi-vertical','/styles.css?v=v25-multi-vertical','/icon.svg','/manifest.webmanifest'];
+const STATIC=['/','/app.js?v=v26-local-discovery','/styles.css?v=v26-local-discovery','/icon.svg','/manifest.webmanifest'];
 const ROUTES=['/','/food','/drinks','/events','/beauty','/experiences','/activities','/stay','/last-minute','/free','/kids','/shopping','/weekend','/ending-soon','/near-me','/map','/business','/about','/terms','/privacy','/merchant-terms','/drop-terms','/verification','/affiliate','/contact'];
 const never=p=>/^\/(admin|group|partner-analytics|claim|merchant|merchant-floor|my-perks|perk|recover|radar|standby|api)(\/|$)/.test(p)||p.startsWith('/deals/')||p.includes('perkdrop-catalogue-api');
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(STATIC)).then(()=>self.skipWaiting())));
