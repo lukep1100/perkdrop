@@ -42,7 +42,7 @@ verify_jwt = false
 [functions.perkdrop-nearby-api]
 verify_jwt = false
 [functions.perkdrop-national-seed]
-verify_jwt = false
+verify_jwt = true
 [functions.perkdrop-national-trigger]
 verify_jwt = false
 [functions.perkdrop-merchant-media]
