@@ -116,6 +116,16 @@ async function queryWithRetry(run: () => Promise<any>) {
   }
   return result;
 }
+// Keep a catalogue request from fanning out all six PostgREST reads at once.
+// A small bounded wave protects the shared project connection pool while
+// preserving the existing per-query transient retry and truthful failure path.
+async function runQueryWaves(tasks: Array<() => Promise<any>>, width = 2) {
+  const results: any[] = [];
+  for (let i = 0; i < tasks.length; i += width) {
+    results.push(...(await Promise.all(tasks.slice(i, i + width).map((task) => task()))));
+  }
+  return results;
+}
 function timeMinutes(v: any) {
   const [h, m] = String(v || "00:00")
     .split(":")
@@ -213,17 +223,17 @@ Deno.serve(async (req) => {
       { count, error },
       { count: locationCount, error: locationError },
       { count: merchantCount, error: merchantCountError },
-    ] = await Promise.all([
-      queryWithRetry(() => supabase
+    ] = await runQueryWaves([
+      () => queryWithRetry(() => supabase
         .from("catalogue_items")
         .select("id", { count: "exact", head: true })
         .eq("active", true)),
-      queryWithRetry(() => supabase
+      () => queryWithRetry(() => supabase
         .from("catalogue_locations")
         .select("id", { count: "exact", head: true })
         .eq("active", true)),
-      queryWithRetry(() => supabase.from("merchants").select("id", { count: "exact", head: true })),
-    ]);
+      () => queryWithRetry(() => supabase.from("merchants").select("id", { count: "exact", head: true })),
+    ], 1);
     const healthFailures = [
       error && "catalogue_items",
       locationError && "catalogue_locations",
@@ -265,8 +275,8 @@ Deno.serve(async (req) => {
     { data: offers, error: offerError },
     { data: campaigns, error: campaignError },
     { data: sessions, error: sessionError },
-  ] = await Promise.all([
-    queryWithRetry(() => supabase
+  ] = await runQueryWaves([
+    () => queryWithRetry(() => supabase
       .from("catalogue_items")
       .select(
         "availability,quality_grade,quality_note,last_verified_at,id,merchant_id,merchant,title,description,category,kind,city,state,location,timing,end_date,price,conditions,booking,source,verified,hot,featured,slug,detail_url,city_label,active,metadata,latitude,longitude,image_url,image_alt,cuisine,discount_percent,venue_type,offer_origin,exclusive,affiliate_url,affiliate_network",
@@ -276,19 +286,19 @@ Deno.serve(async (req) => {
       .order("hot", { ascending: false })
       .order("end_date", { ascending: true, nullsFirst: false })
       .limit(200)),
-    queryWithRetry(() => supabase
+    () => queryWithRetry(() => supabase
       .from("catalogue_locations")
       .select(
         "id,drop_id,name,address,city,state,latitude,longitude,is_primary,verified_at,source_url,metadata",
       )
       .eq("active", true)
       .limit(1000)),
-    queryWithRetry(() => supabase
+    () => queryWithRetry(() => supabase
       .from("merchants")
       .select(
         "id,name,slug,listing_status,partner_tier,claimable,verified_at,partner_since,description,cuisine,venue_type,website_url,booking_url,public_phone,public_email,logo_url,hero_image_url,image_rights_status,opening_hours,facilities,permanent_listing,directory_status",
       )),
-    queryWithRetry(() => supabase
+    () => queryWithRetry(() => supabase
       .from("merchant_offers")
       .select(
         "id,merchant_id,published_drop_id,status,exclusive,featured,vertical,drop_type,inventory_unit,fulfilment_mode,booking_provider,visibility,capacity_total,capacity_remaining,starts_at,ends_at,booking_url,action_type,promo_code,affiliate_url",
@@ -297,7 +307,7 @@ Deno.serve(async (req) => {
       .eq("visibility", "public")
       .or(`ends_at.is.null,ends_at.gt.${now}`)
       .limit(1000)),
-    queryWithRetry(() => supabase
+    () => queryWithRetry(() => supabase
       .from("featured_campaigns")
       .select(
         "id,merchant_id,merchant_offer_id,catalogue_item_id,placement,status,starts_at,ends_at",
@@ -306,7 +316,7 @@ Deno.serve(async (req) => {
       .lte("starts_at", now)
       .gte("ends_at", now)
       .limit(500)),
-    queryWithRetry(() => supabase
+    () => queryWithRetry(() => supabase
       .from("offer_sessions")
       .select(
         "id,merchant_offer_id,service_date,timezone,service_start,service_end,capacity_total,capacity_remaining,status",
@@ -314,7 +324,7 @@ Deno.serve(async (req) => {
       .eq("status", "active")
       .order("service_date", { ascending: true })
       .limit(3000)),
-  ]);
+  ], 2);
   if (error || merchantError || offerError || locError || campaignError || sessionError) {
     const failed = [error && "catalogue_items", merchantError && "merchants", offerError && "merchant_offers", locError && "catalogue_locations", campaignError && "featured_campaigns", sessionError && "offer_sessions"].filter(Boolean) as string[];
     responseHeaders["x-perkdrop-query-failure"] = failed.join(",");
