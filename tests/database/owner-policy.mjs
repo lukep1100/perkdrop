@@ -4,7 +4,7 @@ import {readFile} from 'node:fs/promises';
 export async function testOwnerPolicy(pool,check){
   // Minimal exported outbox shape; no dispatcher or external transport exists in this cluster.
   await pool.query("create table if not exists merchant_notification_outbox(id uuid primary key default gen_random_uuid(),merchant_id uuid,event_type text not null,recipient_email text not null,payload jsonb not null default '{}',status text not null default 'pending')");
-  await pool.query(await readFile(new URL('../../supabase/migrations/20260914102500_owner_publication_policy.sql',import.meta.url),'utf8'));
+  await pool.query(await readFile(new URL('../../supabase/migrations/20260914110110_owner_publication_policy.sql',import.meta.url),'utf8'));
   const merchant=async(name='Policy fixture',location=randomUUID())=>(await pool.query("insert into merchants(name,slug,primary_location,primary_state,website_url) values($1,$2,$3,'SA','https://example.invalid/branch') returning id",[name,randomUUID(),location])).rows[0].id;
   const request=(mid,kind='business_optout',extra={})=>pool.query('select record_business_request($1)',[{merchant_id:mid,business_name:'Policy fixture',request_kind:kind,match_state:'confirmed',original_request:'Stop emailing us',request_reference:randomUUID(),match_basis:'Synthetic exact-branch evidence',recipient:randomUUID()+'@example.invalid',...extra}]);
   await check('confirmed opt-out delists under policy without rewriting the original request',async()=>{

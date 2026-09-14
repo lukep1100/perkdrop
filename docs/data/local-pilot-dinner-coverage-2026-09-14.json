@@ -1,0 +1,6763 @@
+{
+  "asOf": "2026-09-14T11:03:47.952Z",
+  "area": "Adelaide inner metro: 12 km straight-line radius from Victoria Square (-34.9285, 138.6007)",
+  "scheduleBasis": "Currently recorded schedule, not future source or booking guarantee; existing 30-day evidence rule unchanged.",
+  "rows": [
+    {
+      "date": "2026-09-14",
+      "time": "17:00",
+      "businesses": 3,
+      "offers": 3,
+      "eligible": [
+        {
+          "id": "PD-2026-0059",
+          "business": "The Woodville Hotel"
+        },
+        {
+          "id": "UNION-PARMI-PINT",
+          "business": "Union Hotel"
+        },
+        {
+          "id": "PD-2026-0062",
+          "business": "Grand Junction Tavern"
+        }
+      ],
+      "exclusions": {
+        "outside_area": 24,
+        "service_hours_unknown": 3,
+        "not_dinner": 11,
+        "source_conflict": 2,
+        "service_finished": 1,
+        "wrong_weekday": 1
+      },
+      "excluded": [
+        {
+          "id": "PD-2026-0001",
+          "business": "Bunnings Warehouse",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0011",
+          "business": "National Gallery of Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0060",
+          "business": "SWELL Sculpture Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0056",
+          "business": "The Reserve Social",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0055",
+          "business": "Jimmy's Bar & Grill",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0003",
+          "business": "National Gallery of Victoria",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0041",
+          "business": "OPSM",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0054",
+          "business": "Harry's Bar on Grenfell",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0057",
+          "business": "Canopy",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0002",
+          "business": "Australian Museum",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0049",
+          "business": "Archie Brothers Cirque Electriq",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0014",
+          "business": "HOTA Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0027",
+          "business": "Fed Square",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0013",
+          "business": "Darwin Waterfront",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0032",
+          "business": "Brisbane Botanic Gardens Mt Coot-tha",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0035",
+          "business": "Barangaroo",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0031",
+          "business": "Museum of Brisbane",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0010",
+          "business": "Art Gallery of Western Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0028",
+          "business": "Brisbane Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0039",
+          "business": "Hindu Society of the Northern Territory",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0053",
+          "business": "City of Perth / Tourism WA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0004",
+          "business": "QAGOMA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0046",
+          "business": "Waverley Council / NSW Department of Education",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0012",
+          "business": "Tasmanian Museum and Art Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0050",
+          "business": "Hijinx Hotel",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0019",
+          "business": "Rundle Mall",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0058",
+          "business": "Cucina by Liquid",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "UNION-HOTEL-LUNCH-20-OFF",
+          "business": "Union Hotel",
+          "reason": "service_finished"
+        },
+        {
+          "id": "UNION-FRIDAY-STEAK",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0075",
+          "business": "Stella Restaurant",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "PD-2026-0005",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0006",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0008",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0072",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0063",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0009",
+          "business": "South Australian Museum",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0065",
+          "business": "Placemaking NSW / Darling Harbour",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0067",
+          "business": "Perth City Farm",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0069",
+          "business": "Darwin International Film Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0070",
+          "business": "Floriade",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0066",
+          "business": "Sculptors Queensland / Brisbane City Council",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0071",
+          "business": "Sydney Opera House",
+          "reason": "outside_area"
+        }
+      ]
+    },
+    {
+      "date": "2026-09-14",
+      "time": "18:00",
+      "businesses": 3,
+      "offers": 3,
+      "eligible": [
+        {
+          "id": "PD-2026-0059",
+          "business": "The Woodville Hotel"
+        },
+        {
+          "id": "UNION-PARMI-PINT",
+          "business": "Union Hotel"
+        },
+        {
+          "id": "PD-2026-0062",
+          "business": "Grand Junction Tavern"
+        }
+      ],
+      "exclusions": {
+        "outside_area": 24,
+        "service_hours_unknown": 3,
+        "not_dinner": 11,
+        "source_conflict": 2,
+        "service_finished": 1,
+        "wrong_weekday": 1
+      },
+      "excluded": [
+        {
+          "id": "PD-2026-0001",
+          "business": "Bunnings Warehouse",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0011",
+          "business": "National Gallery of Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0060",
+          "business": "SWELL Sculpture Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0056",
+          "business": "The Reserve Social",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0055",
+          "business": "Jimmy's Bar & Grill",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0003",
+          "business": "National Gallery of Victoria",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0041",
+          "business": "OPSM",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0054",
+          "business": "Harry's Bar on Grenfell",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0057",
+          "business": "Canopy",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0002",
+          "business": "Australian Museum",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0049",
+          "business": "Archie Brothers Cirque Electriq",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0014",
+          "business": "HOTA Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0027",
+          "business": "Fed Square",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0013",
+          "business": "Darwin Waterfront",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0032",
+          "business": "Brisbane Botanic Gardens Mt Coot-tha",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0035",
+          "business": "Barangaroo",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0031",
+          "business": "Museum of Brisbane",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0010",
+          "business": "Art Gallery of Western Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0028",
+          "business": "Brisbane Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0039",
+          "business": "Hindu Society of the Northern Territory",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0053",
+          "business": "City of Perth / Tourism WA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0004",
+          "business": "QAGOMA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0046",
+          "business": "Waverley Council / NSW Department of Education",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0012",
+          "business": "Tasmanian Museum and Art Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0050",
+          "business": "Hijinx Hotel",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0019",
+          "business": "Rundle Mall",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0058",
+          "business": "Cucina by Liquid",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "UNION-HOTEL-LUNCH-20-OFF",
+          "business": "Union Hotel",
+          "reason": "service_finished"
+        },
+        {
+          "id": "UNION-FRIDAY-STEAK",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0075",
+          "business": "Stella Restaurant",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "PD-2026-0005",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0006",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0008",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0072",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0063",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0009",
+          "business": "South Australian Museum",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0065",
+          "business": "Placemaking NSW / Darling Harbour",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0067",
+          "business": "Perth City Farm",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0069",
+          "business": "Darwin International Film Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0070",
+          "business": "Floriade",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0066",
+          "business": "Sculptors Queensland / Brisbane City Council",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0071",
+          "business": "Sydney Opera House",
+          "reason": "outside_area"
+        }
+      ]
+    },
+    {
+      "date": "2026-09-14",
+      "time": "19:00",
+      "businesses": 3,
+      "offers": 3,
+      "eligible": [
+        {
+          "id": "PD-2026-0059",
+          "business": "The Woodville Hotel"
+        },
+        {
+          "id": "UNION-PARMI-PINT",
+          "business": "Union Hotel"
+        },
+        {
+          "id": "PD-2026-0062",
+          "business": "Grand Junction Tavern"
+        }
+      ],
+      "exclusions": {
+        "outside_area": 24,
+        "service_hours_unknown": 3,
+        "not_dinner": 11,
+        "source_conflict": 2,
+        "service_finished": 1,
+        "wrong_weekday": 1
+      },
+      "excluded": [
+        {
+          "id": "PD-2026-0001",
+          "business": "Bunnings Warehouse",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0011",
+          "business": "National Gallery of Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0060",
+          "business": "SWELL Sculpture Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0056",
+          "business": "The Reserve Social",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0055",
+          "business": "Jimmy's Bar & Grill",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0003",
+          "business": "National Gallery of Victoria",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0041",
+          "business": "OPSM",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0054",
+          "business": "Harry's Bar on Grenfell",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0057",
+          "business": "Canopy",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0002",
+          "business": "Australian Museum",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0049",
+          "business": "Archie Brothers Cirque Electriq",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0014",
+          "business": "HOTA Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0027",
+          "business": "Fed Square",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0013",
+          "business": "Darwin Waterfront",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0032",
+          "business": "Brisbane Botanic Gardens Mt Coot-tha",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0035",
+          "business": "Barangaroo",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0031",
+          "business": "Museum of Brisbane",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0010",
+          "business": "Art Gallery of Western Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0028",
+          "business": "Brisbane Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0039",
+          "business": "Hindu Society of the Northern Territory",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0053",
+          "business": "City of Perth / Tourism WA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0004",
+          "business": "QAGOMA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0046",
+          "business": "Waverley Council / NSW Department of Education",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0012",
+          "business": "Tasmanian Museum and Art Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0050",
+          "business": "Hijinx Hotel",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0019",
+          "business": "Rundle Mall",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0058",
+          "business": "Cucina by Liquid",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "UNION-HOTEL-LUNCH-20-OFF",
+          "business": "Union Hotel",
+          "reason": "service_finished"
+        },
+        {
+          "id": "UNION-FRIDAY-STEAK",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0075",
+          "business": "Stella Restaurant",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "PD-2026-0005",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0006",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0008",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0072",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0063",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0009",
+          "business": "South Australian Museum",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0065",
+          "business": "Placemaking NSW / Darling Harbour",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0067",
+          "business": "Perth City Farm",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0069",
+          "business": "Darwin International Film Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0070",
+          "business": "Floriade",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0066",
+          "business": "Sculptors Queensland / Brisbane City Council",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0071",
+          "business": "Sydney Opera House",
+          "reason": "outside_area"
+        }
+      ]
+    },
+    {
+      "date": "2026-09-14",
+      "time": "20:00",
+      "businesses": 3,
+      "offers": 3,
+      "eligible": [
+        {
+          "id": "PD-2026-0059",
+          "business": "The Woodville Hotel"
+        },
+        {
+          "id": "UNION-PARMI-PINT",
+          "business": "Union Hotel"
+        },
+        {
+          "id": "PD-2026-0062",
+          "business": "Grand Junction Tavern"
+        }
+      ],
+      "exclusions": {
+        "outside_area": 24,
+        "service_hours_unknown": 3,
+        "not_dinner": 11,
+        "source_conflict": 2,
+        "service_finished": 1,
+        "wrong_weekday": 1
+      },
+      "excluded": [
+        {
+          "id": "PD-2026-0001",
+          "business": "Bunnings Warehouse",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0011",
+          "business": "National Gallery of Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0060",
+          "business": "SWELL Sculpture Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0056",
+          "business": "The Reserve Social",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0055",
+          "business": "Jimmy's Bar & Grill",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0003",
+          "business": "National Gallery of Victoria",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0041",
+          "business": "OPSM",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0054",
+          "business": "Harry's Bar on Grenfell",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0057",
+          "business": "Canopy",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0002",
+          "business": "Australian Museum",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0049",
+          "business": "Archie Brothers Cirque Electriq",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0014",
+          "business": "HOTA Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0027",
+          "business": "Fed Square",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0013",
+          "business": "Darwin Waterfront",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0032",
+          "business": "Brisbane Botanic Gardens Mt Coot-tha",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0035",
+          "business": "Barangaroo",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0031",
+          "business": "Museum of Brisbane",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0010",
+          "business": "Art Gallery of Western Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0028",
+          "business": "Brisbane Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0039",
+          "business": "Hindu Society of the Northern Territory",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0053",
+          "business": "City of Perth / Tourism WA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0004",
+          "business": "QAGOMA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0046",
+          "business": "Waverley Council / NSW Department of Education",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0012",
+          "business": "Tasmanian Museum and Art Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0050",
+          "business": "Hijinx Hotel",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0019",
+          "business": "Rundle Mall",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0058",
+          "business": "Cucina by Liquid",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "UNION-HOTEL-LUNCH-20-OFF",
+          "business": "Union Hotel",
+          "reason": "service_finished"
+        },
+        {
+          "id": "UNION-FRIDAY-STEAK",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0075",
+          "business": "Stella Restaurant",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "PD-2026-0005",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0006",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0008",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0072",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0063",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0009",
+          "business": "South Australian Museum",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0065",
+          "business": "Placemaking NSW / Darling Harbour",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0067",
+          "business": "Perth City Farm",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0069",
+          "business": "Darwin International Film Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0070",
+          "business": "Floriade",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0066",
+          "business": "Sculptors Queensland / Brisbane City Council",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0071",
+          "business": "Sydney Opera House",
+          "reason": "outside_area"
+        }
+      ]
+    },
+    {
+      "date": "2026-09-15",
+      "time": "17:00",
+      "businesses": 1,
+      "offers": 1,
+      "eligible": [
+        {
+          "id": "UNION-PARMI-PINT",
+          "business": "Union Hotel"
+        }
+      ],
+      "exclusions": {
+        "outside_area": 24,
+        "service_hours_unknown": 3,
+        "wrong_weekday": 3,
+        "not_dinner": 11,
+        "source_conflict": 2,
+        "service_finished": 1
+      },
+      "excluded": [
+        {
+          "id": "PD-2026-0001",
+          "business": "Bunnings Warehouse",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0011",
+          "business": "National Gallery of Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0060",
+          "business": "SWELL Sculpture Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0056",
+          "business": "The Reserve Social",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0055",
+          "business": "Jimmy's Bar & Grill",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0003",
+          "business": "National Gallery of Victoria",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0059",
+          "business": "The Woodville Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0041",
+          "business": "OPSM",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0054",
+          "business": "Harry's Bar on Grenfell",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0057",
+          "business": "Canopy",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0002",
+          "business": "Australian Museum",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0049",
+          "business": "Archie Brothers Cirque Electriq",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0014",
+          "business": "HOTA Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0027",
+          "business": "Fed Square",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0013",
+          "business": "Darwin Waterfront",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0032",
+          "business": "Brisbane Botanic Gardens Mt Coot-tha",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0035",
+          "business": "Barangaroo",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0031",
+          "business": "Museum of Brisbane",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0010",
+          "business": "Art Gallery of Western Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0028",
+          "business": "Brisbane Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0039",
+          "business": "Hindu Society of the Northern Territory",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0053",
+          "business": "City of Perth / Tourism WA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0004",
+          "business": "QAGOMA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0046",
+          "business": "Waverley Council / NSW Department of Education",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0012",
+          "business": "Tasmanian Museum and Art Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0050",
+          "business": "Hijinx Hotel",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0019",
+          "business": "Rundle Mall",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0058",
+          "business": "Cucina by Liquid",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "UNION-HOTEL-LUNCH-20-OFF",
+          "business": "Union Hotel",
+          "reason": "service_finished"
+        },
+        {
+          "id": "UNION-FRIDAY-STEAK",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0075",
+          "business": "Stella Restaurant",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "PD-2026-0005",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0006",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0008",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0072",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0063",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0009",
+          "business": "South Australian Museum",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0065",
+          "business": "Placemaking NSW / Darling Harbour",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0067",
+          "business": "Perth City Farm",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0069",
+          "business": "Darwin International Film Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0070",
+          "business": "Floriade",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0066",
+          "business": "Sculptors Queensland / Brisbane City Council",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0071",
+          "business": "Sydney Opera House",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0062",
+          "business": "Grand Junction Tavern",
+          "reason": "wrong_weekday"
+        }
+      ]
+    },
+    {
+      "date": "2026-09-15",
+      "time": "18:00",
+      "businesses": 1,
+      "offers": 1,
+      "eligible": [
+        {
+          "id": "UNION-PARMI-PINT",
+          "business": "Union Hotel"
+        }
+      ],
+      "exclusions": {
+        "outside_area": 24,
+        "service_hours_unknown": 3,
+        "wrong_weekday": 3,
+        "not_dinner": 11,
+        "source_conflict": 2,
+        "service_finished": 1
+      },
+      "excluded": [
+        {
+          "id": "PD-2026-0001",
+          "business": "Bunnings Warehouse",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0011",
+          "business": "National Gallery of Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0060",
+          "business": "SWELL Sculpture Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0056",
+          "business": "The Reserve Social",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0055",
+          "business": "Jimmy's Bar & Grill",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0003",
+          "business": "National Gallery of Victoria",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0059",
+          "business": "The Woodville Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0041",
+          "business": "OPSM",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0054",
+          "business": "Harry's Bar on Grenfell",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0057",
+          "business": "Canopy",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0002",
+          "business": "Australian Museum",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0049",
+          "business": "Archie Brothers Cirque Electriq",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0014",
+          "business": "HOTA Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0027",
+          "business": "Fed Square",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0013",
+          "business": "Darwin Waterfront",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0032",
+          "business": "Brisbane Botanic Gardens Mt Coot-tha",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0035",
+          "business": "Barangaroo",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0031",
+          "business": "Museum of Brisbane",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0010",
+          "business": "Art Gallery of Western Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0028",
+          "business": "Brisbane Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0039",
+          "business": "Hindu Society of the Northern Territory",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0053",
+          "business": "City of Perth / Tourism WA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0004",
+          "business": "QAGOMA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0046",
+          "business": "Waverley Council / NSW Department of Education",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0012",
+          "business": "Tasmanian Museum and Art Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0050",
+          "business": "Hijinx Hotel",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0019",
+          "business": "Rundle Mall",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0058",
+          "business": "Cucina by Liquid",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "UNION-HOTEL-LUNCH-20-OFF",
+          "business": "Union Hotel",
+          "reason": "service_finished"
+        },
+        {
+          "id": "UNION-FRIDAY-STEAK",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0075",
+          "business": "Stella Restaurant",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "PD-2026-0005",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0006",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0008",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0072",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0063",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0009",
+          "business": "South Australian Museum",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0065",
+          "business": "Placemaking NSW / Darling Harbour",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0067",
+          "business": "Perth City Farm",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0069",
+          "business": "Darwin International Film Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0070",
+          "business": "Floriade",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0066",
+          "business": "Sculptors Queensland / Brisbane City Council",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0071",
+          "business": "Sydney Opera House",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0062",
+          "business": "Grand Junction Tavern",
+          "reason": "wrong_weekday"
+        }
+      ]
+    },
+    {
+      "date": "2026-09-15",
+      "time": "19:00",
+      "businesses": 1,
+      "offers": 1,
+      "eligible": [
+        {
+          "id": "UNION-PARMI-PINT",
+          "business": "Union Hotel"
+        }
+      ],
+      "exclusions": {
+        "outside_area": 24,
+        "service_hours_unknown": 3,
+        "wrong_weekday": 3,
+        "not_dinner": 11,
+        "source_conflict": 2,
+        "service_finished": 1
+      },
+      "excluded": [
+        {
+          "id": "PD-2026-0001",
+          "business": "Bunnings Warehouse",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0011",
+          "business": "National Gallery of Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0060",
+          "business": "SWELL Sculpture Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0056",
+          "business": "The Reserve Social",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0055",
+          "business": "Jimmy's Bar & Grill",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0003",
+          "business": "National Gallery of Victoria",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0059",
+          "business": "The Woodville Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0041",
+          "business": "OPSM",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0054",
+          "business": "Harry's Bar on Grenfell",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0057",
+          "business": "Canopy",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0002",
+          "business": "Australian Museum",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0049",
+          "business": "Archie Brothers Cirque Electriq",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0014",
+          "business": "HOTA Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0027",
+          "business": "Fed Square",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0013",
+          "business": "Darwin Waterfront",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0032",
+          "business": "Brisbane Botanic Gardens Mt Coot-tha",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0035",
+          "business": "Barangaroo",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0031",
+          "business": "Museum of Brisbane",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0010",
+          "business": "Art Gallery of Western Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0028",
+          "business": "Brisbane Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0039",
+          "business": "Hindu Society of the Northern Territory",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0053",
+          "business": "City of Perth / Tourism WA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0004",
+          "business": "QAGOMA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0046",
+          "business": "Waverley Council / NSW Department of Education",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0012",
+          "business": "Tasmanian Museum and Art Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0050",
+          "business": "Hijinx Hotel",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0019",
+          "business": "Rundle Mall",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0058",
+          "business": "Cucina by Liquid",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "UNION-HOTEL-LUNCH-20-OFF",
+          "business": "Union Hotel",
+          "reason": "service_finished"
+        },
+        {
+          "id": "UNION-FRIDAY-STEAK",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0075",
+          "business": "Stella Restaurant",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "PD-2026-0005",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0006",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0008",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0072",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0063",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0009",
+          "business": "South Australian Museum",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0065",
+          "business": "Placemaking NSW / Darling Harbour",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0067",
+          "business": "Perth City Farm",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0069",
+          "business": "Darwin International Film Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0070",
+          "business": "Floriade",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0066",
+          "business": "Sculptors Queensland / Brisbane City Council",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0071",
+          "business": "Sydney Opera House",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0062",
+          "business": "Grand Junction Tavern",
+          "reason": "wrong_weekday"
+        }
+      ]
+    },
+    {
+      "date": "2026-09-15",
+      "time": "20:00",
+      "businesses": 1,
+      "offers": 1,
+      "eligible": [
+        {
+          "id": "UNION-PARMI-PINT",
+          "business": "Union Hotel"
+        }
+      ],
+      "exclusions": {
+        "outside_area": 24,
+        "service_hours_unknown": 3,
+        "wrong_weekday": 3,
+        "not_dinner": 11,
+        "source_conflict": 2,
+        "service_finished": 1
+      },
+      "excluded": [
+        {
+          "id": "PD-2026-0001",
+          "business": "Bunnings Warehouse",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0011",
+          "business": "National Gallery of Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0060",
+          "business": "SWELL Sculpture Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0056",
+          "business": "The Reserve Social",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0055",
+          "business": "Jimmy's Bar & Grill",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0003",
+          "business": "National Gallery of Victoria",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0059",
+          "business": "The Woodville Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0041",
+          "business": "OPSM",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0054",
+          "business": "Harry's Bar on Grenfell",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0057",
+          "business": "Canopy",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0002",
+          "business": "Australian Museum",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0049",
+          "business": "Archie Brothers Cirque Electriq",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0014",
+          "business": "HOTA Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0027",
+          "business": "Fed Square",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0013",
+          "business": "Darwin Waterfront",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0032",
+          "business": "Brisbane Botanic Gardens Mt Coot-tha",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0035",
+          "business": "Barangaroo",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0031",
+          "business": "Museum of Brisbane",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0010",
+          "business": "Art Gallery of Western Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0028",
+          "business": "Brisbane Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0039",
+          "business": "Hindu Society of the Northern Territory",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0053",
+          "business": "City of Perth / Tourism WA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0004",
+          "business": "QAGOMA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0046",
+          "business": "Waverley Council / NSW Department of Education",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0012",
+          "business": "Tasmanian Museum and Art Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0050",
+          "business": "Hijinx Hotel",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0019",
+          "business": "Rundle Mall",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0058",
+          "business": "Cucina by Liquid",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "UNION-HOTEL-LUNCH-20-OFF",
+          "business": "Union Hotel",
+          "reason": "service_finished"
+        },
+        {
+          "id": "UNION-FRIDAY-STEAK",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0075",
+          "business": "Stella Restaurant",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "PD-2026-0005",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0006",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0008",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0072",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0063",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0009",
+          "business": "South Australian Museum",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0065",
+          "business": "Placemaking NSW / Darling Harbour",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0067",
+          "business": "Perth City Farm",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0069",
+          "business": "Darwin International Film Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0070",
+          "business": "Floriade",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0066",
+          "business": "Sculptors Queensland / Brisbane City Council",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0071",
+          "business": "Sydney Opera House",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0062",
+          "business": "Grand Junction Tavern",
+          "reason": "wrong_weekday"
+        }
+      ]
+    },
+    {
+      "date": "2026-09-16",
+      "time": "17:00",
+      "businesses": 0,
+      "offers": 0,
+      "eligible": [],
+      "exclusions": {
+        "outside_area": 24,
+        "service_hours_unknown": 3,
+        "wrong_weekday": 4,
+        "not_dinner": 11,
+        "source_conflict": 2,
+        "service_finished": 1
+      },
+      "excluded": [
+        {
+          "id": "PD-2026-0001",
+          "business": "Bunnings Warehouse",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0011",
+          "business": "National Gallery of Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0060",
+          "business": "SWELL Sculpture Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0056",
+          "business": "The Reserve Social",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0055",
+          "business": "Jimmy's Bar & Grill",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0003",
+          "business": "National Gallery of Victoria",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0059",
+          "business": "The Woodville Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0041",
+          "business": "OPSM",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0054",
+          "business": "Harry's Bar on Grenfell",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0057",
+          "business": "Canopy",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0002",
+          "business": "Australian Museum",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0049",
+          "business": "Archie Brothers Cirque Electriq",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0014",
+          "business": "HOTA Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0027",
+          "business": "Fed Square",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0013",
+          "business": "Darwin Waterfront",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0032",
+          "business": "Brisbane Botanic Gardens Mt Coot-tha",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0035",
+          "business": "Barangaroo",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0031",
+          "business": "Museum of Brisbane",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0010",
+          "business": "Art Gallery of Western Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0028",
+          "business": "Brisbane Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0039",
+          "business": "Hindu Society of the Northern Territory",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0053",
+          "business": "City of Perth / Tourism WA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0004",
+          "business": "QAGOMA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0046",
+          "business": "Waverley Council / NSW Department of Education",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0012",
+          "business": "Tasmanian Museum and Art Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0050",
+          "business": "Hijinx Hotel",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0019",
+          "business": "Rundle Mall",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0058",
+          "business": "Cucina by Liquid",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "UNION-HOTEL-LUNCH-20-OFF",
+          "business": "Union Hotel",
+          "reason": "service_finished"
+        },
+        {
+          "id": "UNION-FRIDAY-STEAK",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "UNION-PARMI-PINT",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0075",
+          "business": "Stella Restaurant",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "PD-2026-0005",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0006",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0008",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0072",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0063",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0009",
+          "business": "South Australian Museum",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0065",
+          "business": "Placemaking NSW / Darling Harbour",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0067",
+          "business": "Perth City Farm",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0069",
+          "business": "Darwin International Film Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0070",
+          "business": "Floriade",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0066",
+          "business": "Sculptors Queensland / Brisbane City Council",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0071",
+          "business": "Sydney Opera House",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0062",
+          "business": "Grand Junction Tavern",
+          "reason": "wrong_weekday"
+        }
+      ]
+    },
+    {
+      "date": "2026-09-16",
+      "time": "18:00",
+      "businesses": 0,
+      "offers": 0,
+      "eligible": [],
+      "exclusions": {
+        "outside_area": 24,
+        "service_hours_unknown": 3,
+        "wrong_weekday": 4,
+        "not_dinner": 11,
+        "source_conflict": 2,
+        "service_finished": 1
+      },
+      "excluded": [
+        {
+          "id": "PD-2026-0001",
+          "business": "Bunnings Warehouse",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0011",
+          "business": "National Gallery of Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0060",
+          "business": "SWELL Sculpture Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0056",
+          "business": "The Reserve Social",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0055",
+          "business": "Jimmy's Bar & Grill",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0003",
+          "business": "National Gallery of Victoria",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0059",
+          "business": "The Woodville Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0041",
+          "business": "OPSM",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0054",
+          "business": "Harry's Bar on Grenfell",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0057",
+          "business": "Canopy",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0002",
+          "business": "Australian Museum",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0049",
+          "business": "Archie Brothers Cirque Electriq",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0014",
+          "business": "HOTA Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0027",
+          "business": "Fed Square",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0013",
+          "business": "Darwin Waterfront",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0032",
+          "business": "Brisbane Botanic Gardens Mt Coot-tha",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0035",
+          "business": "Barangaroo",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0031",
+          "business": "Museum of Brisbane",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0010",
+          "business": "Art Gallery of Western Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0028",
+          "business": "Brisbane Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0039",
+          "business": "Hindu Society of the Northern Territory",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0053",
+          "business": "City of Perth / Tourism WA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0004",
+          "business": "QAGOMA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0046",
+          "business": "Waverley Council / NSW Department of Education",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0012",
+          "business": "Tasmanian Museum and Art Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0050",
+          "business": "Hijinx Hotel",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0019",
+          "business": "Rundle Mall",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0058",
+          "business": "Cucina by Liquid",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "UNION-HOTEL-LUNCH-20-OFF",
+          "business": "Union Hotel",
+          "reason": "service_finished"
+        },
+        {
+          "id": "UNION-FRIDAY-STEAK",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "UNION-PARMI-PINT",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0075",
+          "business": "Stella Restaurant",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "PD-2026-0005",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0006",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0008",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0072",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0063",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0009",
+          "business": "South Australian Museum",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0065",
+          "business": "Placemaking NSW / Darling Harbour",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0067",
+          "business": "Perth City Farm",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0069",
+          "business": "Darwin International Film Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0070",
+          "business": "Floriade",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0066",
+          "business": "Sculptors Queensland / Brisbane City Council",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0071",
+          "business": "Sydney Opera House",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0062",
+          "business": "Grand Junction Tavern",
+          "reason": "wrong_weekday"
+        }
+      ]
+    },
+    {
+      "date": "2026-09-16",
+      "time": "19:00",
+      "businesses": 0,
+      "offers": 0,
+      "eligible": [],
+      "exclusions": {
+        "outside_area": 24,
+        "service_hours_unknown": 3,
+        "wrong_weekday": 4,
+        "not_dinner": 11,
+        "source_conflict": 2,
+        "service_finished": 1
+      },
+      "excluded": [
+        {
+          "id": "PD-2026-0001",
+          "business": "Bunnings Warehouse",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0011",
+          "business": "National Gallery of Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0060",
+          "business": "SWELL Sculpture Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0056",
+          "business": "The Reserve Social",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0055",
+          "business": "Jimmy's Bar & Grill",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0003",
+          "business": "National Gallery of Victoria",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0059",
+          "business": "The Woodville Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0041",
+          "business": "OPSM",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0054",
+          "business": "Harry's Bar on Grenfell",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0057",
+          "business": "Canopy",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0002",
+          "business": "Australian Museum",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0049",
+          "business": "Archie Brothers Cirque Electriq",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0014",
+          "business": "HOTA Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0027",
+          "business": "Fed Square",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0013",
+          "business": "Darwin Waterfront",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0032",
+          "business": "Brisbane Botanic Gardens Mt Coot-tha",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0035",
+          "business": "Barangaroo",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0031",
+          "business": "Museum of Brisbane",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0010",
+          "business": "Art Gallery of Western Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0028",
+          "business": "Brisbane Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0039",
+          "business": "Hindu Society of the Northern Territory",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0053",
+          "business": "City of Perth / Tourism WA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0004",
+          "business": "QAGOMA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0046",
+          "business": "Waverley Council / NSW Department of Education",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0012",
+          "business": "Tasmanian Museum and Art Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0050",
+          "business": "Hijinx Hotel",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0019",
+          "business": "Rundle Mall",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0058",
+          "business": "Cucina by Liquid",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "UNION-HOTEL-LUNCH-20-OFF",
+          "business": "Union Hotel",
+          "reason": "service_finished"
+        },
+        {
+          "id": "UNION-FRIDAY-STEAK",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "UNION-PARMI-PINT",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0075",
+          "business": "Stella Restaurant",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "PD-2026-0005",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0006",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0008",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0072",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0063",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0009",
+          "business": "South Australian Museum",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0065",
+          "business": "Placemaking NSW / Darling Harbour",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0067",
+          "business": "Perth City Farm",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0069",
+          "business": "Darwin International Film Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0070",
+          "business": "Floriade",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0066",
+          "business": "Sculptors Queensland / Brisbane City Council",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0071",
+          "business": "Sydney Opera House",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0062",
+          "business": "Grand Junction Tavern",
+          "reason": "wrong_weekday"
+        }
+      ]
+    },
+    {
+      "date": "2026-09-16",
+      "time": "20:00",
+      "businesses": 0,
+      "offers": 0,
+      "eligible": [],
+      "exclusions": {
+        "outside_area": 24,
+        "service_hours_unknown": 3,
+        "wrong_weekday": 4,
+        "not_dinner": 11,
+        "source_conflict": 2,
+        "service_finished": 1
+      },
+      "excluded": [
+        {
+          "id": "PD-2026-0001",
+          "business": "Bunnings Warehouse",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0011",
+          "business": "National Gallery of Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0060",
+          "business": "SWELL Sculpture Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0056",
+          "business": "The Reserve Social",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0055",
+          "business": "Jimmy's Bar & Grill",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0003",
+          "business": "National Gallery of Victoria",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0059",
+          "business": "The Woodville Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0041",
+          "business": "OPSM",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0054",
+          "business": "Harry's Bar on Grenfell",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0057",
+          "business": "Canopy",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0002",
+          "business": "Australian Museum",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0049",
+          "business": "Archie Brothers Cirque Electriq",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0014",
+          "business": "HOTA Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0027",
+          "business": "Fed Square",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0013",
+          "business": "Darwin Waterfront",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0032",
+          "business": "Brisbane Botanic Gardens Mt Coot-tha",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0035",
+          "business": "Barangaroo",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0031",
+          "business": "Museum of Brisbane",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0010",
+          "business": "Art Gallery of Western Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0028",
+          "business": "Brisbane Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0039",
+          "business": "Hindu Society of the Northern Territory",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0053",
+          "business": "City of Perth / Tourism WA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0004",
+          "business": "QAGOMA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0046",
+          "business": "Waverley Council / NSW Department of Education",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0012",
+          "business": "Tasmanian Museum and Art Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0050",
+          "business": "Hijinx Hotel",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0019",
+          "business": "Rundle Mall",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0058",
+          "business": "Cucina by Liquid",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "UNION-HOTEL-LUNCH-20-OFF",
+          "business": "Union Hotel",
+          "reason": "service_finished"
+        },
+        {
+          "id": "UNION-FRIDAY-STEAK",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "UNION-PARMI-PINT",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0075",
+          "business": "Stella Restaurant",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "PD-2026-0005",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0006",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0008",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0072",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0063",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0009",
+          "business": "South Australian Museum",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0065",
+          "business": "Placemaking NSW / Darling Harbour",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0067",
+          "business": "Perth City Farm",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0069",
+          "business": "Darwin International Film Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0070",
+          "business": "Floriade",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0066",
+          "business": "Sculptors Queensland / Brisbane City Council",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0071",
+          "business": "Sydney Opera House",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0062",
+          "business": "Grand Junction Tavern",
+          "reason": "wrong_weekday"
+        }
+      ]
+    },
+    {
+      "date": "2026-09-17",
+      "time": "17:00",
+      "businesses": 0,
+      "offers": 0,
+      "eligible": [],
+      "exclusions": {
+        "outside_area": 24,
+        "service_hours_unknown": 3,
+        "wrong_weekday": 4,
+        "not_dinner": 11,
+        "source_conflict": 2,
+        "service_finished": 1
+      },
+      "excluded": [
+        {
+          "id": "PD-2026-0001",
+          "business": "Bunnings Warehouse",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0011",
+          "business": "National Gallery of Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0060",
+          "business": "SWELL Sculpture Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0056",
+          "business": "The Reserve Social",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0055",
+          "business": "Jimmy's Bar & Grill",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0003",
+          "business": "National Gallery of Victoria",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0059",
+          "business": "The Woodville Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0041",
+          "business": "OPSM",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0054",
+          "business": "Harry's Bar on Grenfell",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0057",
+          "business": "Canopy",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0002",
+          "business": "Australian Museum",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0049",
+          "business": "Archie Brothers Cirque Electriq",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0014",
+          "business": "HOTA Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0027",
+          "business": "Fed Square",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0013",
+          "business": "Darwin Waterfront",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0032",
+          "business": "Brisbane Botanic Gardens Mt Coot-tha",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0035",
+          "business": "Barangaroo",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0031",
+          "business": "Museum of Brisbane",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0010",
+          "business": "Art Gallery of Western Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0028",
+          "business": "Brisbane Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0039",
+          "business": "Hindu Society of the Northern Territory",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0053",
+          "business": "City of Perth / Tourism WA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0004",
+          "business": "QAGOMA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0046",
+          "business": "Waverley Council / NSW Department of Education",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0012",
+          "business": "Tasmanian Museum and Art Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0050",
+          "business": "Hijinx Hotel",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0019",
+          "business": "Rundle Mall",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0058",
+          "business": "Cucina by Liquid",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "UNION-HOTEL-LUNCH-20-OFF",
+          "business": "Union Hotel",
+          "reason": "service_finished"
+        },
+        {
+          "id": "UNION-FRIDAY-STEAK",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "UNION-PARMI-PINT",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0075",
+          "business": "Stella Restaurant",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "PD-2026-0005",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0006",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0008",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0072",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0063",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0009",
+          "business": "South Australian Museum",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0065",
+          "business": "Placemaking NSW / Darling Harbour",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0067",
+          "business": "Perth City Farm",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0069",
+          "business": "Darwin International Film Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0070",
+          "business": "Floriade",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0066",
+          "business": "Sculptors Queensland / Brisbane City Council",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0071",
+          "business": "Sydney Opera House",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0062",
+          "business": "Grand Junction Tavern",
+          "reason": "wrong_weekday"
+        }
+      ]
+    },
+    {
+      "date": "2026-09-17",
+      "time": "18:00",
+      "businesses": 0,
+      "offers": 0,
+      "eligible": [],
+      "exclusions": {
+        "outside_area": 24,
+        "service_hours_unknown": 3,
+        "wrong_weekday": 4,
+        "not_dinner": 11,
+        "source_conflict": 2,
+        "service_finished": 1
+      },
+      "excluded": [
+        {
+          "id": "PD-2026-0001",
+          "business": "Bunnings Warehouse",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0011",
+          "business": "National Gallery of Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0060",
+          "business": "SWELL Sculpture Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0056",
+          "business": "The Reserve Social",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0055",
+          "business": "Jimmy's Bar & Grill",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0003",
+          "business": "National Gallery of Victoria",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0059",
+          "business": "The Woodville Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0041",
+          "business": "OPSM",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0054",
+          "business": "Harry's Bar on Grenfell",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0057",
+          "business": "Canopy",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0002",
+          "business": "Australian Museum",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0049",
+          "business": "Archie Brothers Cirque Electriq",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0014",
+          "business": "HOTA Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0027",
+          "business": "Fed Square",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0013",
+          "business": "Darwin Waterfront",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0032",
+          "business": "Brisbane Botanic Gardens Mt Coot-tha",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0035",
+          "business": "Barangaroo",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0031",
+          "business": "Museum of Brisbane",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0010",
+          "business": "Art Gallery of Western Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0028",
+          "business": "Brisbane Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0039",
+          "business": "Hindu Society of the Northern Territory",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0053",
+          "business": "City of Perth / Tourism WA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0004",
+          "business": "QAGOMA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0046",
+          "business": "Waverley Council / NSW Department of Education",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0012",
+          "business": "Tasmanian Museum and Art Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0050",
+          "business": "Hijinx Hotel",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0019",
+          "business": "Rundle Mall",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0058",
+          "business": "Cucina by Liquid",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "UNION-HOTEL-LUNCH-20-OFF",
+          "business": "Union Hotel",
+          "reason": "service_finished"
+        },
+        {
+          "id": "UNION-FRIDAY-STEAK",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "UNION-PARMI-PINT",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0075",
+          "business": "Stella Restaurant",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "PD-2026-0005",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0006",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0008",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0072",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0063",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0009",
+          "business": "South Australian Museum",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0065",
+          "business": "Placemaking NSW / Darling Harbour",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0067",
+          "business": "Perth City Farm",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0069",
+          "business": "Darwin International Film Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0070",
+          "business": "Floriade",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0066",
+          "business": "Sculptors Queensland / Brisbane City Council",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0071",
+          "business": "Sydney Opera House",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0062",
+          "business": "Grand Junction Tavern",
+          "reason": "wrong_weekday"
+        }
+      ]
+    },
+    {
+      "date": "2026-09-17",
+      "time": "19:00",
+      "businesses": 0,
+      "offers": 0,
+      "eligible": [],
+      "exclusions": {
+        "outside_area": 24,
+        "service_hours_unknown": 3,
+        "wrong_weekday": 4,
+        "not_dinner": 11,
+        "source_conflict": 2,
+        "service_finished": 1
+      },
+      "excluded": [
+        {
+          "id": "PD-2026-0001",
+          "business": "Bunnings Warehouse",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0011",
+          "business": "National Gallery of Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0060",
+          "business": "SWELL Sculpture Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0056",
+          "business": "The Reserve Social",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0055",
+          "business": "Jimmy's Bar & Grill",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0003",
+          "business": "National Gallery of Victoria",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0059",
+          "business": "The Woodville Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0041",
+          "business": "OPSM",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0054",
+          "business": "Harry's Bar on Grenfell",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0057",
+          "business": "Canopy",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0002",
+          "business": "Australian Museum",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0049",
+          "business": "Archie Brothers Cirque Electriq",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0014",
+          "business": "HOTA Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0027",
+          "business": "Fed Square",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0013",
+          "business": "Darwin Waterfront",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0032",
+          "business": "Brisbane Botanic Gardens Mt Coot-tha",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0035",
+          "business": "Barangaroo",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0031",
+          "business": "Museum of Brisbane",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0010",
+          "business": "Art Gallery of Western Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0028",
+          "business": "Brisbane Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0039",
+          "business": "Hindu Society of the Northern Territory",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0053",
+          "business": "City of Perth / Tourism WA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0004",
+          "business": "QAGOMA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0046",
+          "business": "Waverley Council / NSW Department of Education",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0012",
+          "business": "Tasmanian Museum and Art Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0050",
+          "business": "Hijinx Hotel",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0019",
+          "business": "Rundle Mall",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0058",
+          "business": "Cucina by Liquid",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "UNION-HOTEL-LUNCH-20-OFF",
+          "business": "Union Hotel",
+          "reason": "service_finished"
+        },
+        {
+          "id": "UNION-FRIDAY-STEAK",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "UNION-PARMI-PINT",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0075",
+          "business": "Stella Restaurant",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "PD-2026-0005",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0006",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0008",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0072",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0063",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0009",
+          "business": "South Australian Museum",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0065",
+          "business": "Placemaking NSW / Darling Harbour",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0067",
+          "business": "Perth City Farm",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0069",
+          "business": "Darwin International Film Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0070",
+          "business": "Floriade",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0066",
+          "business": "Sculptors Queensland / Brisbane City Council",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0071",
+          "business": "Sydney Opera House",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0062",
+          "business": "Grand Junction Tavern",
+          "reason": "wrong_weekday"
+        }
+      ]
+    },
+    {
+      "date": "2026-09-17",
+      "time": "20:00",
+      "businesses": 0,
+      "offers": 0,
+      "eligible": [],
+      "exclusions": {
+        "outside_area": 24,
+        "service_hours_unknown": 3,
+        "wrong_weekday": 4,
+        "not_dinner": 11,
+        "source_conflict": 2,
+        "service_finished": 1
+      },
+      "excluded": [
+        {
+          "id": "PD-2026-0001",
+          "business": "Bunnings Warehouse",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0011",
+          "business": "National Gallery of Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0060",
+          "business": "SWELL Sculpture Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0056",
+          "business": "The Reserve Social",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0055",
+          "business": "Jimmy's Bar & Grill",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0003",
+          "business": "National Gallery of Victoria",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0059",
+          "business": "The Woodville Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0041",
+          "business": "OPSM",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0054",
+          "business": "Harry's Bar on Grenfell",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0057",
+          "business": "Canopy",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0002",
+          "business": "Australian Museum",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0049",
+          "business": "Archie Brothers Cirque Electriq",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0014",
+          "business": "HOTA Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0027",
+          "business": "Fed Square",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0013",
+          "business": "Darwin Waterfront",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0032",
+          "business": "Brisbane Botanic Gardens Mt Coot-tha",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0035",
+          "business": "Barangaroo",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0031",
+          "business": "Museum of Brisbane",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0010",
+          "business": "Art Gallery of Western Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0028",
+          "business": "Brisbane Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0039",
+          "business": "Hindu Society of the Northern Territory",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0053",
+          "business": "City of Perth / Tourism WA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0004",
+          "business": "QAGOMA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0046",
+          "business": "Waverley Council / NSW Department of Education",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0012",
+          "business": "Tasmanian Museum and Art Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0050",
+          "business": "Hijinx Hotel",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0019",
+          "business": "Rundle Mall",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0058",
+          "business": "Cucina by Liquid",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "UNION-HOTEL-LUNCH-20-OFF",
+          "business": "Union Hotel",
+          "reason": "service_finished"
+        },
+        {
+          "id": "UNION-FRIDAY-STEAK",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "UNION-PARMI-PINT",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0075",
+          "business": "Stella Restaurant",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "PD-2026-0005",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0006",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0008",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0072",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0063",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0009",
+          "business": "South Australian Museum",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0065",
+          "business": "Placemaking NSW / Darling Harbour",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0067",
+          "business": "Perth City Farm",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0069",
+          "business": "Darwin International Film Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0070",
+          "business": "Floriade",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0066",
+          "business": "Sculptors Queensland / Brisbane City Council",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0071",
+          "business": "Sydney Opera House",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0062",
+          "business": "Grand Junction Tavern",
+          "reason": "wrong_weekday"
+        }
+      ]
+    },
+    {
+      "date": "2026-09-18",
+      "time": "17:00",
+      "businesses": 1,
+      "offers": 1,
+      "eligible": [
+        {
+          "id": "UNION-FRIDAY-STEAK",
+          "business": "Union Hotel"
+        }
+      ],
+      "exclusions": {
+        "outside_area": 24,
+        "service_hours_unknown": 3,
+        "wrong_weekday": 4,
+        "not_dinner": 11,
+        "source_conflict": 2
+      },
+      "excluded": [
+        {
+          "id": "PD-2026-0001",
+          "business": "Bunnings Warehouse",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0011",
+          "business": "National Gallery of Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0060",
+          "business": "SWELL Sculpture Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0056",
+          "business": "The Reserve Social",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0055",
+          "business": "Jimmy's Bar & Grill",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0003",
+          "business": "National Gallery of Victoria",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0059",
+          "business": "The Woodville Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0041",
+          "business": "OPSM",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0054",
+          "business": "Harry's Bar on Grenfell",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0057",
+          "business": "Canopy",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0002",
+          "business": "Australian Museum",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0049",
+          "business": "Archie Brothers Cirque Electriq",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0014",
+          "business": "HOTA Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0027",
+          "business": "Fed Square",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0013",
+          "business": "Darwin Waterfront",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0032",
+          "business": "Brisbane Botanic Gardens Mt Coot-tha",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0035",
+          "business": "Barangaroo",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0031",
+          "business": "Museum of Brisbane",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0010",
+          "business": "Art Gallery of Western Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0028",
+          "business": "Brisbane Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0039",
+          "business": "Hindu Society of the Northern Territory",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0053",
+          "business": "City of Perth / Tourism WA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0004",
+          "business": "QAGOMA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0046",
+          "business": "Waverley Council / NSW Department of Education",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0012",
+          "business": "Tasmanian Museum and Art Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0050",
+          "business": "Hijinx Hotel",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0019",
+          "business": "Rundle Mall",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0058",
+          "business": "Cucina by Liquid",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "UNION-HOTEL-LUNCH-20-OFF",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "UNION-PARMI-PINT",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0075",
+          "business": "Stella Restaurant",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "PD-2026-0005",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0006",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0008",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0072",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0063",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0009",
+          "business": "South Australian Museum",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0065",
+          "business": "Placemaking NSW / Darling Harbour",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0067",
+          "business": "Perth City Farm",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0069",
+          "business": "Darwin International Film Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0070",
+          "business": "Floriade",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0066",
+          "business": "Sculptors Queensland / Brisbane City Council",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0071",
+          "business": "Sydney Opera House",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0062",
+          "business": "Grand Junction Tavern",
+          "reason": "wrong_weekday"
+        }
+      ]
+    },
+    {
+      "date": "2026-09-18",
+      "time": "18:00",
+      "businesses": 1,
+      "offers": 1,
+      "eligible": [
+        {
+          "id": "UNION-FRIDAY-STEAK",
+          "business": "Union Hotel"
+        }
+      ],
+      "exclusions": {
+        "outside_area": 24,
+        "service_hours_unknown": 3,
+        "wrong_weekday": 4,
+        "not_dinner": 11,
+        "source_conflict": 2
+      },
+      "excluded": [
+        {
+          "id": "PD-2026-0001",
+          "business": "Bunnings Warehouse",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0011",
+          "business": "National Gallery of Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0060",
+          "business": "SWELL Sculpture Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0056",
+          "business": "The Reserve Social",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0055",
+          "business": "Jimmy's Bar & Grill",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0003",
+          "business": "National Gallery of Victoria",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0059",
+          "business": "The Woodville Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0041",
+          "business": "OPSM",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0054",
+          "business": "Harry's Bar on Grenfell",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0057",
+          "business": "Canopy",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0002",
+          "business": "Australian Museum",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0049",
+          "business": "Archie Brothers Cirque Electriq",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0014",
+          "business": "HOTA Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0027",
+          "business": "Fed Square",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0013",
+          "business": "Darwin Waterfront",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0032",
+          "business": "Brisbane Botanic Gardens Mt Coot-tha",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0035",
+          "business": "Barangaroo",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0031",
+          "business": "Museum of Brisbane",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0010",
+          "business": "Art Gallery of Western Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0028",
+          "business": "Brisbane Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0039",
+          "business": "Hindu Society of the Northern Territory",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0053",
+          "business": "City of Perth / Tourism WA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0004",
+          "business": "QAGOMA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0046",
+          "business": "Waverley Council / NSW Department of Education",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0012",
+          "business": "Tasmanian Museum and Art Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0050",
+          "business": "Hijinx Hotel",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0019",
+          "business": "Rundle Mall",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0058",
+          "business": "Cucina by Liquid",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "UNION-HOTEL-LUNCH-20-OFF",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "UNION-PARMI-PINT",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0075",
+          "business": "Stella Restaurant",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "PD-2026-0005",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0006",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0008",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0072",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0063",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0009",
+          "business": "South Australian Museum",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0065",
+          "business": "Placemaking NSW / Darling Harbour",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0067",
+          "business": "Perth City Farm",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0069",
+          "business": "Darwin International Film Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0070",
+          "business": "Floriade",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0066",
+          "business": "Sculptors Queensland / Brisbane City Council",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0071",
+          "business": "Sydney Opera House",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0062",
+          "business": "Grand Junction Tavern",
+          "reason": "wrong_weekday"
+        }
+      ]
+    },
+    {
+      "date": "2026-09-18",
+      "time": "19:00",
+      "businesses": 1,
+      "offers": 1,
+      "eligible": [
+        {
+          "id": "UNION-FRIDAY-STEAK",
+          "business": "Union Hotel"
+        }
+      ],
+      "exclusions": {
+        "outside_area": 24,
+        "service_hours_unknown": 3,
+        "wrong_weekday": 4,
+        "not_dinner": 11,
+        "source_conflict": 2
+      },
+      "excluded": [
+        {
+          "id": "PD-2026-0001",
+          "business": "Bunnings Warehouse",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0011",
+          "business": "National Gallery of Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0060",
+          "business": "SWELL Sculpture Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0056",
+          "business": "The Reserve Social",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0055",
+          "business": "Jimmy's Bar & Grill",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0003",
+          "business": "National Gallery of Victoria",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0059",
+          "business": "The Woodville Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0041",
+          "business": "OPSM",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0054",
+          "business": "Harry's Bar on Grenfell",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0057",
+          "business": "Canopy",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0002",
+          "business": "Australian Museum",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0049",
+          "business": "Archie Brothers Cirque Electriq",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0014",
+          "business": "HOTA Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0027",
+          "business": "Fed Square",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0013",
+          "business": "Darwin Waterfront",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0032",
+          "business": "Brisbane Botanic Gardens Mt Coot-tha",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0035",
+          "business": "Barangaroo",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0031",
+          "business": "Museum of Brisbane",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0010",
+          "business": "Art Gallery of Western Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0028",
+          "business": "Brisbane Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0039",
+          "business": "Hindu Society of the Northern Territory",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0053",
+          "business": "City of Perth / Tourism WA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0004",
+          "business": "QAGOMA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0046",
+          "business": "Waverley Council / NSW Department of Education",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0012",
+          "business": "Tasmanian Museum and Art Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0050",
+          "business": "Hijinx Hotel",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0019",
+          "business": "Rundle Mall",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0058",
+          "business": "Cucina by Liquid",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "UNION-HOTEL-LUNCH-20-OFF",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "UNION-PARMI-PINT",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0075",
+          "business": "Stella Restaurant",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "PD-2026-0005",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0006",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0008",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0072",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0063",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0009",
+          "business": "South Australian Museum",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0065",
+          "business": "Placemaking NSW / Darling Harbour",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0067",
+          "business": "Perth City Farm",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0069",
+          "business": "Darwin International Film Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0070",
+          "business": "Floriade",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0066",
+          "business": "Sculptors Queensland / Brisbane City Council",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0071",
+          "business": "Sydney Opera House",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0062",
+          "business": "Grand Junction Tavern",
+          "reason": "wrong_weekday"
+        }
+      ]
+    },
+    {
+      "date": "2026-09-18",
+      "time": "20:00",
+      "businesses": 1,
+      "offers": 1,
+      "eligible": [
+        {
+          "id": "UNION-FRIDAY-STEAK",
+          "business": "Union Hotel"
+        }
+      ],
+      "exclusions": {
+        "outside_area": 24,
+        "service_hours_unknown": 3,
+        "wrong_weekday": 4,
+        "not_dinner": 11,
+        "source_conflict": 2
+      },
+      "excluded": [
+        {
+          "id": "PD-2026-0001",
+          "business": "Bunnings Warehouse",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0011",
+          "business": "National Gallery of Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0060",
+          "business": "SWELL Sculpture Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0056",
+          "business": "The Reserve Social",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0055",
+          "business": "Jimmy's Bar & Grill",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0003",
+          "business": "National Gallery of Victoria",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0059",
+          "business": "The Woodville Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0041",
+          "business": "OPSM",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0054",
+          "business": "Harry's Bar on Grenfell",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0057",
+          "business": "Canopy",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0002",
+          "business": "Australian Museum",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0049",
+          "business": "Archie Brothers Cirque Electriq",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0014",
+          "business": "HOTA Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0027",
+          "business": "Fed Square",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0013",
+          "business": "Darwin Waterfront",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0032",
+          "business": "Brisbane Botanic Gardens Mt Coot-tha",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0035",
+          "business": "Barangaroo",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0031",
+          "business": "Museum of Brisbane",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0010",
+          "business": "Art Gallery of Western Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0028",
+          "business": "Brisbane Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0039",
+          "business": "Hindu Society of the Northern Territory",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0053",
+          "business": "City of Perth / Tourism WA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0004",
+          "business": "QAGOMA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0046",
+          "business": "Waverley Council / NSW Department of Education",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0012",
+          "business": "Tasmanian Museum and Art Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0050",
+          "business": "Hijinx Hotel",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0019",
+          "business": "Rundle Mall",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0058",
+          "business": "Cucina by Liquid",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "UNION-HOTEL-LUNCH-20-OFF",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "UNION-PARMI-PINT",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0075",
+          "business": "Stella Restaurant",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "PD-2026-0005",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0006",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0008",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0072",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0063",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0009",
+          "business": "South Australian Museum",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0065",
+          "business": "Placemaking NSW / Darling Harbour",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0067",
+          "business": "Perth City Farm",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0069",
+          "business": "Darwin International Film Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0070",
+          "business": "Floriade",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0066",
+          "business": "Sculptors Queensland / Brisbane City Council",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0071",
+          "business": "Sydney Opera House",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0062",
+          "business": "Grand Junction Tavern",
+          "reason": "wrong_weekday"
+        }
+      ]
+    },
+    {
+      "date": "2026-09-19",
+      "time": "17:00",
+      "businesses": 0,
+      "offers": 0,
+      "eligible": [],
+      "exclusions": {
+        "outside_area": 24,
+        "service_hours_unknown": 3,
+        "wrong_weekday": 5,
+        "not_dinner": 11,
+        "source_conflict": 2
+      },
+      "excluded": [
+        {
+          "id": "PD-2026-0001",
+          "business": "Bunnings Warehouse",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0011",
+          "business": "National Gallery of Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0060",
+          "business": "SWELL Sculpture Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0056",
+          "business": "The Reserve Social",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0055",
+          "business": "Jimmy's Bar & Grill",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0003",
+          "business": "National Gallery of Victoria",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0059",
+          "business": "The Woodville Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0041",
+          "business": "OPSM",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0054",
+          "business": "Harry's Bar on Grenfell",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0057",
+          "business": "Canopy",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0002",
+          "business": "Australian Museum",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0049",
+          "business": "Archie Brothers Cirque Electriq",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0014",
+          "business": "HOTA Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0027",
+          "business": "Fed Square",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0013",
+          "business": "Darwin Waterfront",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0032",
+          "business": "Brisbane Botanic Gardens Mt Coot-tha",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0035",
+          "business": "Barangaroo",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0031",
+          "business": "Museum of Brisbane",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0010",
+          "business": "Art Gallery of Western Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0028",
+          "business": "Brisbane Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0039",
+          "business": "Hindu Society of the Northern Territory",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0053",
+          "business": "City of Perth / Tourism WA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0004",
+          "business": "QAGOMA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0046",
+          "business": "Waverley Council / NSW Department of Education",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0012",
+          "business": "Tasmanian Museum and Art Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0050",
+          "business": "Hijinx Hotel",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0019",
+          "business": "Rundle Mall",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0058",
+          "business": "Cucina by Liquid",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "UNION-HOTEL-LUNCH-20-OFF",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "UNION-FRIDAY-STEAK",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "UNION-PARMI-PINT",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0075",
+          "business": "Stella Restaurant",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "PD-2026-0005",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0006",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0008",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0072",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0063",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0009",
+          "business": "South Australian Museum",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0065",
+          "business": "Placemaking NSW / Darling Harbour",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0067",
+          "business": "Perth City Farm",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0069",
+          "business": "Darwin International Film Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0070",
+          "business": "Floriade",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0066",
+          "business": "Sculptors Queensland / Brisbane City Council",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0071",
+          "business": "Sydney Opera House",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0062",
+          "business": "Grand Junction Tavern",
+          "reason": "wrong_weekday"
+        }
+      ]
+    },
+    {
+      "date": "2026-09-19",
+      "time": "18:00",
+      "businesses": 0,
+      "offers": 0,
+      "eligible": [],
+      "exclusions": {
+        "outside_area": 24,
+        "service_hours_unknown": 3,
+        "wrong_weekday": 5,
+        "not_dinner": 11,
+        "source_conflict": 2
+      },
+      "excluded": [
+        {
+          "id": "PD-2026-0001",
+          "business": "Bunnings Warehouse",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0011",
+          "business": "National Gallery of Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0060",
+          "business": "SWELL Sculpture Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0056",
+          "business": "The Reserve Social",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0055",
+          "business": "Jimmy's Bar & Grill",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0003",
+          "business": "National Gallery of Victoria",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0059",
+          "business": "The Woodville Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0041",
+          "business": "OPSM",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0054",
+          "business": "Harry's Bar on Grenfell",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0057",
+          "business": "Canopy",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0002",
+          "business": "Australian Museum",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0049",
+          "business": "Archie Brothers Cirque Electriq",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0014",
+          "business": "HOTA Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0027",
+          "business": "Fed Square",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0013",
+          "business": "Darwin Waterfront",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0032",
+          "business": "Brisbane Botanic Gardens Mt Coot-tha",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0035",
+          "business": "Barangaroo",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0031",
+          "business": "Museum of Brisbane",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0010",
+          "business": "Art Gallery of Western Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0028",
+          "business": "Brisbane Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0039",
+          "business": "Hindu Society of the Northern Territory",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0053",
+          "business": "City of Perth / Tourism WA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0004",
+          "business": "QAGOMA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0046",
+          "business": "Waverley Council / NSW Department of Education",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0012",
+          "business": "Tasmanian Museum and Art Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0050",
+          "business": "Hijinx Hotel",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0019",
+          "business": "Rundle Mall",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0058",
+          "business": "Cucina by Liquid",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "UNION-HOTEL-LUNCH-20-OFF",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "UNION-FRIDAY-STEAK",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "UNION-PARMI-PINT",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0075",
+          "business": "Stella Restaurant",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "PD-2026-0005",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0006",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0008",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0072",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0063",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0009",
+          "business": "South Australian Museum",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0065",
+          "business": "Placemaking NSW / Darling Harbour",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0067",
+          "business": "Perth City Farm",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0069",
+          "business": "Darwin International Film Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0070",
+          "business": "Floriade",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0066",
+          "business": "Sculptors Queensland / Brisbane City Council",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0071",
+          "business": "Sydney Opera House",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0062",
+          "business": "Grand Junction Tavern",
+          "reason": "wrong_weekday"
+        }
+      ]
+    },
+    {
+      "date": "2026-09-19",
+      "time": "19:00",
+      "businesses": 0,
+      "offers": 0,
+      "eligible": [],
+      "exclusions": {
+        "outside_area": 24,
+        "service_hours_unknown": 3,
+        "wrong_weekday": 5,
+        "not_dinner": 11,
+        "source_conflict": 2
+      },
+      "excluded": [
+        {
+          "id": "PD-2026-0001",
+          "business": "Bunnings Warehouse",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0011",
+          "business": "National Gallery of Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0060",
+          "business": "SWELL Sculpture Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0056",
+          "business": "The Reserve Social",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0055",
+          "business": "Jimmy's Bar & Grill",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0003",
+          "business": "National Gallery of Victoria",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0059",
+          "business": "The Woodville Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0041",
+          "business": "OPSM",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0054",
+          "business": "Harry's Bar on Grenfell",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0057",
+          "business": "Canopy",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0002",
+          "business": "Australian Museum",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0049",
+          "business": "Archie Brothers Cirque Electriq",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0014",
+          "business": "HOTA Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0027",
+          "business": "Fed Square",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0013",
+          "business": "Darwin Waterfront",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0032",
+          "business": "Brisbane Botanic Gardens Mt Coot-tha",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0035",
+          "business": "Barangaroo",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0031",
+          "business": "Museum of Brisbane",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0010",
+          "business": "Art Gallery of Western Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0028",
+          "business": "Brisbane Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0039",
+          "business": "Hindu Society of the Northern Territory",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0053",
+          "business": "City of Perth / Tourism WA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0004",
+          "business": "QAGOMA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0046",
+          "business": "Waverley Council / NSW Department of Education",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0012",
+          "business": "Tasmanian Museum and Art Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0050",
+          "business": "Hijinx Hotel",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0019",
+          "business": "Rundle Mall",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0058",
+          "business": "Cucina by Liquid",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "UNION-HOTEL-LUNCH-20-OFF",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "UNION-FRIDAY-STEAK",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "UNION-PARMI-PINT",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0075",
+          "business": "Stella Restaurant",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "PD-2026-0005",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0006",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0008",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0072",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0063",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0009",
+          "business": "South Australian Museum",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0065",
+          "business": "Placemaking NSW / Darling Harbour",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0067",
+          "business": "Perth City Farm",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0069",
+          "business": "Darwin International Film Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0070",
+          "business": "Floriade",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0066",
+          "business": "Sculptors Queensland / Brisbane City Council",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0071",
+          "business": "Sydney Opera House",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0062",
+          "business": "Grand Junction Tavern",
+          "reason": "wrong_weekday"
+        }
+      ]
+    },
+    {
+      "date": "2026-09-19",
+      "time": "20:00",
+      "businesses": 0,
+      "offers": 0,
+      "eligible": [],
+      "exclusions": {
+        "outside_area": 24,
+        "service_hours_unknown": 3,
+        "wrong_weekday": 5,
+        "not_dinner": 11,
+        "source_conflict": 2
+      },
+      "excluded": [
+        {
+          "id": "PD-2026-0001",
+          "business": "Bunnings Warehouse",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0011",
+          "business": "National Gallery of Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0060",
+          "business": "SWELL Sculpture Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0056",
+          "business": "The Reserve Social",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0055",
+          "business": "Jimmy's Bar & Grill",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0003",
+          "business": "National Gallery of Victoria",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0059",
+          "business": "The Woodville Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0041",
+          "business": "OPSM",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0054",
+          "business": "Harry's Bar on Grenfell",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0057",
+          "business": "Canopy",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0002",
+          "business": "Australian Museum",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0049",
+          "business": "Archie Brothers Cirque Electriq",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0014",
+          "business": "HOTA Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0027",
+          "business": "Fed Square",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0013",
+          "business": "Darwin Waterfront",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0032",
+          "business": "Brisbane Botanic Gardens Mt Coot-tha",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0035",
+          "business": "Barangaroo",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0031",
+          "business": "Museum of Brisbane",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0010",
+          "business": "Art Gallery of Western Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0028",
+          "business": "Brisbane Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0039",
+          "business": "Hindu Society of the Northern Territory",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0053",
+          "business": "City of Perth / Tourism WA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0004",
+          "business": "QAGOMA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0046",
+          "business": "Waverley Council / NSW Department of Education",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0012",
+          "business": "Tasmanian Museum and Art Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0050",
+          "business": "Hijinx Hotel",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0019",
+          "business": "Rundle Mall",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0058",
+          "business": "Cucina by Liquid",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "UNION-HOTEL-LUNCH-20-OFF",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "UNION-FRIDAY-STEAK",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "UNION-PARMI-PINT",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0075",
+          "business": "Stella Restaurant",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "PD-2026-0005",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0006",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0008",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0072",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0063",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0009",
+          "business": "South Australian Museum",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0065",
+          "business": "Placemaking NSW / Darling Harbour",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0067",
+          "business": "Perth City Farm",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0069",
+          "business": "Darwin International Film Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0070",
+          "business": "Floriade",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0066",
+          "business": "Sculptors Queensland / Brisbane City Council",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0071",
+          "business": "Sydney Opera House",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0062",
+          "business": "Grand Junction Tavern",
+          "reason": "wrong_weekday"
+        }
+      ]
+    },
+    {
+      "date": "2026-09-20",
+      "time": "17:00",
+      "businesses": 0,
+      "offers": 0,
+      "eligible": [],
+      "exclusions": {
+        "outside_area": 24,
+        "service_hours_unknown": 3,
+        "wrong_weekday": 5,
+        "not_dinner": 11,
+        "source_conflict": 2
+      },
+      "excluded": [
+        {
+          "id": "PD-2026-0001",
+          "business": "Bunnings Warehouse",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0011",
+          "business": "National Gallery of Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0060",
+          "business": "SWELL Sculpture Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0056",
+          "business": "The Reserve Social",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0055",
+          "business": "Jimmy's Bar & Grill",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0003",
+          "business": "National Gallery of Victoria",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0059",
+          "business": "The Woodville Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0041",
+          "business": "OPSM",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0054",
+          "business": "Harry's Bar on Grenfell",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0057",
+          "business": "Canopy",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0002",
+          "business": "Australian Museum",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0049",
+          "business": "Archie Brothers Cirque Electriq",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0014",
+          "business": "HOTA Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0027",
+          "business": "Fed Square",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0013",
+          "business": "Darwin Waterfront",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0032",
+          "business": "Brisbane Botanic Gardens Mt Coot-tha",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0035",
+          "business": "Barangaroo",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0031",
+          "business": "Museum of Brisbane",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0010",
+          "business": "Art Gallery of Western Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0028",
+          "business": "Brisbane Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0039",
+          "business": "Hindu Society of the Northern Territory",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0053",
+          "business": "City of Perth / Tourism WA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0004",
+          "business": "QAGOMA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0046",
+          "business": "Waverley Council / NSW Department of Education",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0012",
+          "business": "Tasmanian Museum and Art Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0050",
+          "business": "Hijinx Hotel",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0019",
+          "business": "Rundle Mall",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0058",
+          "business": "Cucina by Liquid",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "UNION-HOTEL-LUNCH-20-OFF",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "UNION-FRIDAY-STEAK",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "UNION-PARMI-PINT",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0075",
+          "business": "Stella Restaurant",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "PD-2026-0005",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0006",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0008",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0072",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0063",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0009",
+          "business": "South Australian Museum",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0065",
+          "business": "Placemaking NSW / Darling Harbour",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0067",
+          "business": "Perth City Farm",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0069",
+          "business": "Darwin International Film Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0070",
+          "business": "Floriade",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0066",
+          "business": "Sculptors Queensland / Brisbane City Council",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0071",
+          "business": "Sydney Opera House",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0062",
+          "business": "Grand Junction Tavern",
+          "reason": "wrong_weekday"
+        }
+      ]
+    },
+    {
+      "date": "2026-09-20",
+      "time": "18:00",
+      "businesses": 0,
+      "offers": 0,
+      "eligible": [],
+      "exclusions": {
+        "outside_area": 24,
+        "service_hours_unknown": 3,
+        "wrong_weekday": 5,
+        "not_dinner": 11,
+        "source_conflict": 2
+      },
+      "excluded": [
+        {
+          "id": "PD-2026-0001",
+          "business": "Bunnings Warehouse",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0011",
+          "business": "National Gallery of Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0060",
+          "business": "SWELL Sculpture Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0056",
+          "business": "The Reserve Social",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0055",
+          "business": "Jimmy's Bar & Grill",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0003",
+          "business": "National Gallery of Victoria",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0059",
+          "business": "The Woodville Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0041",
+          "business": "OPSM",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0054",
+          "business": "Harry's Bar on Grenfell",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0057",
+          "business": "Canopy",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0002",
+          "business": "Australian Museum",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0049",
+          "business": "Archie Brothers Cirque Electriq",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0014",
+          "business": "HOTA Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0027",
+          "business": "Fed Square",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0013",
+          "business": "Darwin Waterfront",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0032",
+          "business": "Brisbane Botanic Gardens Mt Coot-tha",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0035",
+          "business": "Barangaroo",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0031",
+          "business": "Museum of Brisbane",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0010",
+          "business": "Art Gallery of Western Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0028",
+          "business": "Brisbane Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0039",
+          "business": "Hindu Society of the Northern Territory",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0053",
+          "business": "City of Perth / Tourism WA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0004",
+          "business": "QAGOMA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0046",
+          "business": "Waverley Council / NSW Department of Education",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0012",
+          "business": "Tasmanian Museum and Art Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0050",
+          "business": "Hijinx Hotel",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0019",
+          "business": "Rundle Mall",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0058",
+          "business": "Cucina by Liquid",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "UNION-HOTEL-LUNCH-20-OFF",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "UNION-FRIDAY-STEAK",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "UNION-PARMI-PINT",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0075",
+          "business": "Stella Restaurant",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "PD-2026-0005",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0006",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0008",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0072",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0063",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0009",
+          "business": "South Australian Museum",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0065",
+          "business": "Placemaking NSW / Darling Harbour",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0067",
+          "business": "Perth City Farm",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0069",
+          "business": "Darwin International Film Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0070",
+          "business": "Floriade",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0066",
+          "business": "Sculptors Queensland / Brisbane City Council",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0071",
+          "business": "Sydney Opera House",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0062",
+          "business": "Grand Junction Tavern",
+          "reason": "wrong_weekday"
+        }
+      ]
+    },
+    {
+      "date": "2026-09-20",
+      "time": "19:00",
+      "businesses": 0,
+      "offers": 0,
+      "eligible": [],
+      "exclusions": {
+        "outside_area": 24,
+        "service_hours_unknown": 3,
+        "wrong_weekday": 5,
+        "not_dinner": 11,
+        "source_conflict": 2
+      },
+      "excluded": [
+        {
+          "id": "PD-2026-0001",
+          "business": "Bunnings Warehouse",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0011",
+          "business": "National Gallery of Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0060",
+          "business": "SWELL Sculpture Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0056",
+          "business": "The Reserve Social",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0055",
+          "business": "Jimmy's Bar & Grill",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0003",
+          "business": "National Gallery of Victoria",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0059",
+          "business": "The Woodville Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0041",
+          "business": "OPSM",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0054",
+          "business": "Harry's Bar on Grenfell",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0057",
+          "business": "Canopy",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0002",
+          "business": "Australian Museum",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0049",
+          "business": "Archie Brothers Cirque Electriq",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0014",
+          "business": "HOTA Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0027",
+          "business": "Fed Square",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0013",
+          "business": "Darwin Waterfront",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0032",
+          "business": "Brisbane Botanic Gardens Mt Coot-tha",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0035",
+          "business": "Barangaroo",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0031",
+          "business": "Museum of Brisbane",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0010",
+          "business": "Art Gallery of Western Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0028",
+          "business": "Brisbane Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0039",
+          "business": "Hindu Society of the Northern Territory",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0053",
+          "business": "City of Perth / Tourism WA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0004",
+          "business": "QAGOMA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0046",
+          "business": "Waverley Council / NSW Department of Education",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0012",
+          "business": "Tasmanian Museum and Art Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0050",
+          "business": "Hijinx Hotel",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0019",
+          "business": "Rundle Mall",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0058",
+          "business": "Cucina by Liquid",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "UNION-HOTEL-LUNCH-20-OFF",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "UNION-FRIDAY-STEAK",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "UNION-PARMI-PINT",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0075",
+          "business": "Stella Restaurant",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "PD-2026-0005",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0006",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0008",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0072",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0063",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0009",
+          "business": "South Australian Museum",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0065",
+          "business": "Placemaking NSW / Darling Harbour",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0067",
+          "business": "Perth City Farm",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0069",
+          "business": "Darwin International Film Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0070",
+          "business": "Floriade",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0066",
+          "business": "Sculptors Queensland / Brisbane City Council",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0071",
+          "business": "Sydney Opera House",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0062",
+          "business": "Grand Junction Tavern",
+          "reason": "wrong_weekday"
+        }
+      ]
+    },
+    {
+      "date": "2026-09-20",
+      "time": "20:00",
+      "businesses": 0,
+      "offers": 0,
+      "eligible": [],
+      "exclusions": {
+        "outside_area": 24,
+        "service_hours_unknown": 3,
+        "wrong_weekday": 5,
+        "not_dinner": 11,
+        "source_conflict": 2
+      },
+      "excluded": [
+        {
+          "id": "PD-2026-0001",
+          "business": "Bunnings Warehouse",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0011",
+          "business": "National Gallery of Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0060",
+          "business": "SWELL Sculpture Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0056",
+          "business": "The Reserve Social",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0055",
+          "business": "Jimmy's Bar & Grill",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0003",
+          "business": "National Gallery of Victoria",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0059",
+          "business": "The Woodville Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0041",
+          "business": "OPSM",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0054",
+          "business": "Harry's Bar on Grenfell",
+          "reason": "service_hours_unknown"
+        },
+        {
+          "id": "PD-2026-0057",
+          "business": "Canopy",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0002",
+          "business": "Australian Museum",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0049",
+          "business": "Archie Brothers Cirque Electriq",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0014",
+          "business": "HOTA Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0027",
+          "business": "Fed Square",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0013",
+          "business": "Darwin Waterfront",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0032",
+          "business": "Brisbane Botanic Gardens Mt Coot-tha",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0035",
+          "business": "Barangaroo",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0031",
+          "business": "Museum of Brisbane",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0010",
+          "business": "Art Gallery of Western Australia",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0028",
+          "business": "Brisbane Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0039",
+          "business": "Hindu Society of the Northern Territory",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0053",
+          "business": "City of Perth / Tourism WA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0004",
+          "business": "QAGOMA",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0046",
+          "business": "Waverley Council / NSW Department of Education",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0012",
+          "business": "Tasmanian Museum and Art Gallery",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0050",
+          "business": "Hijinx Hotel",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0019",
+          "business": "Rundle Mall",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0058",
+          "business": "Cucina by Liquid",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "UNION-HOTEL-LUNCH-20-OFF",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "UNION-FRIDAY-STEAK",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "UNION-PARMI-PINT",
+          "business": "Union Hotel",
+          "reason": "wrong_weekday"
+        },
+        {
+          "id": "PD-2026-0075",
+          "business": "Stella Restaurant",
+          "reason": "source_conflict"
+        },
+        {
+          "id": "PD-2026-0005",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0006",
+          "business": "Adelaide Botanic Garden",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0008",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0072",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0063",
+          "business": "Art Gallery of South Australia",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0009",
+          "business": "South Australian Museum",
+          "reason": "not_dinner"
+        },
+        {
+          "id": "PD-2026-0065",
+          "business": "Placemaking NSW / Darling Harbour",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0067",
+          "business": "Perth City Farm",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0069",
+          "business": "Darwin International Film Festival",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0070",
+          "business": "Floriade",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0066",
+          "business": "Sculptors Queensland / Brisbane City Council",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0071",
+          "business": "Sydney Opera House",
+          "reason": "outside_area"
+        },
+        {
+          "id": "PD-2026-0062",
+          "business": "Grand Junction Tavern",
+          "reason": "wrong_weekday"
+        }
+      ]
+    }
+  ]
+}

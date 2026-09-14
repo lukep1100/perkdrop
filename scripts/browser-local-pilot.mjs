@@ -18,24 +18,27 @@ check('unsubscribe GET is confirmation only',evaluate('document.querySelector("f
 check('unsubscribe has no external assets or scripts',evaluate('document.querySelectorAll("script,img,iframe,link[rel=stylesheet]").length===0'));
 const plan=JSON.parse(await readFile('docs/data/local-pilot-changes-2026-09-14.json','utf8'));
 const {deals}=await (await fetch(api+'perkdrop-catalogue-api?limit=500')).json();
-const ids=[...new Set([...plan.photos.flatMap(x=>x.offerIds),...plan.newOffers.map(x=>x.id),plan.repairWoodville.id,'PD-2026-0062','UNION-HOTEL-LUNCH-20-OFF'])];
+const ids=[...new Set([...plan.photos.flatMap(x=>x.offerIds),...plan.newOffers.map(x=>x.id),...deals.filter(d=>d.state==='SA'&&d.city==='adelaide').map(d=>d.id),plan.repairWoodville.id,'PD-2026-0062','UNION-HOTEL-LUNCH-20-OFF'])];
 for(const id of ids){
  const d=deals.find(x=>x.id===id);check('pilot offer exists: '+id,!!d);
  open('/search?q='+encodeURIComponent(d.merchant),'#search-input');
  run(['wait',`.card-link[href="/deals/${d.slug}"]`]);
  check('search card links to canonical offer: '+id,evaluate(`!!document.querySelector('.card-link[href="/deals/${d.slug}"]')`));
- run(['click',`.card-link[href="/deals/${d.slug}"]`]);run(['wait',id==='UNION-HOTEL-LUNCH-20-OFF'?'#startBtn':'.detail-hero img']);
+ run(['click',`.card-link[href="/deals/${d.slug}"] h3`]);run(['wait',id==='UNION-HOTEL-LUNCH-20-OFF'?'#startBtn':'.detail-hero img']);
  check('offer mobile has no overflow: '+id,evaluate('document.documentElement.scrollWidth<=innerWidth'));
  if(id==='UNION-HOTEL-LUNCH-20-OFF'){check('Union remains booking-first; no hold created',evaluate('!!document.querySelector("#startBtn")'));continue;}
  run(['wait','--fn','document.querySelector(".detail-hero img").complete&&document.querySelector(".detail-hero img").naturalWidth>0']);
  const image=evaluate('(()=>{const i=document.querySelector(".detail-hero img");return {url:i.currentSrc,width:i.naturalWidth,height:i.naturalHeight,fit:getComputedStyle(i).objectFit,alt:i.alt}})()');
- check('offer image decodes with alt: '+id,image.width>0&&image.alt.length>0,image);
+ check('offer image or labelled fallback decodes: '+id,image.width>0&&image.alt.length>0,image);
+ if(plan.photoHoldIds.includes(id))check('unlicensed or wrong-branch photo is replaced by labelled fallback: '+id,image.url.includes('venue-unavailable.svg')&&image.alt==='Photo unavailable');
+ if(d.latitude!=null&&d.longitude!=null){run(['wait','#detail-map .leaflet-marker-icon']);check('offer map has a destination pin: '+id,evaluate('document.querySelectorAll("#detail-map .leaflet-marker-icon").length>0'));}
  if(plan.newOffers.some(x=>x.id===id))check('supplied poster is not cropped: '+id,image.fit==='contain');
  if(d.merchantSlug){
   const profile='/venues/'+d.merchantSlug;check('detail links to same business profile: '+id,evaluate(`!!document.querySelector('a[href="${profile}"]')`));
-  open(profile,'main');check('business profile names the offer merchant: '+id,evaluate(`document.querySelector('main').innerText.includes(${JSON.stringify(d.merchant)})`));
+  open(profile,'.hero-actions');check('business profile names the offer merchant: '+id,evaluate(`document.querySelector('main').innerText.includes(${JSON.stringify(d.merchant)})`));
+  if(plan.photos.some(p=>p.merchantId===d.merchantId)){run(['wait','--fn','document.querySelector(".venue-photo")?.complete&&document.querySelector(".venue-photo").naturalWidth>0']);const hero=evaluate('(()=>{const i=document.querySelector(".venue-photo");return {width:i.naturalWidth,displayWidth:i.getBoundingClientRect().width,fit:getComputedStyle(i).objectFit}})()');check('rights-cleared directory hero decodes without upscaling: '+id,hero.width>=226&&hero.displayWidth<=hero.width+1,hero);}
  }
- const navigation=await fetch(d.navUrl,{redirect:'manual'});check('directions resolves without booking: '+id,[301,302,303,307,308].includes(navigation.status),{status:navigation.status,location:navigation.headers.get('location')});
+ const navigation=await fetch(d.navigationUrl,{redirect:'manual'});check('directions resolves without booking: '+id,[301,302,303,307,308].includes(navigation.status),{status:navigation.status,location:navigation.headers.get('location')});
  if(plan.newOffers.some(x=>x.id===id)||id==='PD-2026-0008'||id==='PD-2026-0009'){
   open('/deals/'+d.slug,'.detail-hero img');const shot=run(['screenshot']);await copyFile(shot.path,`.audit/pilot-browser/${id}-${new URL(base).hostname}.png`);
  }

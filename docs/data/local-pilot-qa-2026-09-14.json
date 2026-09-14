@@ -1,0 +1,58 @@
+{
+  "runtimeCommit": "d921b184a8e89be9e5bf8cdc3b0341678a0a2ebe",
+  "build": "PASS: Next 16.3.3 exact lockfile",
+  "lint": "PASS: zero warnings",
+  "edgeTypechecks": {
+    "passed": 7,
+    "method": "Deno check --node-modules-dir=none --no-lock"
+  },
+  "suites": {
+    "database": 51,
+    "availability": 12,
+    "inlineScripts": 2,
+    "discovery": 7,
+    "analytics": 1,
+    "saves": 2,
+    "modelAssertions": 10,
+    "smokeLocal": 34,
+    "smokeProduction": 34
+  },
+  "isolatedAuth": {
+    "testedAt": "2026-09-14T10:45:07.265Z",
+    "checks": 12,
+    "localSmtpMessages": 4,
+    "sourceCommit": "4eee58f296d9698a1c2c0ae14d7a0b379c7622d3",
+    "productionDeliveryProven": false
+  },
+  "isolatedPortal": {
+    "testedAt": "2026-09-14T10:55:48.753Z",
+    "checks": 15,
+    "actualHtml": true,
+    "mockedTransport": true,
+    "realOwner": false
+  },
+  "productionBrowser": {
+    "testedAt": "2026-09-14T11:11:44.999Z",
+    "checks": 197,
+    "pilotOffers": 21,
+    "additionalNationalOffer": 1,
+    "viewports": "320–1280 px responsive checks plus 390 px individual offer journeys",
+    "bookingsCreated": 0,
+    "claimsCreated": 0,
+    "messagesSent": 0
+  },
+  "productionAuth": {
+    "capturedAt": "2026-09-14T11:19:03.28051+00:00",
+    "memberships": 0,
+    "ready_outreach": 0,
+    "approval_notifications": 0,
+    "public_missing_coordinates": 77
+  },
+  "productionAuthQuery": "select jsonb_build_object('capturedAt',clock_timestamp(),'memberships',(select count(*) from public.merchant_members),'ready_outreach',(select count(*) from public.outreach_messages where status in ('draft','approved')),'approval_notifications',(select count(*) from public.merchant_notification_outbox where event_type='claim_approved'),'public_missing_coordinates',(select count(*) from public.merchants where permanent_listing and directory_status='active' and (latitude is null or longitude is null))) result;",
+  "limitations": [
+    "No full production SMTP/redirect configuration verification; dashboard sign-in required.",
+    "No consenting owner has completed claim, review and first access.",
+    "No fresh coordinate certification or full-stack local RLS/PostGIS/HTTP emulation.",
+    "The two delisted businesses have zero public search cards after asynchronous directory results complete."
+  ]
+}

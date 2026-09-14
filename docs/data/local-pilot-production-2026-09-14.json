@@ -1,0 +1,141 @@
+{
+  "capture": {
+    "claims": 0,
+    "grades": [
+      {
+        "total": 5,
+        "quality_grade": "D"
+      },
+      {
+        "total": 19,
+        "quality_grade": "A"
+      },
+      {
+        "total": 7,
+        "quality_grade": "B"
+      },
+      {
+        "total": 14,
+        "quality_grade": "C"
+      }
+    ],
+    "requests": [
+      {
+        "total": 2,
+        "status": "pending",
+        "match_state": "unmatched",
+        "request_kind": "delivery_failure"
+      },
+      {
+        "total": 6,
+        "status": "applied",
+        "match_state": "confirmed",
+        "request_kind": "business_optout"
+      },
+      {
+        "total": 4,
+        "status": "pending",
+        "match_state": "ambiguous",
+        "request_kind": "ambiguous"
+      },
+      {
+        "total": 6,
+        "status": "pending",
+        "match_state": "unmatched",
+        "request_kind": "business_optout"
+      }
+    ],
+    "capturedAt": "2026-09-14T11:16:06.483284+00:00",
+    "photo_holds": 12,
+    "suppression": [
+      {
+        "total": 1,
+        "reason": "complaint"
+      },
+      {
+        "total": 18,
+        "reason": "unsubscribe"
+      },
+      {
+        "total": 10,
+        "reason": "manual"
+      },
+      {
+        "total": 40,
+        "reason": "invalid"
+      }
+    ],
+    "active_offers": 45,
+    "public_businesses": 307,
+    "policy_commitments": 0,
+    "social_cron_active": false,
+    "photo_hold_featured": 0
+  },
+  "runtimeCommit": "d921b184a8e89be9e5bf8cdc3b0341678a0a2ebe",
+  "migration": "20260914110110_owner_publication_policy",
+  "functions": [
+    {
+      "name": "perkdrop-catalogue-api",
+      "version": 22,
+      "status": "ACTIVE",
+      "verify_jwt": false
+    },
+    {
+      "name": "perkdrop-claim",
+      "version": 6,
+      "status": "ACTIVE",
+      "verify_jwt": false
+    },
+    {
+      "name": "perkdrop-admin-commercial",
+      "version": 11,
+      "status": "ACTIVE",
+      "verify_jwt": true
+    },
+    {
+      "name": "perkdrop-portal",
+      "version": 18,
+      "status": "ACTIVE",
+      "verify_jwt": false
+    },
+    {
+      "name": "perkdrop-business-directory",
+      "version": 9,
+      "status": "ACTIVE",
+      "verify_jwt": false
+    },
+    {
+      "name": "perkdrop-unsubscribe",
+      "version": 4,
+      "status": "ACTIVE",
+      "verify_jwt": false
+    },
+    {
+      "name": "perkdrop-listing-reports",
+      "version": 2,
+      "status": "ACTIVE",
+      "verify_jwt": false
+    }
+  ],
+  "supply": {
+    "before": {
+      "offers": 19,
+      "strong": 9,
+      "usefulBusinesses": 11,
+      "strongBusinesses": 6
+    },
+    "after": {
+      "offers": 21,
+      "strong": 11,
+      "usefulBusinesses": 11,
+      "strongBusinesses": 6
+    }
+  },
+  "query": "select jsonb_build_object('capturedAt',clock_timestamp(),'requests',(select jsonb_agg(t) from(select request_kind,match_state,status,count(*) total from public.business_requests group by request_kind,match_state,status)t),'public_businesses',(select count(*) from public.merchants where permanent_listing=true and directory_status='active'),'active_offers',(select count(*) from public.catalogue_items where active),'grades',(select jsonb_agg(t) from(select quality_grade,count(*) total from catalogue_items where active group by quality_grade)t),'photo_holds',(select count(*) from catalogue_items where active and metadata->>'image_review_hold' is not null),'photo_hold_featured',(select count(*) from catalogue_items where active and metadata->>'image_review_hold' is not null and (featured or hot)),'suppression',(select jsonb_agg(t) from(select reason,count(*) total from public.outreach_suppression group by reason)t),'claims',(select count(*) from public.merchant_claims),'policy_commitments',(select sum(commitments_flagged) from public.business_requests),'social_cron_active',(select active from cron.job where jobid=1)) result;",
+  "notes": [
+    "Counts are observed production aggregates, not evidence of consent or completed onboarding.",
+    "Six branch-confirmed opt-outs include two matched existing public businesses and four absent-business exclusion records; another six exact recipients await branch matching.",
+    "The two reconciled delivery notices remain suppressed; inbox-full was reclassified as temporary capacity failure. Registry invalid count is not a newly reverified bounce count.",
+    "No production bookings, holds, claims, messages or social publications were created by this QA."
+  ]
+}
