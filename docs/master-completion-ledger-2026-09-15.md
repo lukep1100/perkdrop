@@ -54,6 +54,7 @@ This is an evidence ledger, not a launch certificate. `VERIFIED` means the state
 - `f4ef582` — preserve the merchant's explicit offer-photo rights confirmation in the portal editor and outbound offer create/update payload; pushed to `origin/main` and deployed through the authorised Supabase dashboard (live function reported successfully updated, then returned the patched HTML with HTTP 200).
 - Vercel production deployment `dpl_6stEpySDuFxadqQSP5ovWuJiKWV4` (source `4cd1a20`) is READY and aliased to `perkdrop.au` / `www.perkdrop.au`.
 - Vercel auto-deployment `dpl_9JjX6PfUH99mLdk6qZXGxYLNxYmc` for the pushed `main` state is READY/Production and aliased to `perkdrop.au` / `www.perkdrop.au`.
+- Vercel follow-on auto-deployment `dpl_EJhALjTZGLH91ypogXc1Dij7VmoB` (after the evidence-ledger commit) is READY/Production and remains aliased to `perkdrop.au` / `www.perkdrop.au`.
 - Integrated local suites: marketplace 10, discovery/notification 16, availability 12, inline scripts 2, analytics 2, saves 2, database 60; production smoke passed when run with `SMOKE_BASE_URL=https://perkdrop.au` (the package-level smoke invocation without that variable is intentionally non-production and returns connection failures).
 
 ## Current read-only production configuration
