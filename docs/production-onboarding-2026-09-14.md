@@ -17,9 +17,13 @@ Narrow continuation from main/prod d0483687b16d4d2e7d640da516f88e293cc3970e. No 
 
 ## Master checkpoint — current continuation
 
+- The requested `PerkDrop_Mission_Pack/START_HERE.txt` was not present in the checked-out workspace or available attachment directories, so the repository's existing audit and execution evidence were used as the authoritative fallback. No supplied discovery component was integrated without its source.
+- Current authorised write path is confirmed: GitHub `main` push and the connected Supabase deployment connector both succeeded for this continuation.
+
 - Auth callback verification: production `/claim` remained same-site for Union, A Bite to Eat and Adelaide Zoo; missing/invalid slugs stayed on the search flow; an injected external `returnTo` was not reflected. The deployed portal constructs redirects from the fixed `https://perkdrop.au/claim` origin and a validated merchant slug. No email journey was exercised.
 - Catalogue reliability: added sanitised request correlation, upstream status/timing logging and `X-PerkDrop-Request-Id` response headers to `/api/health`, `/sitemap.xml` and dynamic catalogue pages. Existing 503 semantics and honest fallback responses remain unchanged; no fake data or blanket 200s were introduced. The first post-deploy probe captured the previously hidden failure shape: the catalogue dependency returned HTTP 500 after about 5.2 seconds; the underlying Edge-query error still requires Supabase function logs or a recurrence with the new query labels.
 - Verification: `npm run lint -- --no-cache` and `npm run build` pass locally. Production deployment `dpl_9gKdoxEZtMzXJ8NS3ruisdgRLStF` is READY; post-deploy `/api/health` returned 200 with a correlation header, direct catalogue returned 200 with an upstream request ID, and no new Vercel `catalogue_dependency` errors appeared after the patch. The historical 503 is mitigated diagnostically, not closed as resolved.
+- Existing national discovery worker reviewed: it requires official website evidence, real coordinates, deduplication and candidate-only image rights; it does not auto-authorise photography or fabricate offers. No new national seed run was launched because that would create production directory records without a supplied mission-pack component or owner review requirement.
 
 - Migration 20260914115217_production_notification_readiness fixes a production CHECK constraint that rejected the worker's processing state.
 - Worker records provider_accepted + provider message ID/time, not delivery; retains legacy sent as explicitly unconfirmed.
