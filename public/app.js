@@ -116,6 +116,29 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
         })[c],
     );
   const clean = (s) => String(s || "").trim();
+  async function copyText(value) {
+    const text = String(value || "");
+    if (!text) return false;
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    } catch {}
+    try {
+      const input = document.createElement("textarea");
+      input.value = text;
+      input.setAttribute("readonly", "");
+      input.style.cssText = "position:fixed;opacity:0;pointer-events:none";
+      document.body.appendChild(input);
+      input.select();
+      const copied = document.execCommand("copy");
+      input.remove();
+      return copied;
+    } catch {
+      return false;
+    }
+  }
   function track(event_type, metadata = {}) {
     try {
       fetch(TRACK, {
@@ -944,11 +967,11 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
             text: `${d.title} — ${d.merchant}`,
             url: u,
           });
-        else {
-          await navigator.clipboard.writeText(u);
-          toast("PerkDrop link copied");
-        }
-      } catch {}
+        else if (await copyText(u)) toast("PerkDrop link copied");
+        else toast("Copy failed — long-press the link to copy it");
+      } catch {
+        toast("Share cancelled");
+      }
     });
     $("#claim-drop")?.addEventListener("click", () => d && claim(d));
     $("#official-cta")?.addEventListener(
