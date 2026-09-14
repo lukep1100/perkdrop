@@ -94,6 +94,10 @@ Deno.serve(async (req) => {
     1,
     Math.min(1000, Number(u.searchParams.get("limit") || 20) || 20),
   );
+  // Keep stale catalogue rows out of the directory worker's PostgREST read.
+  // The per-state local-day check below remains the final correctness guard;
+  // using UTC here is deliberately conservative for Australian time zones.
+  const today = new Date().toISOString().slice(0, 10);
   const sb = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
@@ -120,7 +124,8 @@ Deno.serve(async (req) => {
       .from("catalogue_items")
       .select("merchant_id,end_date,state,exclusive,quality_grade")
       .eq("active", true)
-      .not("merchant_id", "is", null)),
+      .not("merchant_id", "is", null)
+      .or(`end_date.is.null,end_date.gte.${today}`)),
   ], 2);
   if (error || exclusiveError || catalogueError) {
     const failed = [error && "merchants", exclusiveError && "merchant_offers", catalogueError && "catalogue_items"].filter(Boolean) as string[];
