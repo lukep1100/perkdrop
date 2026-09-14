@@ -161,7 +161,7 @@ export async function getServerSideProps({ params, resolvedUrl, req, res }) {
     const r = await fetch(endpoint, { headers: { accept: "application/json" },signal:AbortSignal.timeout(10000) });
     if(r.status===410){res.statusCode=410;return{props:{deal:null,canonicalPath,expiredDeal:true}};}
     if(r.status===404){res.statusCode=404;return{props:{deal:null,canonicalPath,missing:true}};}
-    if (!r.ok) { console.warn(JSON.stringify({msg:'catalogue_dependency_failed',route:canonicalPath,requestId,upstreamStatus:r.status,ms:Date.now()-started})); throw Error('catalogue_unavailable'); }
+    if (!r.ok) { console.warn(JSON.stringify({msg:'catalogue_dependency_failed',route:canonicalPath,requestId,upstreamStatus:r.status,upstreamRequestId:r.headers.get('x-perkdrop-request-id')||null,upstreamFailure:r.headers.get('x-perkdrop-query-failure')||null,upstreamQueryMs:r.headers.get('x-perkdrop-query-ms')||null,ms:Date.now()-started})); throw Error('catalogue_unavailable'); }
     if(entity==='venues') {const j=await r.json();if(!j.businesses?.length){res.statusCode=404;return{props:{deal:null,canonicalPath,missing:true}};}const b=j.businesses[0];return{props:{deal:null,venue:{name:b.name,location:b.location||''},canonicalPath}};}
     const p = await r.json(),
       deals = Array.isArray(p) ? p : p.deals || [],

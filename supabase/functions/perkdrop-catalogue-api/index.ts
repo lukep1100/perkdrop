@@ -175,7 +175,7 @@ function priorityScore(
 Deno.serve(async (req) => {
   const started = Date.now();
   const requestId = String(req.headers.get("x-vercel-id") || req.headers.get("x-request-id") || crypto.randomUUID()).slice(0, 180);
-  const responseHeaders = { ...headers, "x-perkdrop-request-id": requestId };
+  const responseHeaders: Record<string, string> = { ...headers, "x-perkdrop-request-id": requestId };
   if (req.method === "OPTIONS") return new Response("ok", { headers: responseHeaders });
   if (req.method !== "GET")
     return new Response(
@@ -203,7 +203,11 @@ Deno.serve(async (req) => {
         .eq("active", true),
       supabase.from("merchants").select("id", { count: "exact", head: true }),
     ]);
-    if (error) console.warn(JSON.stringify({ msg: "catalogue_health_query_failed", requestId, failed: ["catalogue_items"], ms: Date.now() - started }));
+    if (error) {
+      responseHeaders["x-perkdrop-query-failure"] = "catalogue_items";
+      responseHeaders["x-perkdrop-query-ms"] = String(Date.now() - started);
+      console.warn(JSON.stringify({ msg: "catalogue_health_query_failed", requestId, failed: ["catalogue_items"], ms: Date.now() - started }));
+    }
     return new Response(
       JSON.stringify({
         ok: !error,
@@ -286,7 +290,10 @@ Deno.serve(async (req) => {
       .limit(3000),
   ]);
   if (error || merchantError || offerError || locError) {
-    console.warn(JSON.stringify({ msg: "catalogue_query_failed", requestId, failed: [error && "catalogue_items", merchantError && "merchants", offerError && "merchant_offers", locError && "catalogue_locations"].filter(Boolean), ms: Date.now() - started }));
+    const failed = [error && "catalogue_items", merchantError && "merchants", offerError && "merchant_offers", locError && "catalogue_locations"].filter(Boolean) as string[];
+    responseHeaders["x-perkdrop-query-failure"] = failed.join(",");
+    responseHeaders["x-perkdrop-query-ms"] = String(Date.now() - started);
+    console.warn(JSON.stringify({ msg: "catalogue_query_failed", requestId, failed, ms: Date.now() - started }));
     return new Response(
       JSON.stringify({ ok: false, error: "catalogue_failed" }),
       { status: 500, headers: responseHeaders },
