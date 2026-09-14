@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "npm:@supabase/supabase-js@2.57.4";
+import { createClient } from "npm:@supabase/supabase-js@2.102.0";
 import { isAustralianPoint, localDay } from "../_shared/discovery.ts";
-const H = {
+const H: Record<string, string> = {
   "content-type": "application/json; charset=utf-8",
   "access-control-allow-origin": "*",
   "access-control-allow-methods": "GET,OPTIONS",
@@ -40,11 +40,14 @@ const labels: any = {
   exclusive: "🔥 PERKDROP EXCLUSIVE",
 };
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: H });
+  const started = Date.now();
+  const requestId = String(req.headers.get("x-vercel-id") || req.headers.get("x-request-id") || crypto.randomUUID()).slice(0, 180);
+  const responseHeaders = { ...H, "x-perkdrop-request-id": requestId };
+  if (req.method === "OPTIONS") return new Response("ok", { headers: responseHeaders });
   if (req.method !== "GET")
     return new Response(
       JSON.stringify({ ok: false, error: "method_not_allowed" }),
-      { status: 405, headers: H },
+      { status: 405, headers: responseHeaders },
     );
   const u = new URL(req.url),
     q = clean(u.searchParams.get("q")).toLowerCase(),
@@ -73,7 +76,7 @@ Deno.serve(async (req) => {
     .neq("directory_status", "removed")
     .limit(1200);
   if (slug) query = query.eq("slug", slug);
-  const [{ data, error }, { data: xo }, { data: xc }] = await Promise.all([
+  const [{ data, error }, { data: xo, error: exclusiveError }, { data: xc, error: catalogueError }] = await Promise.all([
     query,
     sb
       .from("merchant_offers")
@@ -88,11 +91,16 @@ Deno.serve(async (req) => {
       .eq("active", true)
       .not("merchant_id", "is", null),
   ]);
-  if (error)
+  if (error || exclusiveError || catalogueError) {
+    const failed = [error && "merchants", exclusiveError && "merchant_offers", catalogueError && "catalogue_items"].filter(Boolean) as string[];
+    responseHeaders["x-perkdrop-query-failure"] = failed.join(",");
+    responseHeaders["x-perkdrop-query-ms"] = String(Date.now() - started);
+    console.warn(JSON.stringify({ msg: "directory_query_failed", requestId, failed, ms: Date.now() - started }));
     return new Response(
       JSON.stringify({ ok: false, error: "directory_failed" }),
-      { status: 500, headers: H },
+      { status: 500, headers: responseHeaders },
     );
+  }
   const exclusive = new Set<string>(
     [...(xo || []), ...(xc || []).filter((x: any) => x.exclusive && (!x.end_date || x.end_date >= localDay(x.state)))].map((x: any) => String(x.merchant_id)),
   );
@@ -191,6 +199,6 @@ Deno.serve(async (req) => {
       radiusKm: lat !== null && lng !== null ? radius : null,
       businesses: list,
     }),
-    { headers: H },
+    { headers: responseHeaders },
   );
 });
