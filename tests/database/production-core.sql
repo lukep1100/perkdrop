@@ -287,6 +287,7 @@ alter table public.merchant_offers add constraint "merchant_offers_vertical_chec
 alter table public.merchant_offers add constraint "merchant_offers_visibility_check" CHECK ((visibility = ANY (ARRAY['public'::text, 'private'::text, 'invite_only'::text]))) NOT VALID;
 alter table public.merchants add constraint "merchants_directory_status_check" CHECK ((directory_status = ANY (ARRAY['active'::text, 'temporarily_closed'::text, 'closed'::text, 'removed'::text])));
 alter table public.merchants add constraint "merchants_image_rights_status_check" CHECK ((image_rights_status = ANY (ARRAY['missing'::text, 'candidate'::text, 'merchant_authorised'::text, 'licensed'::text, 'rejected'::text]))) NOT VALID;
+alter table public.merchants add constraint "merchants_hero_image_rights_check" CHECK (((hero_image_url IS NULL) OR (image_rights_status = ANY (ARRAY['merchant_authorised'::text, 'licensed'::text])))) NOT VALID;
 alter table public.merchants add constraint "merchants_listing_status_check" CHECK ((listing_status = ANY (ARRAY['unclaimed'::text, 'claim_pending'::text, 'claimed'::text, 'verified'::text, 'partner'::text])));
 alter table public.merchants add constraint "merchants_partner_tier_check" CHECK ((partner_tier = ANY (ARRAY['none'::text, 'performance'::text, 'featured'::text])));
 alter table public.merchants add constraint "merchants_pkey" PRIMARY KEY (id);
