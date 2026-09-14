@@ -15,6 +15,12 @@ Narrow continuation from main/prod d0483687b16d4d2e7d640da516f88e293cc3970e. No 
 
 ## Applied technical repairs
 
+## Master checkpoint — current continuation
+
+- Auth callback verification: production `/claim` remained same-site for Union, A Bite to Eat and Adelaide Zoo; missing/invalid slugs stayed on the search flow; an injected external `returnTo` was not reflected. The deployed portal constructs redirects from the fixed `https://perkdrop.au/claim` origin and a validated merchant slug. No email journey was exercised.
+- Catalogue reliability: added sanitised request correlation, upstream status/timing logging and `X-PerkDrop-Request-Id` response headers to `/api/health`, `/sitemap.xml` and dynamic catalogue pages. Existing 503 semantics and honest fallback responses remain unchanged; no fake data or blanket 200s were introduced.
+- Verification: `npm run lint -- --no-cache` and `npm run build` pass locally. This patch is not yet production-verified until the GitHub → Vercel deployment completes.
+
 - Migration 20260914115217_production_notification_readiness fixes a production CHECK constraint that rejected the worker's processing state.
 - Worker records provider_accepted + provider message ID/time, not delivery; retains legacy sent as explicitly unconfirmed.
 - Stable idempotency key and frozen complete request across retries; up to five leases, exponential backoff, 15-second HTTP timeout, 10-minute lease, retries within 23 hours of first attempt. After the boundary, delivery_unknown requires provider reconciliation; no blind resend outside Resend's 24-hour key window.

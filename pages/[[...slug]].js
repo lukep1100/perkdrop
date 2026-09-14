@@ -148,19 +148,20 @@ export default function Shell({ deal, venue, canonicalPath, expiredDeal = false,
     h("script", { src: "/app.js?v=v33-local-pilot", type:"module" }),
   );
 }
-export async function getServerSideProps({ params, resolvedUrl, res }) {
+export async function getServerSideProps({ params, resolvedUrl, req, res }) {
   const canonicalPath = (resolvedUrl || "/").split("?")[0] || "/";
   const parts = params?.slug;
   const publicRoutes=new Set([...Object.keys(routeMeta),'/tonight','/report','/search','/weekend','/ending-soon','/near-me','/saved','/terms','/privacy','/merchant-terms','/drop-terms','/verification','/affiliate','/contact','/fitness','/wellness','/travel','/family','/services','/freebies','/today','/now']);
   if (publicRoutes.has(canonicalPath)) return {props:{deal:null,canonicalPath}};
   const entity=Array.isArray(parts)&&parts.length===2?parts[0]:null;
   if (!['deals','venues'].includes(entity)) {res.statusCode=404;return {props:{deal:null,canonicalPath,missing:true}};}
+  const started=Date.now(),requestId=String(req?.headers?.['x-vercel-id']||req?.headers?.['x-request-id']||`page-${started}`).slice(0,180);
   try {
     const endpoint=entity==='venues'?`https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-business-directory?slug=${encodeURIComponent(parts[1])}`:API+'&slug='+encodeURIComponent(parts[1]);
     const r = await fetch(endpoint, { headers: { accept: "application/json" },signal:AbortSignal.timeout(10000) });
     if(r.status===410){res.statusCode=410;return{props:{deal:null,canonicalPath,expiredDeal:true}};}
     if(r.status===404){res.statusCode=404;return{props:{deal:null,canonicalPath,missing:true}};}
-    if (!r.ok) throw Error('catalogue_unavailable');
+    if (!r.ok) { console.warn(JSON.stringify({msg:'catalogue_dependency_failed',route:canonicalPath,requestId,upstreamStatus:r.status,ms:Date.now()-started})); throw Error('catalogue_unavailable'); }
     if(entity==='venues') {const j=await r.json();if(!j.businesses?.length){res.statusCode=404;return{props:{deal:null,canonicalPath,missing:true}};}const b=j.businesses[0];return{props:{deal:null,venue:{name:b.name,location:b.location||''},canonicalPath}};}
     const p = await r.json(),
       deals = Array.isArray(p) ? p : p.deals || [],
@@ -181,8 +182,10 @@ export async function getServerSideProps({ params, resolvedUrl, res }) {
         },
       },
     };
-  } catch {
+  } catch (error) {
+    if(error?.message!=='catalogue_unavailable') console.warn(JSON.stringify({msg:'catalogue_dependency_error',route:canonicalPath,requestId,errorName:error?.name||'unknown',ms:Date.now()-started}));
     res.statusCode=503;res.setHeader('Retry-After','30');
+    res.setHeader('X-PerkDrop-Request-Id',requestId);
     return { props: { deal: null, canonicalPath, unavailable: true } };
   }
 }
