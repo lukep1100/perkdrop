@@ -46,6 +46,7 @@ This is an evidence ledger, not a launch certificate. `VERIFIED` means the state
 - Follow-up deployed Supabase `perkdrop-nearby-api` v4 to retry thrown catalogue-fetch failures as well as HTTP 5xx responses and persist sanitized dependency failures to the service-only ledger; live probes retained the same 200 valid-coordinate and 400 invalid-coordinate contract (ledger remains 0 rows).
 - `39c6edf` — deploy Supabase `perkdrop-admin-commercial` v13 with a rights-confirmed image gate for its legacy `offer_publish` path; Vercel `dpl_AaJinCK7J1rCD8psHhrC854KBAqT` READY.
 - `18bcd05` — record the nearby v4 failure-ledger persistence; Vercel `dpl_7JvWsuzhtSy5ahquDq4DNpKArQuX` READY.
+- `d8f8930` — forward the Vercel health request ID to the catalogue dependency and preserve diagnostics on malformed upstream JSON; Vercel `dpl_DPN7ZwaZnBdSb76WdP62Ajch1zj8` READY and aliased to production.
 - Supabase `perkdrop-admin-commercial` v13 now requires rights-confirmed offer media or a licensed/merchant-authorised hero before its legacy `offer_publish` path can create a public catalogue row; unauthenticated production access remains `401`.
 - Supabase `perkdrop-nearby-api` v4 is ACTIVE (`verify_jwt=false`, preserving its existing public contract) with Australian coordinate validation, request correlation, bounded transient retries, sanitized failure diagnostics and service-only failure-ledger persistence.
 - Supabase migration `20260914181858_catalogue_failure_ledger` is now registered and applied idempotently; the failure ledger retains RLS and service-role-only grants.
@@ -70,6 +71,7 @@ This is an evidence ledger, not a launch certificate. `VERIFIED` means the state
 - Live checks after the latest release: `/claim` 200 with canonical controls; `/api/health` 200; direct catalogue health 200; six concurrent catalogue reads 200; current Vercel runtime errors in the selected 15-minute window: none.
 - Additional live reliability check: 20 concurrent `/api/health` requests returned 20/20 `200` responses, all reported 52 live rows, and all carried distinct `X-PerkDrop-Request-Id` values; the failure ledger remained empty afterward.
 - Nearby production probes: Adelaide coordinates returned `200` with three deals and `X-PerkDrop-Request-Id`; missing coordinates and `(0,0)` both returned `400 valid_australian_lat_lng_required` with correlation IDs. No writes, bookings or notifications were triggered.
+- Latest health correlation probe: production `/api/health` returned `200` with 52 live rows, and its wrapper request ID matched the upstream catalogue request ID exactly.
 - Production scheduler readback: expiry job (`17 * * * *`), booking reconciliation (`* * * * *`) and session closure (`*/15 * * * *`) are active; their latest runs succeeded at 2026-09-14 18:17, 18:23 and 18:15 UTC respectively. Notification dispatch and five-minute matching also showed successful latest runs; no notification release was enabled.
 
 ## Owner action bundle
