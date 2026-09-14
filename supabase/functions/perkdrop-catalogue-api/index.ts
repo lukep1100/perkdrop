@@ -102,6 +102,14 @@ function isTransientQueryError(error: any) {
   const message = String(error?.message || error || "").toLowerCase();
   return /network|fetch failed|timeout|timed out|temporarily unavailable|connection reset|econnreset|socket/i.test(message);
 }
+function queryErrorLabel(error: any) {
+  const status = Number(error?.status ?? error?.statusCode ?? error?.cause?.status);
+  if (Number.isFinite(status) && status > 0) return `http_${status}`;
+  const code = String(error?.code || error?.name || "unknown")
+    .replace(/[^a-z0-9_-]/gi, "_")
+    .slice(0, 48);
+  return code || "unknown";
+}
 async function queryWithRetry(run: () => Promise<any>) {
   let result: any = null;
   for (let attempt = 0; attempt < 2; attempt += 1) {
@@ -219,11 +227,7 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
   if (url.searchParams.get("health") === "1") {
-    const [
-      { count, error },
-      { count: locationCount, error: locationError },
-      { count: merchantCount, error: merchantCountError },
-    ] = await runQueryWaves([
+    const healthResults = await runQueryWaves([
       () => queryWithRetry(() => supabase
         .from("catalogue_items")
         .select("id", { count: "exact", head: true })
@@ -234,15 +238,23 @@ Deno.serve(async (req) => {
         .eq("active", true)),
       () => queryWithRetry(() => supabase.from("merchants").select("id", { count: "exact", head: true })),
     ], 1);
+    const [
+      { count, error },
+      { count: locationCount, error: locationError },
+      { count: merchantCount, error: merchantCountError },
+    ] = healthResults;
     const healthFailures = [
-      error && "catalogue_items",
-      locationError && "catalogue_locations",
-      merchantCountError && "merchants",
-    ].filter(Boolean) as string[];
+      { name: "catalogue_items", error },
+      { name: "catalogue_locations", error: locationError },
+      { name: "merchants", error: merchantCountError },
+    ].filter((x) => x.error);
     if (healthFailures.length) {
-      responseHeaders["x-perkdrop-query-failure"] = healthFailures.join(",");
+      const failed = healthFailures.map((x) => x.name);
+      const failureStatus = healthFailures.map((x) => `${x.name}:${queryErrorLabel(x.error)}`);
+      responseHeaders["x-perkdrop-query-failure"] = failed.join(",");
+      responseHeaders["x-perkdrop-query-status"] = failureStatus.join(",");
       responseHeaders["x-perkdrop-query-ms"] = String(Date.now() - started);
-      console.warn(JSON.stringify({ msg: "catalogue_health_query_failed", requestId, failed: healthFailures, ms: Date.now() - started }));
+      console.warn(JSON.stringify({ msg: "catalogue_health_query_failed", requestId, failed, failureStatus, ms: Date.now() - started }));
     }
     return new Response(
       JSON.stringify({
@@ -326,10 +338,20 @@ Deno.serve(async (req) => {
       .limit(3000)),
   ], 2);
   if (error || merchantError || offerError || locError || campaignError || sessionError) {
-    const failed = [error && "catalogue_items", merchantError && "merchants", offerError && "merchant_offers", locError && "catalogue_locations", campaignError && "featured_campaigns", sessionError && "offer_sessions"].filter(Boolean) as string[];
+    const failures = [
+      { name: "catalogue_items", error },
+      { name: "merchants", error: merchantError },
+      { name: "merchant_offers", error: offerError },
+      { name: "catalogue_locations", error: locError },
+      { name: "featured_campaigns", error: campaignError },
+      { name: "offer_sessions", error: sessionError },
+    ].filter((x) => x.error);
+    const failed = failures.map((x) => x.name);
+    const failureStatus = failures.map((x) => `${x.name}:${queryErrorLabel(x.error)}`);
     responseHeaders["x-perkdrop-query-failure"] = failed.join(",");
+    responseHeaders["x-perkdrop-query-status"] = failureStatus.join(",");
     responseHeaders["x-perkdrop-query-ms"] = String(Date.now() - started);
-    console.warn(JSON.stringify({ msg: "catalogue_query_failed", requestId, failed, ms: Date.now() - started }));
+    console.warn(JSON.stringify({ msg: "catalogue_query_failed", requestId, failed, failureStatus, ms: Date.now() - started }));
     return new Response(
       JSON.stringify({ ok: false, error: "catalogue_failed" }),
       { status: 500, headers: responseHeaders },
