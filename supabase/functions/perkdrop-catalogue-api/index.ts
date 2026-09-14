@@ -190,8 +190,8 @@ Deno.serve(async (req) => {
   if (url.searchParams.get("health") === "1") {
     const [
       { count, error },
-      { count: locationCount },
-      { count: merchantCount },
+      { count: locationCount, error: locationError },
+      { count: merchantCount, error: merchantCountError },
     ] = await Promise.all([
       supabase
         .from("catalogue_items")
@@ -203,14 +203,19 @@ Deno.serve(async (req) => {
         .eq("active", true),
       supabase.from("merchants").select("id", { count: "exact", head: true }),
     ]);
-    if (error) {
-      responseHeaders["x-perkdrop-query-failure"] = "catalogue_items";
+    const healthFailures = [
+      error && "catalogue_items",
+      locationError && "catalogue_locations",
+      merchantCountError && "merchants",
+    ].filter(Boolean) as string[];
+    if (healthFailures.length) {
+      responseHeaders["x-perkdrop-query-failure"] = healthFailures.join(",");
       responseHeaders["x-perkdrop-query-ms"] = String(Date.now() - started);
-      console.warn(JSON.stringify({ msg: "catalogue_health_query_failed", requestId, failed: ["catalogue_items"], ms: Date.now() - started }));
+      console.warn(JSON.stringify({ msg: "catalogue_health_query_failed", requestId, failed: healthFailures, ms: Date.now() - started }));
     }
     return new Response(
       JSON.stringify({
-        ok: !error,
+        ok: !healthFailures.length,
         service: "perkdrop-catalogue-db",
         version: "v16-priority-live-capacity",
         liveDrops: count || 0,
@@ -218,7 +223,7 @@ Deno.serve(async (req) => {
         merchants: merchantCount || 0,
         sourceOfTruth: "supabase",
       }),
-      { status: error ? 500 : 200, headers: responseHeaders },
+      { status: healthFailures.length ? 500 : 200, headers: responseHeaders },
     );
   }
   const q = (url.searchParams.get("q") || "").trim().toLowerCase(),
@@ -237,8 +242,8 @@ Deno.serve(async (req) => {
     { data: locations, error: locError },
     { data: merchants, error: merchantError },
     { data: offers, error: offerError },
-    { data: campaigns },
-    { data: sessions },
+    { data: campaigns, error: campaignError },
+    { data: sessions, error: sessionError },
   ] = await Promise.all([
     supabase
       .from("catalogue_items")
@@ -289,8 +294,8 @@ Deno.serve(async (req) => {
       .order("service_date", { ascending: true })
       .limit(3000),
   ]);
-  if (error || merchantError || offerError || locError) {
-    const failed = [error && "catalogue_items", merchantError && "merchants", offerError && "merchant_offers", locError && "catalogue_locations"].filter(Boolean) as string[];
+  if (error || merchantError || offerError || locError || campaignError || sessionError) {
+    const failed = [error && "catalogue_items", merchantError && "merchants", offerError && "merchant_offers", locError && "catalogue_locations", campaignError && "featured_campaigns", sessionError && "offer_sessions"].filter(Boolean) as string[];
     responseHeaders["x-perkdrop-query-failure"] = failed.join(",");
     responseHeaders["x-perkdrop-query-ms"] = String(Date.now() - started);
     console.warn(JSON.stringify({ msg: "catalogue_query_failed", requestId, failed, ms: Date.now() - started }));
