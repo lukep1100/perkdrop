@@ -275,6 +275,8 @@ try {
   await testProductQuality(pool,check);
   const {testConsumerUtility}=await import('../tests/database/consumer-utility.mjs');
   await testConsumerUtility(pool,check);
+  const {testOwnerPolicy}=await import('../tests/database/owner-policy.mjs');
+  await testOwnerPolicy(pool,check);
   console.log(`REAL DATABASE: ${count} checks passed. No production connection or fixture writes.`);
 } finally {
   if (pool) await pool.end();

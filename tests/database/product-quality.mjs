@@ -32,7 +32,7 @@ export async function testProductQuality(pool,check) {
     assert.equal((await pool.query('select outreach_is_suppressed($1,$2) blocked',[hard,m])).rows[0].blocked,true);
     assert.equal((await pool.query('select outreach_is_suppressed($1,$2) blocked',[soft,m])).rows[0].blocked,false);
   });
-  await check('unsubscribe is atomic/idempotent and does not remove the listing',async()=>{
+  await check('historical migration baseline: unsubscribe was suppression-only before owner policy',async()=>{
     const m=await merchant(),email=randomUUID()+'@example.invalid';await contact(m,email);const msg=(await message(m,email,'sent')).rows[0];
     for(let i=0;i<2;i++)assert.equal((await pool.query('select unsubscribe_outreach($1) done',[msg.unsubscribe_token])).rows[0].done,true);
     const business=(await pool.query('select do_not_contact,permanent_listing,directory_status from merchants where id=$1',[m])).rows[0];

@@ -1,0 +1,148 @@
+{
+  "reviewedAt": "2026-09-14T10:48:13Z",
+  "area": {
+    "name": "Adelaide inner metro",
+    "radiusKm": 12,
+    "origin": {
+      "latitude": -34.9285,
+      "longitude": 138.6007
+    },
+    "distance": "straight-line"
+  },
+  "photos": [
+    {
+      "merchantId": "33616e77-2421-47a9-b420-ffa217124c3b",
+      "url": "https://perkdrop.au/images/pilot/union-supplied.png",
+      "status": "merchant_authorised",
+      "caption": "Union Hotel exterior · image supplied by the venue, September 2026",
+      "source": "https://www.theunionhotel.com.au/",
+      "basis": "Only the actual supplied attachment; permission does not extend to arbitrary website images.",
+      "replaceHero": true,
+      "offerIds": []
+    },
+    {
+      "merchantId": "bd9931f7-253b-4ff7-a6d4-6284fbc2eb11",
+      "url": "https://perkdrop.au/images/pilot/agsa-2026.jpg",
+      "status": "licensed",
+      "caption": "AGSA exterior · Yu Chu Chin (Pangalau), March 2026 · historical banner, not current exhibition · display crop",
+      "source": "https://commons.wikimedia.org/wiki/File:Main_entrance_of_the_Art_Gallery_of_South_Australia_(DSCF3673).jpg",
+      "license": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "offerIds": [
+        "PD-2026-0008",
+        "PD-2026-0072",
+        "PD-2026-0063"
+      ]
+    },
+    {
+      "merchantId": "ac8e7fa7-2758-4788-a03f-924b3bc5fc6a",
+      "url": "https://perkdrop.au/images/pilot/sa-museum-2011.jpg",
+      "status": "licensed",
+      "caption": "South Australian Museum entrance · David Hearle, 2011 · display crop",
+      "source": "https://commons.wikimedia.org/wiki/File:South_Australia_museum_1.jpg",
+      "license": "CC BY 2.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/2.0/",
+      "offerIds": [
+        "PD-2026-0009"
+      ]
+    },
+    {
+      "merchantId": "81760656-44e7-47b2-8c7a-9858fbeb0184",
+      "status": "licensed",
+      "caption": "Adelaide Botanic Garden entrance · Dinkum, 2010 · CC0 · display crop",
+      "source": "https://commons.wikimedia.org/wiki/File:Botanic_Garden_Adelaide_South_Australia.JPG",
+      "license": "CC0 1.0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "offerIds": [
+        "PD-2026-0005",
+        "PD-2026-0006"
+      ],
+      "keepImage": true
+    }
+  ],
+  "newOffers": [
+    {
+      "id": "UNION-PARMI-PINT",
+      "merchantId": "33616e77-2421-47a9-b420-ffa217124c3b",
+      "title": "$25 parmi & pint — Monday and Tuesday",
+      "description": "Union Hotel's supplied weekly-special artwork offers a parmi and pint for $25 on Monday and Tuesday evenings. This is a separate venue special, not the PerkDrop 20%-off lunch booking offer.",
+      "price": "Parmi & pint $25",
+      "days": [
+        1,
+        2
+      ],
+      "start": "17:00",
+      "end": "21:00",
+      "timing": "Monday & Tuesday, 5–9pm",
+      "conditions": "$25 for the advertised parmi-and-pint combination. Ask the venue which pint options are included before ordering. Not the PerkDrop 20%-off lunch offer; that discount excludes existing specials. Table availability is confirmed by the venue.",
+      "image": "https://perkdrop.au/images/pilot/union-parmi.png",
+      "source": "https://perkdrop.au/images/pilot/union-parmi.png",
+      "officialCta": "https://www.theunionhotel.com.au/eat"
+    },
+    {
+      "id": "UNION-FRIDAY-STEAK",
+      "merchantId": "33616e77-2421-47a9-b420-ffa217124c3b",
+      "title": "$28 Friday steak night",
+      "description": "Union Hotel advertises a $28 steak night every Friday from 5–9pm in artwork supplied by its venue manager. A steak weight and cut are not specified in that artwork; ask the venue about the current plate. No drink inclusion is promised.",
+      "price": "Steak night $28",
+      "days": [
+        5
+      ],
+      "start": "17:00",
+      "end": "21:00",
+      "timing": "Friday, 5–9pm",
+      "conditions": "Advertised Friday steak-night price is $28. Confirm the cut and accompaniments with the venue. A pictured drink is not evidence that a drink is included. Not combinable with the separate PerkDrop 20%-off lunch promotion, which excludes existing specials. Table availability is confirmed by the venue.",
+      "image": "https://perkdrop.au/images/pilot/union-steak.png",
+      "source": "https://perkdrop.au/images/pilot/union-steak.png",
+      "officialCta": "https://www.theunionhotel.com.au/eat"
+    }
+  ],
+  "repairWoodville": {
+    "id": "PD-2026-0059",
+    "source": "https://woodvillehotel.com.au/event/monday-night/",
+    "conditions": "A kids meal with each purchased main meal on Monday night. Not valid on public holidays. Confirm eligible kids-menu ages and choices with the venue. This is purchase-dependent, not a completely free meal for everyone.",
+    "note": "Official event page explicitly states Monday 5–9pm; homepage states a kids meal with each main purchase and excludes public holidays. Kids-menu age eligibility is not stated on the reviewed pages.",
+    "grade": "B"
+  },
+  "photoHoldIds": [
+    "PD-2026-0056",
+    "PD-2026-0055",
+    "PD-2026-0059",
+    "PD-2026-0041",
+    "PD-2026-0054",
+    "PD-2026-0057",
+    "PD-2026-0049",
+    "PD-2026-0050",
+    "PD-2026-0019",
+    "PD-2026-0058",
+    "PD-2026-0075",
+    "PD-2026-0062"
+  ],
+  "notPromoted": [
+    {
+      "business": "The Woodville Hotel",
+      "offer": "Tuesday 300g schnitzel $20 / 500g $27; Sunday roast $25",
+      "reason": "Primary price and service-time evidence found, but photo permission remains missing; not counted as newly promoted complete offers.",
+      "sources": [
+        "https://woodvillehotel.com.au/event/schnitzel-night/",
+        "https://woodvillehotel.com.au/event/sunday-roast/"
+      ]
+    },
+    {
+      "business": "Grand Junction Tavern",
+      "offer": "Existing Monday buy-one-get-one main",
+      "reason": "Exact official Pennington address confirmed; existing coordinates are retained, not newly verified. A missing linked business profile and photo permission prevent complete connected-journey status.",
+      "sources": [
+        "https://grandjunctiontavern.com.au/events/buy-1-get-1-free/"
+      ]
+    },
+    {
+      "business": "Union Hotel",
+      "offer": "Thursday $15 pizza; Saturday $15 wings",
+      "reason": "No exact Thursday offer service window on supplied poster; Saturday wings not added to inflate dinner choices at the same pub.",
+      "sources": [
+        "https://www.theunionhotel.com.au/eat"
+      ]
+    }
+  ]
+}

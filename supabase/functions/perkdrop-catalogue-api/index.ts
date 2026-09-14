@@ -6,7 +6,7 @@ const headers = {
   "content-type": "application/json; charset=utf-8",
   "access-control-allow-origin": "*",
   "access-control-allow-methods": "GET, OPTIONS",
-  "cache-control": "public, max-age=30, s-maxage=30, stale-while-revalidate=60",
+  "cache-control": "no-store",
 };
 const tracker = (id: string) =>
   `https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-go?drop=${encodeURIComponent(id)}&from=detail&utm_source=perkdrop&utm_medium=referral&utm_campaign=verified_catalogue`;
@@ -580,8 +580,10 @@ Deno.serve(async (req) => {
         validLat !== null && validLng !== null
           ? `${validLat},${validLng}`
           : d.location || merchantName || "",
-      imageUrl: d.metadata?.image_unavailable ? "" : approvedImage(d.image_url || (['merchant_authorised','licensed'].includes(merchant?.image_rights_status) ? merchant?.hero_image_url : '')),
+      imageUrl: d.metadata?.image_unavailable || d.metadata?.image_review_hold ? "" : approvedImage(d.image_url || (['merchant_authorised','licensed'].includes(merchant?.image_rights_status) ? merchant?.hero_image_url : '')),
       imageAlt: d.image_alt || `${merchantName} — ${d.title}`,
+      imageFit: d.metadata?.image_fit === 'contain' ? 'contain' : 'cover',
+      imageCredit: d.metadata?.image_provenance ? {caption:d.metadata.image_provenance.caption||'',source:d.metadata.image_provenance.source||'',license:d.metadata.image_provenance.license||'',licenseUrl:d.metadata.image_provenance.licenseUrl||''} : null,
       cuisine,
       discountPercent:
         d.discount_percent === null ? null : Number(d.discount_percent),

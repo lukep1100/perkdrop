@@ -1,0 +1,17 @@
+// Loopback-only rendered-portal UI fixture. No real Auth/API or outbound requests.
+import {createServer} from 'node:http';
+import {readFile} from 'node:fs/promises';
+import vm from 'node:vm';
+const source=await readFile('supabase/functions/perkdrop-portal/index.ts','utf8');
+const template=source.match(/const HTML\s*=\s*((?:String.raw)?`[^]*?`);/);
+if(!template||template[1].includes('${'))throw Error('Review portal interpolation before using fixture');
+const original=vm.runInNewContext(template[1],{},{timeout:1000});
+createServer((req,res)=>{
+ const phase=new URL(req.url,'http://127.0.0.1:4199').searchParams.get('phase')||'pending';
+ const m={id:'00000000-0000-4000-8000-000000000101',name:'Isolated QA business — not a real owner',slug:'isolated-fixture',location:'Isolated address',primary_location:'Isolated address',primary_city:'adelaide',primary_state:'SA',market:'adelaide',listing_status:phase==='approved'?'verified':'claim_pending',claimable:false,partner_tier:'none',offers:[],redemptions:[],members:[],profile_change_requests:[],ownership_requests:[],stats_30d:{}};
+ const user={id:'00000000-0000-4000-8000-000000000102',email:'qa@example.invalid'},claims=[{id:'00000000-0000-4000-8000-000000000103',merchant_id:m.id,status:phase==='approved'?'approved':'pending',merchants:{name:m.name}}];
+ const mock=`<script>window.__qaOutbound=[];const phase=${JSON.stringify(phase)},fixtureBusiness=${JSON.stringify(m)},fixtureUser=${JSON.stringify(user)},fixtureClaims=${JSON.stringify(claims)};let fixtureSession=phase==='expired'?null:{access_token:'isolated-ui-fixture-not-a-real-token',user:fixtureUser};window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:fixtureSession}}),onAuthStateChange:cb=>{if(phase==='recovery')setTimeout(()=>cb('PASSWORD_RECOVERY',fixtureSession),10);return {data:{subscription:{unsubscribe(){}}}}},signOut:async()=>{fixtureSession=null},resend:async()=>({}),resetPasswordForEmail:async()=>({})}})};window.fetch=async(url,opts={})=>{window.__qaOutbound.push({url:String(url),method:opts.method||'GET'});if(opts.method&&opts.method!=='GET')throw Error('Fixture refuses production mutations');if(String(url).includes('perkdrop-business-directory'))return new Response(JSON.stringify({businesses:[fixtureBusiness]}));if(String(url).includes('perkdrop-merchant-api'))return new Response(JSON.stringify({user:fixtureUser,merchants:phase==='approved'?[fixtureBusiness]:[],claims:fixtureClaims}));throw Error('Fixture refuses unknown network request');};</script>`;
+ let html=original.replace(/<script[^>]+src=[^>]*><\/script>/g,'').replace('</head>',mock+'</head>');
+ html=html.replace('<body>','<body><p style="padding:12px;background:#664800">ISOLATED UI FIXTURE — no real owner, email, approval or production writes.</p>');
+ res.writeHead(200,{'content-type':'text/html','cache-control':'no-store'});res.end(html);
+}).listen(4199,'127.0.0.1',()=>console.log('Loopback UI fixture http://127.0.0.1:4199/claim?merchant=isolated-fixture'));

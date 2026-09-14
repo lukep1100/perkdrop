@@ -55,10 +55,9 @@ Deno.serve(async(req)=>{
     const body=await req.json().catch(()=>null) as any;if(!body||typeof body!=='object')return json({ok:false,error:'invalid_body'},400);const action=clean(body.action,80);
 
     if(action==='claim_approve'){
-      const claimId=clean(body.claim_id,80);const {data:claim}=await service.from('merchant_claims').select('*,merchants:merchant_id(name)').eq('id',claimId).eq('status','pending').maybeSingle();if(!claim)return json({ok:false,error:'claim_not_found'},404);
-      const {error:memberError}=claim.user_id?await service.from('merchant_members').upsert({merchant_id:claim.merchant_id,user_id:claim.user_id,role:'owner',status:'active'},{onConflict:'merchant_id,user_id'}):{error:null};if(memberError)return json({ok:false,error:'membership_create_failed'},500);
-      await Promise.all([service.from('merchant_claims').update({status:'approved',reviewed_at:new Date().toISOString(),reviewed_by:user.email}).eq('id',claim.id),service.from('merchants').update({listing_status:'verified',claimable:false,verified_at:new Date().toISOString()}).eq('id',claim.merchant_id)]);
-      await queue('claim_approved',claim.merchant_id,claim.contact_email,{claim_id:claim.id,merchant_name:claim.merchants?.name||''});return json({ok:true,status:'approved',membership_created:Boolean(claim.user_id)});
+      const {data,error}=await service.rpc('approve_business_claim',{p_claim_id:clean(body.claim_id,80),p_actor:user.id,p_reason:clean(body.reason,1000),p_evidence:clean(body.evidence,1500)});
+      if(error)return json({ok:false,error:clean(error.message,200)},409);
+      return json({ok:true,...data});
     }
     if(action==='claim_reject'){
       const claimId=clean(body.claim_id,80),reason=clean(body.reason,1000)||'We could not verify this claim with the information supplied.';const {data,error}=await service.from('merchant_claims').update({status:'rejected',reviewed_at:new Date().toISOString(),reviewed_by:user.email,metadata:{reason}}).eq('id',claimId).eq('status','pending').select('merchant_id,contact_email').maybeSingle();if(error||!data)return json({ok:false,error:'claim_reject_failed'},409);const {count}=await service.from('merchant_claims').select('id',{count:'exact',head:true}).eq('merchant_id',data.merchant_id).eq('status','pending');if(!count)await service.from('merchants').update({listing_status:'unclaimed',claimable:true}).eq('id',data.merchant_id).eq('listing_status','claim_pending');await queue('claim_rejected',data.merchant_id,data.contact_email,{claim_id:claimId,reason});return json({ok:true,status:'rejected'});

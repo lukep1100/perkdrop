@@ -41,9 +41,10 @@ Deno.serve(async(req)=>{
 
   const contactName=clean(body.contact_name,160),contactPhone=clean(body.contact_phone,80),businessRole=clean(body.business_role,120),evidenceUrl=httpsUrl(clean(body.evidence_url,1200)),evidenceNotes=clean(body.evidence_notes,1800);
   if(!contactName||!businessRole)return json(req,{ok:false,error:'missing_required_fields'},400);
+  if(evidenceNotes.length<15)return json(req,{ok:false,error:'Explain how PerkDrop can verify your authority to manage this business.'},400);
   if(body.terms_accepted!==true||body.privacy_acknowledged!==true)return json(req,{ok:false,error:'merchant_terms_and_privacy_required'},400);
   const {data:claim,error}=await service.rpc('submit_business_claim',{p_merchant_id:merchant.id,p_user_id:userId,p_claim:{contact_name:contactName,contact_phone:contactPhone,business_role:businessRole,evidence_url:evidenceUrl,evidence_notes:evidenceNotes,terms_accepted:true,privacy_acknowledged:true}});
-  if(error){const known=['verified_email_required','merchant_not_found','listing_not_claimable','missing_required_fields','merchant_terms_and_privacy_required'].find(x=>error.message.includes(x));return json(req,{ok:false,error:known||'claim_save_failed'},known==='verified_email_required'?403:known==='merchant_not_found'?404:known?409:500)}
+  if(error){const known=['verified_email_required','merchant_not_found','listing_not_claimable','authority_evidence_required','missing_required_fields','merchant_terms_and_privacy_required'].find(x=>error.message.includes(x));return json(req,{ok:false,error:known||'claim_save_failed'},known==='verified_email_required'?403:known==='merchant_not_found'?404:known?409:500)}
   if(!claim.created)return json(req,{ok:true,received:true,claim_id:claim.id,merchant:{id:merchant.id,name:merchant.name,status:'claim_pending'}},200);
   try{await service.from('engagement_events').insert({merchant_id:merchant.id,catalogue_item_id:resolvedDropId||null,event_type:'claim_submit',source_page:clean(body.source_page,500)||'/claim',metadata:{claim_id:claim.id}})}catch{}
   await queue('claim_received',{claim_id:claim.id,merchant_name:merchant.name,terms_version:TERMS_VERSION});

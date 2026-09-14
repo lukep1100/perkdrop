@@ -5,7 +5,7 @@ const H = {
   "content-type": "application/json; charset=utf-8",
   "access-control-allow-origin": "*",
   "access-control-allow-methods": "GET,OPTIONS",
-  "cache-control": "public, max-age=30, s-maxage=30",
+  "cache-control": "no-store",
 };
 const clean = (v: string | null, max = 160) =>
   String(v || "")

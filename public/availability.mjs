@@ -17,7 +17,7 @@ export function freshness(deal,now=new Date()) {
 }
 export function serviceWindows(deal,date,now=new Date()) {
   const a=deal.availability||{}, clock=localClock(deal.state,now);
-  if(!clock||a.reviewState!=='checked'||!a.sourceUrl||freshness(deal,now).state!=='recent'||!a.validUntil||date>a.validUntil||a.validFrom&&date<a.validFrom||deal.end&&date>deal.end||(a.excludedDates||[]).includes(date)||deal.qualityGrade==='D')return [];
+  if(!clock||a.reviewState!=='checked'||!a.sourceUrl||freshness(deal,now).state!=='recent'||(!a.validUntil&&a.recurrence!=='ongoing')||a.validUntil&&date>a.validUntil||a.validFrom&&date<a.validFrom||deal.end&&date>deal.end||(a.excludedDates||[]).includes(date)||deal.qualityGrade==='D')return [];
   return (Array.isArray(a.windows)?a.windows:[]).filter(w=>{
     const start=minutes(w.start),end=minutes(w.end);
     return Number.isFinite(start)&&Number.isFinite(end)&&end>start&&(w.dates?w.dates.includes(date):Array.isArray(w.days)&&w.days.includes(dayNumber(date)));
@@ -41,4 +41,31 @@ export function scheduleLabel(deal) {
   const a=deal.availability||{};
   if(a.label)return a.label;
   return deal.timing||'Days and service times not confirmed';
+}
+
+// Selected-time explanations use the same reviewed windows as Now/Tonight.
+// Future eligibility describes a recorded schedule, not guaranteed live inventory.
+export function selectedAvailability(deal,{date,time,insideArea=true,dinnerEligible=true}={},now=new Date()) {
+  const a=deal.availability||{},at=minutes(time),clock=localClock(deal.state,now),selectedStamp=Date.parse(`${date}T12:00:00Z`);
+  const result=reason=>({eligible:reason==='available',reason,date,time});
+  if(deal.publicVisible===false||deal.active===false)return result('business_excluded');
+  if(!insideArea)return result('outside_area');
+  if(!dinnerEligible)return result('not_dinner');
+  if(!clock||!/^\d{4}-\d{2}-\d{2}$/.test(date||'')||!Number.isFinite(selectedStamp)||new Date(selectedStamp).toISOString().slice(0,10)!==date||!Number.isFinite(at)||at>=1440)return result('invalid_selection');
+  if((deal.end&&date>deal.end)||(a.validUntil&&date>a.validUntil))return result('expired');
+  if(a.reviewState==='conflicting')return result('source_conflict');
+  if(a.validFrom&&date<a.validFrom)return result('not_started');
+  if((a.excludedDates||[]).includes(date))return result('excluded_date');
+  if(freshness(deal,now).state!=='recent'||!a.sourceUrl)return result('freshness_insufficient');
+  if(deal.bookingEvidence==='unresolved')return result('booking_unresolved');
+  const valid=(a.windows||[]).filter(w=>Number.isFinite(minutes(w.start))&&minutes(w.end)>minutes(w.start));
+  if(!valid.length)return result('service_hours_unknown');
+  const windows=serviceWindows(deal,date,now);
+  if(a.reviewState!=='checked'||deal.qualityGrade==='D'||(!a.validUntil&&a.recurrence!=='ongoing'))return result('freshness_insufficient');
+  if(!windows.length)return result('wrong_weekday');
+  if(windows.some(w=>minutes(w.start)<=at&&at<minutes(w.end))){
+    if(deal.merchantOfferId&&(deal.offerServiceDate!==date||!(Number(deal.capacityRemaining)>0)))return result('booking_unresolved');
+    return result('available');
+  }
+  return result(windows.some(w=>minutes(w.start)>at)?'starts_later':'service_finished');
 }

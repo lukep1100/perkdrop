@@ -1,15 +1,22 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "npm:@supabase/supabase-js@2.57.4";
-const page=(title:string,body:string,status=200)=>new Response(`<!doctype html><html lang="en-AU"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><style>body{margin:0;background:#08090e;color:#f5f6f8;font:16px/1.5 Arial,sans-serif;display:grid;place-items:center;min-height:100vh}.box{max-width:560px;margin:20px;padding:24px;border:1px solid #2c3140;border-radius:18px;background:#11131b}h1{margin-top:0}p{color:#b8bdc7}a{color:#ff4db8}</style></head><body><div class="box"><h1>${title}</h1><p>${body}</p><p><a href="https://perkdrop.au">PerkDrop</a></p></div></body></html>`,{status,headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-store','x-robots-tag':'noindex'}});
-Deno.serve(async(req)=>{
- if(req.method!=='GET')return page('Method not allowed','This link only supports unsubscribe requests.',405);
- try{
-  const u=new URL(req.url),token=(u.searchParams.get('token')||'').trim();
-  if(!/^[0-9a-f-]{36}$/i.test(token))return page('Invalid unsubscribe link','This unsubscribe link is invalid.',400);
-  const sb=createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
-  const {data:processed,error}=await sb.rpc('unsubscribe_outreach',{p_token:token});
-  if(error)throw Error('unsubscribe_transaction_failed');
-  if(!processed)return page('Link not found','This unsubscribe link is no longer valid.',404);
-  return page('Unsubscribed','You will not receive further PerkDrop marketing emails at this address.');
- }catch(e){console.error('perkdrop-unsubscribe',e);return page('Could not process request','Please contact perkdropofficial@gmail.com and we will remove the address manually.',500)}
+import {createClient} from "npm:@supabase/supabase-js@2.57.4";
+const headers={'content-type':'application/json','cache-control':'no-store','x-robots-tag':'noindex','referrer-policy':'no-referrer'};
+const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers});
+Deno.serve(async req=>{
+  // Email scanners follow GET links. Only a deliberate form POST applies policy.
+  if(req.method==='GET'){
+    const u=new URL('https://perkdrop.au/unsubscribe'),token=new URL(req.url).searchParams.get('token')||'';
+    if(/^[0-9a-f-]{36}$/i.test(token))u.searchParams.set('token',token);
+    return new Response(null,{status:303,headers:{...headers,location:u.href}});
+  }
+  if(req.method!=='POST')return json({ok:false,error:'method_not_allowed'},405);
+  try{
+    const raw=await req.text();if(raw.length>200)return json({ok:false,error:'invalid_request'},400);
+    const {token}=JSON.parse(raw);
+    if(typeof token!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token))return json({ok:false,error:'invalid_link'},400);
+    const sb=createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+    const {data,error}=await sb.rpc('unsubscribe_outreach',{p_token:token});
+    if(error)return json({ok:false,error:'try_again'},503);
+    return data?json({ok:true}):json({ok:false,error:'link_not_found'},404);
+  }catch{return json({ok:false,error:'invalid_request'},400);}
 });
