@@ -1088,11 +1088,23 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     });
   }
   async function loadCatalogue() {
-    const r = await fetch(API, {
-      headers: { accept: "application/json" },
-      cache: "no-store",
-      signal: AbortSignal.timeout(12000),
-    });
+    let r, lastError;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        r = await fetch(API, {
+          headers: { accept: "application/json" },
+          cache: "no-store",
+          signal: AbortSignal.timeout(12000),
+        });
+        if (r.ok || ![408, 429, 500, 502, 503, 504].includes(r.status) || attempt === 1) break;
+        await r.arrayBuffer().catch(() => {});
+      } catch (error) {
+        lastError = error;
+        if (attempt === 1) throw error;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 150));
+    }
+    if (!r) throw lastError || Error("Catalogue unavailable");
     if (!r.ok) throw Error(`API ${r.status}`);
     const j = await r.json();
     state.deals = norm(Array.isArray(j) ? j : j.deals || []).map(enrich);

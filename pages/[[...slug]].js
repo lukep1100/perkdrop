@@ -2,6 +2,22 @@ import React from "react";
 import Head from "next/head";
 const API =
   "https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-catalogue-api?limit=200";
+const TRANSIENT = new Set([408, 429, 500, 502, 503, 504]);
+async function fetchCatalogue(url, init = {}) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const r = await fetch(url, { ...init, signal: AbortSignal.timeout(10000) });
+      if (r.ok || !TRANSIENT.has(r.status) || attempt === 1) return r;
+      console.warn(JSON.stringify({ msg: "catalogue_dependency_retry", route: "ssr", attempt: attempt + 1, upstreamStatus: r.status }));
+      await r.arrayBuffer().catch(() => {});
+    } catch (error) {
+      if (attempt === 1) throw error;
+      console.warn(JSON.stringify({ msg: "catalogue_dependency_retry", route: "ssr", attempt: attempt + 1, errorName: error?.name || "unknown" }));
+    }
+    await new Promise((resolve) => setTimeout(resolve, 150));
+  }
+  throw Error("catalogue_unavailable");
+}
 const SITE = "https://perkdrop.au";
 const routeMeta = {
   "/": [
@@ -158,7 +174,7 @@ export async function getServerSideProps({ params, resolvedUrl, req, res }) {
   const started=Date.now(),requestId=String(req?.headers?.['x-vercel-id']||req?.headers?.['x-request-id']||`page-${started}`).slice(0,180);
   try {
     const endpoint=entity==='venues'?`https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-business-directory?slug=${encodeURIComponent(parts[1])}`:API+'&slug='+encodeURIComponent(parts[1]);
-    const r = await fetch(endpoint, { headers: { accept: "application/json" },signal:AbortSignal.timeout(10000) });
+    const r = await fetchCatalogue(endpoint, { headers: { accept: "application/json" } });
     if(r.status===410){res.statusCode=410;return{props:{deal:null,canonicalPath,expiredDeal:true}};}
     if(r.status===404){res.statusCode=404;return{props:{deal:null,canonicalPath,missing:true}};}
     if (!r.ok) { console.warn(JSON.stringify({msg:'catalogue_dependency_failed',route:canonicalPath,requestId,upstreamStatus:r.status,upstreamRequestId:r.headers.get('x-perkdrop-request-id')||null,upstreamFailure:r.headers.get('x-perkdrop-query-failure')||null,upstreamQueryMs:r.headers.get('x-perkdrop-query-ms')||null,ms:Date.now()-started})); throw Error('catalogue_unavailable'); }
