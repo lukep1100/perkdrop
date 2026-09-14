@@ -44,6 +44,7 @@ This is an evidence ledger, not a launch certificate. `VERIFIED` means the state
 - `17f6c94` — assert the health correlation contract in production smoke; Vercel `dpl_8YmLc7pFC23aTGS4yxv5jPby31Ao` READY and aliased to the production domains.
 - `dd0a8a6` — harden nearby catalogue dependency failures; Supabase `perkdrop-nearby-api` v2 ACTIVE and Vercel auto-deployment `dpl_GGiPNpNXEa1VL4CvJnfzhsv2bwGo` READY from `main`.
 - Follow-up deployed Supabase `perkdrop-nearby-api` v3 to retry thrown catalogue-fetch failures as well as HTTP 5xx responses; live probes retained the same 200 valid-coordinate and 400 invalid-coordinate contract.
+- Supabase `perkdrop-admin-commercial` v13 now requires rights-confirmed offer media or a licensed/merchant-authorised hero before its legacy `offer_publish` path can create a public catalogue row; unauthenticated production access remains `401`.
 - Supabase `perkdrop-nearby-api` v2 is ACTIVE (`verify_jwt=false`, preserving its existing public contract) with Australian coordinate validation, request correlation, bounded transient retries and sanitized dependency-failure responses.
 - Supabase migration `20260914181858_catalogue_failure_ledger` is now registered and applied idempotently; the failure ledger retains RLS and service-role-only grants.
 - Supabase `perkdrop-portal` v21 is ACTIVE with `verify_jwt=false`, matching the existing portal contract.
