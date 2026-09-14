@@ -197,7 +197,7 @@ Deno.serve(async (req) => {
       .select("event_type,catalogue_item_id,city,metadata,session_id,created_at")
       .gte("created_at", since).order("created_at", { ascending: false }).limit(20000),
     admin.from("redemptions")
-      .select("id,catalogue_item_id,merchant_offer_id,party_size,status,created_at")
+      .select("id,catalogue_item_id,merchant_offer_id,party_size,status,gross_value,discount_value,commission_value,created_at,redeemed_at")
       .gte("created_at", since).limit(10000),
     admin.from("merchant_claims").select("id,status,created_at").gte("created_at", since).limit(10000),
     admin.from("catalogue_items").select("id,title,merchant,city,active,lifecycle_status,end_date"),
@@ -224,6 +224,10 @@ Deno.serve(async (req) => {
 
   const filledRedemptions = redemptions.filter((row) => ["created", "redeemed"].includes(row.status));
   const seatsFilled = filledRedemptions.reduce((sum, row) => sum + Math.max(1, Number(row.party_size || 1)), 0);
+  const trackedRedemptions = redemptions.filter((row) => row.status === "redeemed" && Number.isFinite(Number(row.gross_value)));
+  const trackedValue = trackedRedemptions.reduce((sum, row) => sum + Math.max(0, Number(row.gross_value || 0)), 0);
+  const trackedDiscount = trackedRedemptions.reduce((sum, row) => sum + Math.max(0, Number(row.discount_value || 0)), 0);
+  const trackedFees = trackedRedemptions.reduce((sum, row) => sum + Math.max(0, Number(row.commission_value || 0)), 0);
   const activeDrops = drops.filter((d) => d.active && d.lifecycle_status === "active" && (!d.end_date || d.end_date >= today)).length;
   const activeOffers = offers.filter((o) => o.status === "active");
   const capacityTotal = activeOffers.reduce((sum, o) => sum + Math.max(0, Number(o.capacity_total || 0)), 0);
@@ -242,8 +246,10 @@ Deno.serve(async (req) => {
 
   const redemptionByDrop = filledRedemptions.reduce((acc: Record<string, any>, row) => {
     if (!row.catalogue_item_id) return acc;
-    const value = acc[row.catalogue_item_id] || (acc[row.catalogue_item_id] = { redemptions: 0, seats: 0 });
-    value.redemptions++; value.seats += Math.max(1, Number(row.party_size || 1)); return acc;
+    const value = acc[row.catalogue_item_id] || (acc[row.catalogue_item_id] = { redemptions: 0, seats: 0, trackedValue: 0, trackedDiscount: 0, trackedFees: 0, trackedRows: 0 });
+    value.redemptions++; value.seats += Math.max(1, Number(row.party_size || 1));
+    if(row.status === "redeemed" && Number.isFinite(Number(row.gross_value))){value.trackedRows++;value.trackedValue+=Math.max(0,Number(row.gross_value||0));value.trackedDiscount+=Math.max(0,Number(row.discount_value||0));value.trackedFees+=Math.max(0,Number(row.commission_value||0));}
+    return acc;
   }, {});
   const dealRows: Record<string, any> = {};
   for (const x of events) {
@@ -268,7 +274,7 @@ Deno.serve(async (req) => {
     const base = drops.find((d) => d.id === dropId);
     dealRows[dropId] = { id: dropId, deal: base?.title || dropId, merchant: base?.merchant || "", city: base?.city || "", views: 0, saves: 0, directions: 0, official: 0, ...values };
   }
-  const deals = Object.values(dealRows).map((d: any) => ({ ...d, estimatedRevenue: d.seats * 3 }))
+  const deals = Object.values(dealRows).map((d: any) => ({ ...d, trackedValue: d.trackedRows ? Number(d.trackedValue.toFixed(2)) : null, trackedDiscount: d.trackedRows ? Number(d.trackedDiscount.toFixed(2)) : null, trackedFees: d.trackedRows ? Number(d.trackedFees.toFixed(2)) : null }))
     .sort((a: any, b: any) => b.views - a.views || b.seats - a.seats).slice(0, 50);
 
   const leads = contacts.map((contact: any) => {
@@ -305,7 +311,9 @@ Deno.serve(async (req) => {
       seatsFilled,
       merchantClaims: claims.length,
       activeDrops,
-      estimatedRevenue: seatsFilled * 3,
+      trackedValue: trackedRedemptions.length ? Number(trackedValue.toFixed(2)) : null,
+      trackedDiscount: trackedRedemptions.length ? Number(trackedDiscount.toFixed(2)) : null,
+      trackedFees: trackedRedemptions.length ? Number(trackedFees.toFixed(2)) : null,
       searches: eventCount("search"),
       saves: eventCount("save_toggle", "save"),
       directions: eventCount("directions_click", "directions"),

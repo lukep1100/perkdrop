@@ -9,3 +9,9 @@ test('Every event accepted by the tracking API has a database constraint value',
   const canonical=vm.runInNewContext('('+source.match(/const canonical:Record<string,string>=(\{[^]*?\});/)[1]+')',{}, {timeout:1000});
   for(const input of inputs)assert.ok(migration.includes("'"+(canonical[input]||input)+"'"),input+' must be persisted, not silently rejected');
 });
+test('Owner analytics reports tracked values only',async()=>{
+  const source=await readFile(new URL('../supabase/functions/perkdrop-owner-analytics/index.ts',import.meta.url),'utf8');
+  assert.equal(source.includes('estimatedRevenue'),false);
+  assert.equal(source.includes('trackedValue'),true);
+  assert.equal(source.includes('gross_value'),true);
+});
