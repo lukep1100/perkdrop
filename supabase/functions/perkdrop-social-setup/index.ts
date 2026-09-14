@@ -137,7 +137,7 @@ Deno.serve(async (req: Request) => {
     }
 
     await patch("social_publisher_config", "singleton=eq.true", {
-      enabled: Boolean(ig && fb),
+      enabled: false, // Setup/rotation never re-enables automatic publishing.
       buffer_organization_id: String(org.id),
       last_channel_sync_at: new Date().toISOString(),
       setup_used_at: new Date().toISOString(),

@@ -13,6 +13,8 @@ verify_jwt = false
 verify_jwt = false
 [functions.perkdrop-social-publisher]
 verify_jwt = false
+[functions.perkdrop-social-admin]
+verify_jwt = false
 [functions.perkdrop-merchant-submit]
 verify_jwt = false
 [functions.perkdrop-quality-backfill]
