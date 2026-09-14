@@ -246,12 +246,15 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
+  const now = new Date().toISOString();
+  const today = now.slice(0, 10);
   if (url.searchParams.get("health") === "1") {
     const healthResults = await runQueryWaves([
       () => queryWithRetry(() => supabase
         .from("catalogue_items")
         .select("id", { count: "exact", head: true })
-        .eq("active", true)),
+        .eq("active", true)
+        .or(`end_date.is.null,end_date.gte.${today}`)),
       () => queryWithRetry(() => supabase
         .from("catalogue_locations")
         .select("id", { count: "exact", head: true })
@@ -300,8 +303,6 @@ Deno.serve(async (req) => {
     1,
     Math.min(200, Number(url.searchParams.get("limit") || 200) || 200),
   );
-  const now = new Date().toISOString();
-  const today = now.slice(0, 10);
   const [
     { data, error },
     { data: locations, error: locError },
