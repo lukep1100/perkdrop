@@ -36,4 +36,3 @@ begin
   where id=previous.id;
 end $$;
 commit;
-

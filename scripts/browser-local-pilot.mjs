@@ -18,7 +18,7 @@ check('unsubscribe GET is confirmation only',evaluate('document.querySelector("f
 check('unsubscribe has no external assets or scripts',evaluate('document.querySelectorAll("script,img,iframe,link[rel=stylesheet]").length===0'));
 const plan=JSON.parse(await readFile('docs/data/local-pilot-changes-2026-09-14.json','utf8'));
 const {deals}=await (await fetch(api+'perkdrop-catalogue-api?limit=500')).json();
-const ids=[...new Set([...plan.photos.flatMap(x=>x.offerIds),...plan.newOffers.map(x=>x.id),...deals.filter(d=>d.state==='SA'&&d.city==='adelaide').map(d=>d.id),plan.repairWoodville.id,'PD-2026-0062','UNION-HOTEL-LUNCH-20-OFF'])];
+const ids=[...new Set([...plan.photos.flatMap(x=>x.offerIds),...plan.newOffers.map(x=>x.id),...deals.filter(d=>d.state==='SA'&&d.city==='adelaide').map(d=>d.id),plan.repairWoodville.id,'PD-2026-0062','UNION-HOTEL-LUNCH-20-OFF'])].filter(id=>process.env.PRIORITY_BUSINESSES_ONLY!=='1'||['PD-2026-0059','PD-2026-0062','UNION-HOTEL-LUNCH-20-OFF',...plan.newOffers.map(x=>x.id)].includes(id));
 for(const id of ids){
  const d=deals.find(x=>x.id===id);check('pilot offer exists: '+id,!!d);
  open('/search?q='+encodeURIComponent(d.merchant),'#search-input');
@@ -38,10 +38,21 @@ for(const id of ids){
   open(profile,'.hero-actions');check('business profile names the offer merchant: '+id,evaluate(`document.querySelector('main').innerText.includes(${JSON.stringify(d.merchant)})`));
   if(plan.photos.some(p=>p.merchantId===d.merchantId)){run(['wait','--fn','document.querySelector(".venue-photo")?.complete&&document.querySelector(".venue-photo").naturalWidth>0']);const hero=evaluate('(()=>{const i=document.querySelector(".venue-photo");return {width:i.naturalWidth,displayWidth:i.getBoundingClientRect().width,fit:getComputedStyle(i).objectFit}})()');check('rights-cleared directory hero decodes without upscaling: '+id,hero.width>=226&&hero.displayWidth<=hero.width+1,hero);}
  }
- const navigation=await fetch(d.navigationUrl,{redirect:'manual'});check('directions resolves without booking: '+id,[301,302,303,307,308].includes(navigation.status),{status:navigation.status,location:navigation.headers.get('location')});
+ const navigation=await fetch(d.navigationUrl,{redirect:'manual'}),target=new URL(navigation.headers.get('location')||'https://invalid.example');check('directions reaches canonical destination without booking: '+id,navigation.status===302&&target.hostname==='www.google.com'&&target.searchParams.get('destination')===(d.latitude!=null&&d.longitude!=null?`${d.latitude},${d.longitude}`:d.location||d.merchant),{status:navigation.status,location:target.href});
  if(plan.newOffers.some(x=>x.id===id)||id==='PD-2026-0008'||id==='PD-2026-0009'){
   open('/deals/'+d.slug,'.detail-hero img');const shot=run(['screenshot']);await copyFile(shot.path,`.audit/pilot-browser/${id}-${new URL(base).hostname}.png`);
  }
+}
+if(process.env.PRIORITY_BUSINESSES_ONLY==='1'){
+ open('/claim?merchant=union-hotel-adelaide','#selected-business:not(.hidden)');
+ check('live claim preselects exact Union branch',evaluate('document.querySelector("#selected-business").innerText.includes("70 Waymouth St")'));
+ check('live claim mobile has no overflow',evaluate('document.documentElement.scrollWidth<=innerWidth'));
+ check('live claim keeps verification and recovery controls',evaluate('!!document.querySelector("#resend-verification")&&!!document.querySelector("#forgot-password")&&document.body.innerText.includes("verified email is required")'));
+ const claimShot=run(['screenshot']);await copyFile(claimShot.path,`.audit/pilot-browser/claim-${new URL(base).hostname}.png`);
+ open('/deals/union-hotel-20-off-lunch?utm_source=codex_qa&utm_medium=test&utm_campaign=onboarding_release','#startBtn');
+ check('Union campaign query tracking survives page load',evaluate('new URL(location.href).searchParams.get("utm_campaign")==="onboarding_release"'));
+ check('Union purchase and lunch-only conditions remain visible',evaluate('document.body.innerText.includes("drink")&&/lunch/i.test(document.body.innerText)'));
+ for(const slug of ['ready-team-one','brownsmart-829acb87bf'])check('excluded business remains publicly delisted: '+slug,(await fetch(base+'/venues/'+slug)).status===404);
 }
 await writeFile(`.audit/pilot-browser/${new URL(base).hostname}.json`,JSON.stringify({base,testedAt:new Date().toISOString(),results,bookingsCreated:0,claimsCreated:0,messagesSent:0},null,2));
 console.log(JSON.stringify({passed:results.length,bookingsCreated:0,claimsCreated:0,messagesSent:0}));

@@ -73,4 +73,3 @@ returns boolean language sql stable security definer set search_path=public,pg_t
 $$;
 revoke all on function public.claim_merchant_notifications(integer),public.merchant_notification_send_allowed(uuid) from public,anon,authenticated;
 grant execute on function public.claim_merchant_notifications(integer),public.merchant_notification_send_allowed(uuid) to service_role;
-

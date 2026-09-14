@@ -16,7 +16,7 @@ export async function testNotificationReadiness(pool,check){
   await check('reproduce production defect: processing violates legacy status constraint',async()=>{
     await assert.rejects(pool.query("update merchant_notification_outbox set status='processing' where id=$1",[old]),/status_check/);
   });
-  await pool.query(await readFile(new URL('../../supabase/migrations/20260914114314_production_notification_readiness.sql',import.meta.url),'utf8'));
+  await pool.query(await readFile(new URL('../../supabase/migrations/20260914115217_production_notification_readiness.sql',import.meta.url),'utf8'));
   await check('disabled sender and missing release gate cannot claim any messages',async()=>{
     assert.equal((await pool.query('select * from claim_merchant_notifications(20)')).rowCount,0);
     await pool.query('update merchant_notification_config set enabled=true');
