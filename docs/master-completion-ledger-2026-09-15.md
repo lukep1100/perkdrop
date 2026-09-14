@@ -55,6 +55,9 @@ This is an evidence ledger, not a launch certificate. `VERIFIED` means the state
 - Vercel production deployment `dpl_6stEpySDuFxadqQSP5ovWuJiKWV4` (source `4cd1a20`) is READY and aliased to `perkdrop.au` / `www.perkdrop.au`.
 - Vercel auto-deployment `dpl_9JjX6PfUH99mLdk6qZXGxYLNxYmc` for the pushed `main` state is READY/Production and aliased to `perkdrop.au` / `www.perkdrop.au`.
 - Vercel follow-on auto-deployment `dpl_EJhALjTZGLH91ypogXc1Dij7VmoB` (after the evidence-ledger commit) is READY/Production and remains aliased to `perkdrop.au` / `www.perkdrop.au`.
+- `e2ccd65` — add a regression assertion that the portal keeps offer-photo rights explicit on edit and submit; `npm run test:inline-scripts` now passes 3/3.
+- Vercel follow-on deployment `dpl_HYcvTtg6kXA2Ui5K7n4xW1k4PrhJ` is READY/Production and aliased to `perkdrop.au` / `www.perkdrop.au`.
+- Live public-catalogue audit at 2026-09-14T20:04:56Z: 52 displayed location rows, 44 unique deal IDs, 33 represented merchants, 100 directory rows returned under the requested cap, 23 unique image URLs checked with 0 HTTP/decode failures (2 exceeded 1 MB before optimizer delivery).
 - Integrated local suites: marketplace 10, discovery/notification 16, availability 12, inline scripts 2, analytics 2, saves 2, database 60; production smoke passed when run with `SMOKE_BASE_URL=https://perkdrop.au` (the package-level smoke invocation without that variable is intentionally non-production and returns connection failures).
 
 ## Current read-only production configuration
@@ -76,6 +79,7 @@ This is an evidence ledger, not a launch certificate. `VERIFIED` means the state
 - Nearby production probes: Adelaide coordinates returned `200` with three deals and `X-PerkDrop-Request-Id`; missing coordinates and `(0,0)` both returned `400 valid_australian_lat_lng_required` with correlation IDs. No writes, bookings or notifications were triggered.
 - Latest health correlation probe: production `/api/health` returned `200` with 52 live rows, and its wrapper request ID matched the upstream catalogue request ID exactly.
 - Latest portal deployment probe: `https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-portal` with the existing proxy header returned HTTP `200`, `text/plain`, 62,575 bytes, and contained both `originalEditOffer` and `media_rights_confirmed` safeguards. No authenticated owner action was performed.
+- The public `/claim?merchant=union-hotel-adelaide` proxy returned HTTP `200`, `text/html; charset=utf-8`, and included the deployed rights-confirmation safeguards and the selected-business journey copy.
 - Production scheduler readback: expiry job (`17 * * * *`), booking reconciliation (`* * * * *`) and session closure (`*/15 * * * *`) are active; their latest runs succeeded at 2026-09-14 18:17, 18:23 and 18:15 UTC respectively. Notification dispatch and five-minute matching also showed successful latest runs; no notification release was enabled.
 
 ## Owner action bundle
