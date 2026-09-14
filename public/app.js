@@ -1193,10 +1193,10 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     if (!form) return;
     const vertical = form.querySelector('select[name="vertical"]');
     const units = form.querySelector('select[name="inventory_unit"]');
-    for (const [value, label] of [['drinks','Drinks'],['hair','Hair'],['golf','Golf'],['tourism','Tourism'],['stay','Accommodation'],['free','Free activity']]) {
+    for (const [value, label] of [['drinks','Drinks'],['wellness','Wellness'],['hair','Hair'],['activities','Activities'],['golf','Golf'],['tourism','Tourism'],['stay','Accommodation'],['free','Free activity'],['other','Other']]) {
       if (vertical && !vertical.querySelector(`option[value="${value}"]`)) vertical.add(new Option(label, value));
     }
-    for (const [value, label] of [['diner','Diners'],['booking','Bookings'],['tee_time','Tee times'],['player','Players'],['seat','Seats'],['package','Packages']]) {
+    for (const [value, label] of [['diner','Diners'],['booking','Bookings'],['tee_time','Tee times'],['class_spot','Class spots'],['player','Players'],['seat','Seats'],['package','Packages'],['other','Other']]) {
       if (units && !units.querySelector(`option[value="${value}"]`)) units.add(new Option(label, value));
     }
   }
