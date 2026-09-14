@@ -128,7 +128,7 @@ export default function Shell({ deal, venue, canonicalPath, expiredDeal = false,
       }),
       h("link", {
         rel: "stylesheet",
-        href: "/styles.css?v=v29-product-quality",
+        href: "/styles.css?v=v30-product-quality",
       }),
     ),
     h(
@@ -145,7 +145,7 @@ export default function Shell({ deal, venue, canonicalPath, expiredDeal = false,
         h("p", {role:"status"}, "Loading live availability…"),
       ),
     ),
-    h("script", { src: "/app.js?v=v29-product-quality", type:"module" }),
+    h("script", { src: "/app.js?v=v30-product-quality", type:"module" }),
   );
 }
 export async function getServerSideProps({ params, resolvedUrl, res }) {

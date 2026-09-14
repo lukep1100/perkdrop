@@ -982,3 +982,4 @@ a {
 .map-page .section{margin-top:20px}
 .map-legend{font-size:13px;line-height:1.5;margin:12px 0}
 .toast{pointer-events:none}
+.btn.primary,.searchbar button,.badge{background:linear-gradient(135deg,#aa126d,#5430d0);color:#fff}
