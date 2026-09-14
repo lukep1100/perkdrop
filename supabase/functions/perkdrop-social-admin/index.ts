@@ -137,6 +137,7 @@ async function execute(body: any, user: any) {
        await fingerprint(job)!==body.preview_hash) fail(409,"Approval must match the exact current preview.");
     if(!["ready","draft_failed"].includes(job.status)) fail(409,"This job is not eligible for draft creation.");
     const config = await settings();
+    if(config.enabled !== true) fail(409,"Buffer publishing is disabled in production. No draft request is available.");
     if(!config.buffer_key_expires_at || Date.now()>=Date.parse(config.buffer_key_expires_at+"T00:00:00Z"))
       fail(409,"Rotate the expired Buffer key in Vault before creating drafts.");
     job = await updateJob(job.id,{status:"drafting",approved_by:user.id,approved_at:new Date().toISOString(),error:null},job.status);
