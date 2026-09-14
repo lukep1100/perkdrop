@@ -7,8 +7,9 @@
     "start": "next start",
     "test:smoke": "node scripts/smoke.mjs",
     "test:harness": "node scripts/marketplace-harness.mjs",
+    "test:discovery": "node --test tests/discovery-rules.test.mjs",
     "test:database": "node scripts/database-integration.mjs",
-    "test": "npm run test:harness && npm run test:database && npm run test:smoke"
+    "test": "npm run test:harness && npm run test:discovery && npm run test:database && npm run test:smoke"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",

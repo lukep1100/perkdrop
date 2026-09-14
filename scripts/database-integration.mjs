@@ -271,6 +271,8 @@ try {
     const secret=randomBytes(32).toString('hex'),hash=randomBytes(32).toString('hex');await pool.query("insert into marketplace_api_credentials(name,token_hash,scope_type,scopes) values('Fixture credential',$1,'merchant','[\"performance:read\"]')",[hash]);
     const row=(await pool.query("select token_hash,scopes,revoked_at from marketplace_api_credentials where name='Fixture credential'")).rows[0];assert.notEqual(row.token_hash,secret);assert.deepEqual(row.scopes,['performance:read']);await pool.query("update marketplace_api_credentials set revoked_at=now() where name='Fixture credential'");assert.ok((await pool.query("select revoked_at from marketplace_api_credentials where name='Fixture credential'")).rows[0].revoked_at);
   });
+  const {testProductQuality}=await import('../tests/database/product-quality.mjs');
+  await testProductQuality(pool,check);
   console.log(`REAL DATABASE: ${count} checks passed. No production connection or fixture writes.`);
 } finally {
   if (pool) await pool.end();

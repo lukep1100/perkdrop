@@ -7,14 +7,9 @@ Deno.serve(async(req)=>{
   const u=new URL(req.url),token=(u.searchParams.get('token')||'').trim();
   if(!/^[0-9a-f-]{36}$/i.test(token))return page('Invalid unsubscribe link','This unsubscribe link is invalid.',400);
   const sb=createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
-  const {data:msg}=await sb.from('outreach_messages').select('id,merchant_id,email,status').eq('unsubscribe_token',token).maybeSingle();
-  if(!msg)return page('Link not found','This unsubscribe link is no longer valid.',404);
-  await Promise.all([
-    sb.from('outreach_messages').update({status:'unsubscribed',updated_at:new Date().toISOString()}).eq('id',msg.id),
-    sb.from('outreach_contacts').update({status:'unsubscribed',unsubscribe_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('merchant_id',msg.merchant_id).eq('email',msg.email),
-    sb.from('merchants').update({do_not_contact:true}).eq('id',msg.merchant_id),
-    sb.from('outreach_suppression').upsert({email:msg.email,merchant_id:msg.merchant_id,reason:'unsubscribe',source:'perkdrop-unsubscribe'},{onConflict:'email'})
-  ]);
+  const {data:processed,error}=await sb.rpc('unsubscribe_outreach',{p_token:token});
+  if(error)throw Error('unsubscribe_transaction_failed');
+  if(!processed)return page('Link not found','This unsubscribe link is no longer valid.',404);
   return page('Unsubscribed','You will not receive further PerkDrop marketing emails at this address.');
  }catch(e){console.error('perkdrop-unsubscribe',e);return page('Could not process request','Please contact perkdropofficial@gmail.com and we will remove the address manually.',500)}
 });

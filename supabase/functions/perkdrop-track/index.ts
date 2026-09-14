@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
 
-const events=new Set(["deal_open","search","save_toggle","map_open","directions_click","official_deal_click","business_submit_started","business_submit_completed","claim_portal_open","page_view","paid_landing","service_date_selected","party_size_selected","claim_started","hold_created","claim_issued","book_table_clicked","booking_claim_confirmed","hold_expired","hold_released","subscriber_signup","redemption_complete"]);
+const events=new Set(["deal_open","search","save_toggle","map_open","map_marker_open","business_open","share","directions_click","official_deal_click","business_submit_started","business_submit_completed","claim_portal_open","page_view","paid_landing","service_date_selected","party_size_selected","claim_started","hold_created","claim_issued","book_table_clicked","booking_claim_confirmed","hold_expired","hold_released","subscriber_signup","redemption_complete"]);
 const canonical:Record<string,string>={deal_open:'deal_view',save_toggle:'save',directions_click:'directions',official_deal_click:'website_click'};
 const originOk=(v:string)=>{try{const h=new URL(v).host;return h==='perkdrop.au'||h==='www.perkdrop.au'||h==='khzpdyyywiucfhubxkev.supabase.co'||(h.includes('perkdrop')&&h.endsWith('.vercel.app'))}catch{return false}};
 const clean=(v:unknown,n:number)=>typeof v==='string'?v.trim().slice(0,n):'';
@@ -17,7 +17,7 @@ Deno.serve(async req=>{
   if(Number(req.headers.get('content-length')||0)>8192)return reply(req,{ok:false,error:'payload_too_large'},413);
   if(req.headers.get('origin')&&!originOk(req.headers.get('origin')||''))return reply(req,{ok:false,error:'origin_not_allowed'},403);
   try{
-    const b=await req.json(),inputEvent=clean(b?.event_type,40);
+    const raw=await req.text();if(raw.length>8192)return reply(req,{ok:false,error:'payload_too_large'},413);const b=JSON.parse(raw),inputEvent=clean(b?.event_type,40);
     if(!events.has(inputEvent))return reply(req,{ok:false,error:'invalid_event'},400);
     const event=canonical[inputEvent]||inputEvent;
     const ip=(req.headers.get('x-forwarded-for')||req.headers.get('cf-connecting-ip')||'').split(',')[0].trim();
@@ -37,7 +37,7 @@ Deno.serve(async req=>{
       fbclid:clean(m.fbclid,500)||clean(qp.get('fbclid'),500)||null,
       utm_id:clean(m.utm_id,180)||clean(qp.get('utm_id'),180)||null,
       service_date:clean(m.service_date,20)||null,party_size:Number.isInteger(Number(m.party_size))?Number(m.party_size):null,
-      redemption_id:UUID.test(clean(m.redemption_id,80))?clean(m.redemption_id,80):null,hold_token:UUID.test(clean(m.hold_token,80))?clean(m.hold_token,80):null,
+      redemption_id:UUID.test(clean(m.redemption_id,80))?clean(m.redemption_id,80):null,listing_type:clean(m.listing_type,30)||null,
       booking_provider:clean(m.booking_provider,60)||null,source_event:inputEvent
     };
     const requestedDropId=clean(m.deal_id,80)||null;
@@ -51,6 +51,7 @@ Deno.serve(async req=>{
         if(!merchantOfferId){const {data:offer}=await service.from('merchant_offers').select('id').eq('published_drop_id',drop.id).eq('status','active').limit(1).maybeSingle();merchantOfferId=offer?.id||null}
       }
     }
+    if(!merchantId&&UUID.test(clean(m.merchant_id,80))){const {data:venue}=await service.from('merchants').select('id').eq('id',m.merchant_id).eq('permanent_listing',true).neq('directory_status','removed').maybeSingle();merchantId=venue?.id||null;}
     const {error}=await service.from('engagement_events').insert({merchant_id:merchantId,merchant_offer_id:merchantOfferId,catalogue_item_id:dropId,event_type:event,session_id:clean(b.session_id,120)||null,city:clean(b.city,100)||null,source_page:clean(b.source_page,500)||null,referrer:clean(b.referrer,500)||clean(req.headers.get('referer'),500)||null,source_ip_hash:ipHash,user_agent:clean(req.headers.get('user-agent'),500)||null,metadata});
     if(error)throw error;
     return reply(req,{ok:true},202);
