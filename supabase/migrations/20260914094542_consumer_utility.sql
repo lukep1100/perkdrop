@@ -1,4 +1,5 @@
 -- Public availability is reviewed evidence, not an inference from a title.
+-- Version matches the production migration ledger assigned during deployment.
 alter table public.catalogue_items add column if not exists availability jsonb not null default '{}';
 alter table public.catalogue_items add column if not exists quality_grade text not null default 'C' check (quality_grade in ('A','B','C','D'));
 alter table public.catalogue_items add column if not exists quality_note text;

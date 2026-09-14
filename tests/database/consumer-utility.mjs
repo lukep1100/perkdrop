@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {randomBytes,randomUUID} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 export async function testConsumerUtility(pool,check){
- await pool.query(await readFile(new URL('../../supabase/migrations/20260914093556_consumer_utility.sql',import.meta.url),'utf8'));
+ await pool.query(await readFile(new URL('../../supabase/migrations/20260914094542_consumer_utility.sql',import.meta.url),'utf8'));
  const mid=(await pool.query("insert into merchants(name,slug,permanent_listing,directory_status) values('Isolated report fixture',$1,true,'active') returning id",[randomUUID()])).rows[0].id;
  const hash=()=>randomBytes(32).toString('hex');
  const submit=(h,reason='times',detail='',merchant=mid)=>pool.query('select submit_listing_report(null,$1,$2,$3,$4) id',[merchant,reason,detail,h]);

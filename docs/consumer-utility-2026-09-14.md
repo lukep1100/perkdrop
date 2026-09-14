@@ -90,7 +90,7 @@ Report reproduction: `node scripts/build-consumer-review.mjs` uses the committed
 
 ## 9. Production
 
-Schema migration `20260914093556_consumer_utility.sql` and the reviewed `supabase/release/consumer-evidence-20260914.sql` data patch were applied to existing project `khzpdyyywiucfhubxkev`.
+Schema migration `20260914094542_consumer_utility.sql` and the reviewed `supabase/release/consumer-evidence-20260914.sql` data patch were applied to existing project `khzpdyyywiucfhubxkev`. The local migration filename was aligned to the actual production ledger version, preventing a later CLI push from treating the same schema change as unapplied. No schema was reapplied during that filename alignment.
 
 Deployed functions: catalogue API v21, business directory v8, portal v17, listing reports v1. Existing anonymous public APIs retain their prior JWT setting; the new public report submission is intentionally anonymous, with explicit server authentication on staff operations.
 
