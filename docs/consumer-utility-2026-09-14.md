@@ -1,12 +1,12 @@
 # PerkDrop consumer utility release — 14 September 2026
 
-This phase improves the existing product, not its feature count. Production data changes are applied; frontend deployment and post-release verification are recorded below after release. No businesses were impersonated or contacted, no business claims were created, no booking capacity was held, and no social content was scheduled or published.
+This phase improves the existing product, not its feature count. Production data and frontend changes are live and verified. No businesses were impersonated or contacted, no business claims were created, no booking capacity was held, and no social content was scheduled or published.
 
 ## 1. Tonight experience
 
 `/tonight` and `/today` use explicit reviewed service windows, venue-state IANA timezones, exact weekdays/date instances, date bounds, exclusions, actual source-check timestamps and a 30-day freshness ceiling. Tonight means a service extending beyond 5pm with time remaining. Titles, “late”, seasonal headlines and general opening hours without applicable evidence cannot create availability. Booking inventory must match the service date and have capacity. Conditions still apply; these are evidence-backed service times, not a live guarantee that a table remains free.
 
-17 of 43 offers have structured service windows. At 7:25pm Adelaide time on Monday 14 September, exactly **one Adelaide offer** qualifies for tonight: Grand Junction Tavern's Monday buy-one-main-get-one-free, 5–9pm, excluding public holidays. Union's lunch and Tuesday schnitzels correctly do not qualify. Current GJT evidence: https://grandjunctiontavern.com.au/events/buy-1-get-1-free/
+17 of 43 offers have structured service windows. At 7:29pm Adelaide time on Monday 14 September, exactly **one Adelaide offer** qualifies for tonight: Grand Junction Tavern's Monday buy-one-main-get-one-free, 5–9pm, excluding public holidays. Union's lunch and Tuesday schnitzels correctly do not qualify. Fifteen distinct offers qualify for at least one service in the next seven days nationally, including nine in Adelaide; many are daytime attractions. Current GJT evidence: https://grandjunctiontavern.com.au/events/buy-1-get-1-free/
 
 Home shows up to three useful sections, not empty feature shelves. National location selection remains; Darwin's empty Tonight result explains the limitation and offers another day/category. Capacity is still authoritative at booking, not on an old open tab. A visible-page minute refresh rechecks time boundaries without interrupting form entry.
 
@@ -65,6 +65,8 @@ Public-source offer labels are distinct from business-approved offer terms, a bu
 
 `/report` accepts a reason and optional short detail; no account or giant form. New private `listing_reports` queue has RLS and no anonymous/authenticated table access. The public endpoint uses input limits, a honeypot, a salted gateway-IP hash (no raw IP persistence), five reports/hour and atomic same-listing/reason deduplication. Staff queue read/review requires the verified PerkDrop owner account. Reports never automatically hide a venue, send email or change outreach status. Distributed abuse and shared-network rate limiting remain limitations; this is modest protection, not a full abuse platform.
 
+The genuine observed Cucina hours contradiction was submitted through production UI at 09:59:32 UTC. Report `935d99c0-43b4-471d-8bb0-86e84c4b54f5` is **pending** for offer `PD-2026-0058`; both offer and business remain active. Anonymous queue access returns 401. Staff should review this real issue; it was not dismissed merely to tidy QA results. Authenticated staff queue rendering/status changes were not tested with a live owner login.
+
 ## 7. UX
 
 Home leads with usable local offers, food and free activities; supply gates category chips. Radar is secondary “Deal alerts”; Saved & passes uses plain language, and device recovery is collapsed. Owner landing actions are obvious; advanced management stays available but lower. Search adds practical synonyms without AI: schnitty/schnitzel, cheap dinner, kids eat free, date night, free stuff, things to do, lunch, pub/pizza, family, Adelaide CBD and near me. Whole-word food matching prevents “eat” inside “great” turning a gallery into a food result. Search synonyms improve recall, not price guarantees or personalised recommendations.
@@ -80,6 +82,10 @@ Home leads with usable local offers, food and free activities; supply gates cate
 - New consumer journey: exact-time explanation, wrong-day/lunch exclusion, weekday selector, unsupported-market empty state, food-category false-positive prevention, four natural searches, both decoded/cropped business heroes, required report reason and private-queue denial.
 - All 33 current unique catalogue images fetched and decoded; two promoted heroes separately fetched, decoded and visually inspected.
 
+Post-deployment on `https://perkdrop.au`: all 64 route/viewport combinations passed (eight routes × eight widths), all 17 existing journeys and all 14 new consumer checks passed, plus all 34 route smoke outcomes. Save → readable Saved & passes link → Union page → remove passed, with the isolated QA save cleaned up. `/today` defaults correctly to today; homepage makes zero business-directory requests. The source-review tools did not turn HTTP success into verification. The data-quality skill kept incomplete evidence and no-delete classifications explicit.
+
+Local verification artifacts: `.audit/browser-quality/perkdrop.au/` contains per-route JSON and 320/390/1280 screenshots; `journeys.json` and `save-journey.json` record browser assertions. `.audit/consumer/browser-perkdrop.au.json` records the new flow. These machine-local artifacts are not committed or public. Prominent screenshots: `_tonight-390.png`, `_tonight-1280.png`, `_claim_merchant_union_hotel_adelaide-390.png`, `_venues_union_hotel_adelaide-390.png`. Both hero crops also have separate `.audit/consumer/*-perkdrop.au.png` captures.
+
 Report reproduction: `node scripts/build-consumer-review.mjs` uses the committed public-field-only dated input snapshot and explicit manual decisions. It regenerates CSVs and a reviewable local SQL patch; it never writes production. Raw website HTML, private contacts and credentials are excluded. The snapshot is historical, not a current re-verification. Never blindly replay the production evidence SQL over later owner edits.
 
 ## 9. Production
@@ -88,7 +94,9 @@ Schema migration `20260914093556_consumer_utility.sql` and the reviewed `supabas
 
 Deployed functions: catalogue API v21, business directory v8, portal v17, listing reports v1. Existing anonymous public APIs retain their prior JWT setting; the new public report submission is intentionally anonymous, with explicit server authentication on staff operations.
 
-Frontend release: recorded after GitHub → Vercel completion. Production verification: recorded after release. Existing Supabase advisory remains: leaked-password protection is disabled; service-only tables intentionally have RLS with no public policies. No new public data access was granted. Buffer remains Vault-only and the previous invalid-slide social publishing guard remains untouched.
+Implementation commit: `f50306ec16ebde8a86ddc1684fe68f4ace10cc0b`, pushed to `lukep1100/perkdrop` main. GitHub-triggered Vercel deployment `dpl_Di8E1QFPwHUcDfnyyKz1jFKcSt4X` reached **READY** and aliases `perkdrop.au` and `www.perkdrop.au`; deployed asset release is `v32-consumer-utility`. Inspection: https://vercel.com/lukep1100s-projects/perkdrop/Di8E1QFPwHUcDfnyyKz1jFKcSt4X . Post-release browser/HTTP checks above used the production custom domain, not just localhost. The final report update is a documentation-only follow-up commit.
+
+Existing Supabase advisory remains: leaked-password protection is disabled; service-only tables intentionally have RLS with no public policies. No new public data access was granted. Buffer remains Vault-only and the previous invalid-slide social publishing guard remains untouched.
 
 ## 10. What still sucks
 
