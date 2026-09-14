@@ -42,6 +42,7 @@ This is an evidence ledger, not a launch certificate. `VERIFIED` means the state
 - `f020749` — record the 20-request concurrent health-burst verification; Vercel `dpl_E4xMDwYy5FvHBhLZgP7FmTYeodBa` READY and aliased to the production domains.
 - `a59a55f` — expose the sanitized upstream catalogue request ID and query diagnostics through `/api/health`; Vercel `dpl_D54fg8tvysviQzjn91Wjy2aQJwPq` READY and aliased to the production domains.
 - `17f6c94` — assert the health correlation contract in production smoke; Vercel `dpl_8YmLc7pFC23aTGS4yxv5jPby31Ao` READY and aliased to the production domains.
+- Supabase migration `20260914181858_catalogue_failure_ledger` is now registered and applied idempotently; the failure ledger retains RLS and service-role-only grants.
 - Supabase `perkdrop-portal` v21 is ACTIVE with `verify_jwt=false`, matching the existing portal contract.
 - Vercel production deployment `dpl_6stEpySDuFxadqQSP5ovWuJiKWV4` (source `4cd1a20`) is READY and aliased to `perkdrop.au` / `www.perkdrop.au`.
 - Integrated local suites: marketplace 10, discovery/notification 16, availability 12, inline scripts 2, analytics 2, saves 2, database 60; production smoke passed when run with `SMOKE_BASE_URL=https://perkdrop.au` (the package-level smoke invocation without that variable is intentionally non-production and returns connection failures).
