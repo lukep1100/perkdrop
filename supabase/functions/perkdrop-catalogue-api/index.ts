@@ -1,5 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "npm:@supabase/supabase-js@2.57.4";
+import { createClient } from "npm:@supabase/supabase-js@2.102.0";
 import { isAustralianPoint, localDay, approvedImage, directoryVisible, categoryVertical } from "../_shared/discovery.ts";
 
 const headers = {
