@@ -16,7 +16,8 @@ const manifest = {
 export async function getServerSideProps({ res }) {
   res.setHeader('Content-Type', 'application/manifest+json; charset=utf-8');
   res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=3600');
-  res.status(200).send(JSON.stringify(manifest));
+  res.statusCode = 200;
+  res.end(JSON.stringify(manifest));
   return { props: {} };
 }
 
