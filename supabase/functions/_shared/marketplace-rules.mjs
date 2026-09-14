@@ -1,5 +1,5 @@
 // Pure, deterministic production logic. Imported by Edge and Node tests.
-export const VERTICALS=['food','events','beauty','wellness','experiences','activities','fitness','stay','shopping','free','other'];
+export const VERTICALS=['food','drinks','events','beauty','wellness','hair','experiences','activities','fitness','golf','tourism','stay','shopping','free','services','other'];
 export function distanceKm(a,b){
   if(![a?.latitude,a?.longitude,b?.latitude,b?.longitude].every(x=>typeof x==='number'&&Number.isFinite(x)))return null;
   const rad=x=>x*Math.PI/180,dlat=rad(b.latitude-a.latitude),dlon=rad(b.longitude-a.longitude);

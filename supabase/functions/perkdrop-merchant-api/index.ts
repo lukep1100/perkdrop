@@ -15,9 +15,9 @@ const capacity=(v:unknown)=>{const n=Number(v);return Number.isInteger(n)&&n>=1&
 const emailOk=(v:string)=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)&&v.length<=254;
 const discountTypes=['percent','fixed','deal_price','free','bogo','custom'];
 const actionTypes=['redemption_code','booking','ticket_link','promo_code','external_purchase','affiliate_link','in_store_claim','free_claim'];
-const verticals=['food','events','beauty','wellness','experiences','activities','fitness','stay','shopping','free','other'];
+const verticals=['food','drinks','events','beauty','wellness','hair','experiences','activities','fitness','golf','tourism','stay','shopping','free','services','other'];
 const dropTypes=['capacity','cancellation','last_minute','exclusive'];
-const inventoryUnits=['diner','person','ticket','appointment','booking','room','tee_time','class_spot','item','package','other'];
+const inventoryUnits=['diner','person','ticket','appointment','booking','room','tee_time','class_spot','player','seat','item','package','other'];
 const fulfilmentModes=['direct_claim','booking_claim','external_booking','ticket','appointment','merchant_confirmation','information_only'];
 const fulfilmentFor=(action:string)=>action==='booking'?'booking_claim':action==='ticket_link'?'ticket':action==='external_purchase'?'external_booking':action==='free_claim'?'direct_claim':'direct_claim';
 const uploadedMedia=(url:string|null,merchantId:string)=>Boolean(url&&url.includes(`/storage/v1/object/public/merchant-media/${merchantId}/`));

@@ -208,6 +208,8 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     room: "ROOMS",
     tee_time: "PLAYER SPOTS",
     class_spot: "CLASS SPOTS",
+    player: "PLAYERS",
+    seat: "SEATS",
     item: "ITEMS",
     package: "PACKAGES",
     other: "UNITS",
@@ -281,15 +283,20 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
   function type(d) {
     const map = {
       food: ["food", "🍴", "Food"],
+      drinks: ["drinks", "🍸", "Drinks"],
       events: ["event", "★", "Events"],
       beauty: ["beauty", "✂", "Beauty"],
       wellness: ["wellness", "◌", "Wellness"],
+      hair: ["hair", "✂", "Hair"],
       experiences: ["experience", "✦", "Experiences"],
       activities: ["activities", "⛳", "Activities"],
       fitness: ["activities", "◉", "Fitness"],
+      golf: ["golf", "⛳", "Golf"],
+      tourism: ["tourism", "⌖", "Tourism"],
       stay: ["stay", "⌂", "Stay"],
       shopping: ["shopping", "◆", "Shopping"],
       free: ["free", "$0", "Free"],
+      services: ["services", "◆", "Services"],
       other: ["experience", "✦", "Drop"],
     };
     return (
@@ -418,6 +425,10 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
       experiences: "experiences",
       activities: "activities",
       fitness: "fitness",
+      drinks: "drinks",
+      hair: "hair",
+      golf: "golf",
+      tourism: "tourism",
       stay: "stay",
       travel_stays: "travel_stays",
       freebies: "freebies",
@@ -430,7 +441,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
       );
     if (kind === "food")
       x = x.filter((d) => d.vertical === "food" || isFood(d));
-    if (kind === "drinks") x = x.filter(isDrink);
+    if (kind === "drinks") x = x.filter((d) => d.vertical === "drinks" || isDrink(d));
     if (kind === "events")
       x = x.filter((d) => d.vertical === "events" || isEvent(d));
     if (kind === "free")
@@ -1154,10 +1165,13 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
   }
   const MARKET_PAGES = {
     beauty: ["beauty", "Beauty & wellness", "APPOINTMENTS & SELF-CARE"],
+    hair: ["hair", "Hair appointments", "HAIR & GROOMING"],
     wellness: ["wellness", "Beauty & wellness", "APPOINTMENTS & SELF-CARE"],
     experiences: ["experiences", "Experiences", "THINGS TO DO"],
     activities: ["activities", "Activities", "PLACES TO GO"],
     fitness: ["fitness", "Health & fitness", "MOVE, RECOVER & TRAIN"],
+    golf: ["golf", "Golf", "TEE TIMES & PLAYER PLACES"],
+    tourism: ["tourism", "Tourism", "TOURS & ATTRACTIONS"],
     stay: ["stay", "Travel & stays", "ROOMS & GETAWAYS"],
     travel: ["stay", "Travel & stays", "ROOMS & GETAWAYS"],
     shopping: ["shopping", "Shopping", "LOCAL FINDS"],
@@ -1174,6 +1188,18 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
   };
   const baseRender = render;
   const baseCard = card;
+  function augmentMerchantTaxonomy() {
+    const form = document.querySelector('#merchant-form');
+    if (!form) return;
+    const vertical = form.querySelector('select[name="vertical"]');
+    const units = form.querySelector('select[name="inventory_unit"]');
+    for (const [value, label] of [['drinks','Drinks'],['hair','Hair'],['golf','Golf'],['tourism','Tourism'],['stay','Accommodation'],['free','Free activity']]) {
+      if (vertical && !vertical.querySelector(`option[value="${value}"]`)) vertical.add(new Option(label, value));
+    }
+    for (const [value, label] of [['diner','Diners'],['booking','Bookings'],['tee_time','Tee times'],['player','Players'],['seat','Seats'],['package','Packages']]) {
+      if (units && !units.querySelector(`option[value="${value}"]`)) units.add(new Option(label, value));
+    }
+  }
   card = function (d) {
     const fulfil = fulfilmentLabel(d);
     return baseCard(d).replace(
@@ -1209,6 +1235,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
       return;
     }
     baseRender();
+    augmentMerchantTaxonomy();
   };
   function business() {
     return shell(

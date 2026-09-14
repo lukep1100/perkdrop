@@ -8,4 +8,4 @@ export function approvedImage(value: unknown) {
   try {const u=new URL(String(value||''));return u.protocol==='https:'&&!/(^|\.)unsplash\.com$/i.test(u.hostname)?u.href:'';} catch{return '';}
 }
 export function directoryVisible(m: any) {return Boolean(m)&&m.permanent_listing===true&&m.directory_status!=='removed';}
-export const categoryVertical=(category: string)=>({food:'food','food & drink':'food',drinks:'food',events:'events',experiences:'experiences',shopping:'shopping',freebies:'freebies',beauty:'beauty',wellness:'wellness',fitness:'fitness',activities:'activities',services:'services'} as Record<string,string>)[String(category||'').toLowerCase()]||'other';
+export const categoryVertical=(category: string)=>({food:'food','food & drink':'food',drinks:'drinks',events:'events',experiences:'experiences',shopping:'shopping',freebies:'free',beauty:'beauty',wellness:'wellness',hair:'hair',fitness:'fitness',activities:'activities',golf:'golf',tourism:'tourism',stay:'stay',services:'services'} as Record<string,string>)[String(category||'').toLowerCase()]||'other';

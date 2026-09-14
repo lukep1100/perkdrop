@@ -9,9 +9,9 @@ const emailOk=(v:string)=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)&&v.length<=254;
 const httpsUrl=(v:string)=>{if(!v)return "";try{const u=new URL(v);return u.protocol==="https:"?u.toString().slice(0,1200):""}catch{return ""}};
 const hashIp=async(ip:string)=>{const salt=Deno.env.get("PERKDROP_HASH_SALT")||"perkdrop";const d=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(`${salt}:${ip}`));return Array.from(new Uint8Array(d)).map(b=>b.toString(16).padStart(2,"0")).join("")};
 const slugify=(s:string)=>s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,90)||'business';
-const verticals=['food','beauty','experiences','events','shopping','family_kids','fitness','travel_stays','freebies','services'];
+const verticals=['food','drinks','beauty','wellness','hair','experiences','events','activities','fitness','golf','tourism','stay','shopping','free','family_kids','travel_stays','freebies','services','other'];
 const fulfilmentModes=['direct_claim','external_booking','ticket','appointment','merchant_confirmation','information_only'];
-const inventoryUnits=['person','appointment','ticket','class_spot','room','item','booking'];
+const inventoryUnits=['diner','person','appointment','ticket','booking','room','tee_time','class_spot','player','seat','item','package','other'];
 const dropTypes=['capacity','last_minute','cancellation'];
 const discountTypes=['value_add','percent','fixed','free'];
 

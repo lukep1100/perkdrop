@@ -1,7 +1,7 @@
 import {useEffect,useState} from 'react';
 import PrivateShell,{privateResponse} from '../components/PrivateShell';
 import {marketplace} from '../lib/marketplace-client';
-const categories=['food','events','beauty','wellness','experiences','activities','fitness','stay','shopping','free'];
+const categories=['food','drinks','events','beauty','wellness','hair','experiences','activities','fitness','golf','tourism','stay','shopping','free','services'];
 export default function Radar(){
   const [watches,setWatches]=useState([]),[error,setError]=useState(''),[message,setMessage]=useState(''),[busy,setBusy]=useState(false),[geo,setGeo]=useState(null);
   const reload=()=>marketplace('watches').then(x=>setWatches(x.watches)).catch(e=>setError(e.message));

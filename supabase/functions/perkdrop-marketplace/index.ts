@@ -1,7 +1,7 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 import {resolveSavedListings} from '../_shared/saved-listings.mjs';
-const VERTICALS=['food','events','beauty','wellness','experiences','activities','fitness','stay','shopping','free','other'];
+const VERTICALS=['food','drinks','events','beauty','wellness','hair','experiences','activities','fitness','golf','tourism','stay','shopping','free','services','other'];
 
 const headers={'Content-Type':'application/json','Cache-Control':'no-store','Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'content-type, authorization, x-perkdrop-identity','Access-Control-Allow-Methods':'POST, OPTIONS','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer'};
 const reply=(data:unknown,status=200)=>new Response(JSON.stringify(data),{status,headers});

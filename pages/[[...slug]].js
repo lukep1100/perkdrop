@@ -40,6 +40,10 @@ const routeMeta = {
     "Beauty Drops | PerkDrop",
     "Appointment and self-care Drops with real availability.",
   ],
+  "/hair": [
+    "Hair Drops | PerkDrop",
+    "Hair appointments and last-minute availability worth knowing about.",
+  ],
   "/experiences": [
     "Experience Drops | PerkDrop",
     "Tours, tastings and experiences with genuine capacity.",
@@ -47,6 +51,14 @@ const routeMeta = {
   "/activities": [
     "Activities & classes | PerkDrop",
     "Classes, golf and activities with live places where available.",
+  ],
+  "/golf": [
+    "Golf Drops | PerkDrop",
+    "Tee-time and player capacity with clear service timing.",
+  ],
+  "/tourism": [
+    "Tourism Drops | PerkDrop",
+    "Local tours and attractions with genuine capacity.",
   ],
   "/stay": [
     "Stay Drops | PerkDrop",
@@ -67,6 +79,10 @@ const routeMeta = {
   "/shopping": [
     "Shopping Drops | PerkDrop",
     "Limited retail and perishable inventory Drops worth knowing about.",
+  ],
+  "/services": [
+    "Local Services | PerkDrop",
+    "Useful local services with clear availability and terms.",
   ],
   "/map": [
     "PerkDrop map",
