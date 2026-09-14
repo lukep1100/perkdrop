@@ -16,3 +16,9 @@ for (const name of ['perkdrop-portal', 'perkdrop-booking-page']) {
     scripts.forEach((code, index) => new vm.Script(code, {filename: `${name}-inline-${index}.js`}));
   });
 }
+
+test('perkdrop-portal: offer photo rights remain explicit on edit and submit', async () => {
+  const source = await readFile(new URL('../supabase/functions/perkdrop-portal/index.ts', import.meta.url), 'utf8');
+  assert.match(source, /originalEditOffer/);
+  assert.match(source, /media_rights_confirmed=\$\('#offer-media-rights'\)\?\.checked===true/);
+});
