@@ -1,6 +1,6 @@
 # PerkDrop master completion ledger
 
-Snapshot: 15 September 2026, after commit `2e9ba53` and production deployment `dpl_7uXJoUXYamstWbeeSaWAcvBbKYUp`.
+Snapshot: 15 September 2026, after commit `bf89955` and production deployment `dpl_FLLgXDA2PU9841hCyopJaNSFPL2r`.
 
 This is an evidence ledger, not a launch certificate. `VERIFIED` means the stated acceptance check passed in the named environment. A blocked or untested participant/provider requirement remains non-green.
 
@@ -32,11 +32,13 @@ This is an evidence ledger, not a launch certificate. `VERIFIED` means the state
 
 ## Latest implementation and release evidence
 
+- `bf89955` — add resilient share-link copy fallback for browsers without Web Share support; pushed and deployed.
+- `7a20f36` — complete public merchant taxonomy options; pushed and deployed.
 - `a0eda29` — expose complete canonical inventory units in the merchant editor; pushed to `origin/main`.
 - `5161cff` — make merchant quick drops taxonomy-aware; pushed and deployed.
 - `619ea14` — report tracked merchant value only; pushed and deployed.
 - Supabase `perkdrop-portal` v21 is ACTIVE with `verify_jwt=false`, matching the existing portal contract.
-- Vercel production deployment `dpl_7uXJoUXYamstWbeeSaWAcvBbKYUp` is READY and aliased to `perkdrop.au` / `www.perkdrop.au`.
+- Vercel production deployment `dpl_FLLgXDA2PU9841hCyopJaNSFPL2r` is READY and aliased to `perkdrop.au` / `www.perkdrop.au`.
 
 ## Tests recorded
 
