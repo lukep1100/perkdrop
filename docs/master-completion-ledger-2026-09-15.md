@@ -60,7 +60,7 @@ This is an evidence ledger, not a launch certificate. `VERIFIED` means the state
 - `npm run lint -- --no-cache` — passed.
 - `npm run build` — passed.
 - `npm run test:inline-scripts` — 2/2 passed.
-- Existing discovery, availability, analytics, saves, database, marketplace-harness and smoke suites — passed in the prior integrated release; latest smoke still passes all expected 200/404 outcomes.
+- Full `npm test` rerun after the registered failure-ledger migration: marketplace harness 10, discovery/notification 16, availability 12, inline scripts 2, analytics 2, saves 2, real database 60, and production smoke all passed; expected 200/404 outcomes and health-correlation assertion included.
 - Live checks after the latest release: `/claim` 200 with canonical controls; `/api/health` 200; direct catalogue health 200; six concurrent catalogue reads 200; current Vercel runtime errors in the selected 15-minute window: none.
 - Additional live reliability check: 20 concurrent `/api/health` requests returned 20/20 `200` responses, all reported 52 live rows, and all carried distinct `X-PerkDrop-Request-Id` values; the failure ledger remained empty afterward.
 
