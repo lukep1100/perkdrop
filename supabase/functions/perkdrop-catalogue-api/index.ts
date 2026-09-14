@@ -126,6 +126,7 @@ function priorityScore(
   campaignDrops: Set<string>,
   campaignOffers: Set<string>,
 ) {
+  if(d.quality_grade === "D") return 0;
   const cap = offer?.capacity_remaining;
   const hasCap =
     cap !== null && cap !== undefined && Number.isFinite(Number(cap));
@@ -234,7 +235,7 @@ Deno.serve(async (req) => {
     supabase
       .from("catalogue_items")
       .select(
-        "id,merchant_id,merchant,title,description,category,kind,city,state,location,timing,end_date,price,conditions,booking,source,verified,hot,featured,slug,detail_url,city_label,active,metadata,latitude,longitude,image_url,image_alt,cuisine,discount_percent,venue_type,offer_origin,exclusive,affiliate_url,affiliate_network",
+        "availability,quality_grade,quality_note,last_verified_at,id,merchant_id,merchant,title,description,category,kind,city,state,location,timing,end_date,price,conditions,booking,source,verified,hot,featured,slug,detail_url,city_label,active,metadata,latitude,longitude,image_url,image_alt,cuisine,discount_percent,venue_type,offer_origin,exclusive,affiliate_url,affiliate_network",
       )
       .eq("active", true)
       .order("featured", { ascending: false })
@@ -561,6 +562,11 @@ Deno.serve(async (req) => {
       source: tracked,
       officialSource: official,
       verified: d.verified || "",
+      lastVerifiedAt: d.last_verified_at || null,
+      offerVerification: activeOffer ? "business_approved" : "public_source",
+      availability: d.availability || {},
+      qualityGrade: d.quality_grade || "C",
+      qualityNote: d.quality_note || "",
       hot: Boolean(d.hot),
       featured: commercialFeatured,
       slug: d.slug,

@@ -128,7 +128,7 @@ export default function Shell({ deal, venue, canonicalPath, expiredDeal = false,
       }),
       h("link", {
         rel: "stylesheet",
-        href: "/styles.css?v=v30-product-quality",
+        href: "/styles.css?v=v32-consumer-utility",
       }),
     ),
     h(
@@ -145,13 +145,13 @@ export default function Shell({ deal, venue, canonicalPath, expiredDeal = false,
         h("p", {role:"status"}, "Loading live availability…"),
       ),
     ),
-    h("script", { src: "/app.js?v=v30-product-quality", type:"module" }),
+    h("script", { src: "/app.js?v=v32-consumer-utility", type:"module" }),
   );
 }
 export async function getServerSideProps({ params, resolvedUrl, res }) {
   const canonicalPath = (resolvedUrl || "/").split("?")[0] || "/";
   const parts = params?.slug;
-  const publicRoutes=new Set([...Object.keys(routeMeta),'/search','/weekend','/ending-soon','/near-me','/saved','/terms','/privacy','/merchant-terms','/drop-terms','/verification','/affiliate','/contact','/fitness','/wellness','/travel','/family','/services','/freebies','/today','/now']);
+  const publicRoutes=new Set([...Object.keys(routeMeta),'/tonight','/report','/search','/weekend','/ending-soon','/near-me','/saved','/terms','/privacy','/merchant-terms','/drop-terms','/verification','/affiliate','/contact','/fitness','/wellness','/travel','/family','/services','/freebies','/today','/now']);
   if (publicRoutes.has(canonicalPath)) return {props:{deal:null,canonicalPath}};
   const entity=Array.isArray(parts)&&parts.length===2?parts[0]:null;
   if (!['deals','venues'].includes(entity)) {res.statusCode=404;return {props:{deal:null,canonicalPath,missing:true}};}

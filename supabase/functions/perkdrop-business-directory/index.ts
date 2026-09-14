@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
   let query = sb
     .from("merchants")
     .select(
-      "id,name,slug,listing_status,partner_tier,claimable,market_id,primary_city,primary_state,primary_location,latitude,longitude,business_category,cuisine,venue_type,parent_brand,location_label,website_url,hero_image_url,image_rights_status,directory_status,source_confidence",
+      "id,name,slug,listing_status,partner_tier,claimable,market_id,primary_city,primary_state,primary_location,latitude,longitude,business_category,cuisine,venue_type,parent_brand,location_label,website_url,hero_image_url,image_rights_status,directory_status,source_confidence,public_phone,metadata",
     )
     .eq("permanent_listing", true)
     .neq("directory_status", "removed")
@@ -84,8 +84,7 @@ Deno.serve(async (req) => {
       .or(`ends_at.is.null,ends_at.gt.${new Date().toISOString()}`),
     sb
       .from("catalogue_items")
-      .select("merchant_id,end_date,state")
-      .eq("exclusive", true)
+      .select("merchant_id,end_date,state,exclusive,quality_grade")
       .eq("active", true)
       .not("merchant_id", "is", null),
   ]);
@@ -95,8 +94,11 @@ Deno.serve(async (req) => {
       { status: 500, headers: H },
     );
   const exclusive = new Set<string>(
-    [...(xo || []), ...(xc || []).filter((x: any) => !x.end_date || x.end_date >= localDay(x.state))].map((x: any) => String(x.merchant_id)),
+    [...(xo || []), ...(xc || []).filter((x: any) => x.exclusive && (!x.end_date || x.end_date >= localDay(x.state)))].map((x: any) => String(x.merchant_id)),
   );
+  const useful = new Set((xc||[]).filter((x:any)=>['A','B'].includes(x.quality_grade)&&(!x.end_date||x.end_date>=localDay(x.state))).map((x:any)=>x.merchant_id));
+  const offerCounts = new Map<string,number>();for(const x of xc||[])if(!x.end_date||x.end_date>=localDay(x.state))offerCounts.set(x.merchant_id,(offerCounts.get(x.merchant_id)||0)+1);
+  const rank=(m:any)=>(useful.has(m.id)?100:0)+(['licensed','merchant_authorised'].includes(m.image_rights_status)&&m.hero_image_url?10:0)+(isAustralianPoint(m.latitude,m.longitude)?2:0);
   let list = (data || []) as any[];
   // Filter using the same fallback returned to clients. Older approved listings
   // can have primary_city set while market_id is still null.
@@ -137,7 +139,7 @@ Deno.serve(async (req) => {
           String(a.name).localeCompare(String(b.name)),
       );
   } else
-    list = list.sort((a, b) => String(a.name).localeCompare(String(b.name)));
+    list = list.sort((a, b) => rank(b)-rank(a)||String(a.name).localeCompare(String(b.name)));
   const total = list.length;
   list = list.slice(0, limit).map((m) => {
     const ps = publicState(m, exclusive);
@@ -160,12 +162,16 @@ Deno.serve(async (req) => {
       longitude: m.longitude,
       distanceKm:
         m.distanceKm == null ? null : Number(Number(m.distanceKm).toFixed(2)),
-      category: m.business_category || "",
+      category: m.business_category || m.venue_type || m.cuisine || "",
       cuisine: m.cuisine || "",
       venueType: m.venue_type || "",
       brand: m.parent_brand || "",
       locationLabel: m.location_label || "",
       website: m.website_url || "",
+      phone: m.public_phone || "",
+      activeOfferCount: offerCounts.get(m.id)||0,
+      photoCaption: m.metadata?.hero_photo_provenance?.caption || "",
+      photoSource: m.metadata?.hero_photo_provenance?.source || "",
       image:
         m.image_rights_status === "merchant_authorised" ||
         m.image_rights_status === "licensed"

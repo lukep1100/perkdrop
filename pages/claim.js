@@ -28,7 +28,7 @@ export async function getServerSideProps({ query, res }) {
     );
     html = html.replace(
       "Claim your business for free, create genuine limited-time offers, choose the number of spots available and track customers PerkDrop sends you. Nothing goes live until it has been reviewed.",
-      "Claiming is free. Confirm your role, then we verify your access. Create offers after approval.",
+      "Claiming is free. After we verify your role, you can correct your listing, add authorised photos, create offers and see PerkDrop activity. Nothing is published without review.",
     );
     html = html.replace(
       "Redeem codes + track customers",

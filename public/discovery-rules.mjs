@@ -30,5 +30,7 @@ export function localDate(state, now = new Date()) {
 export function searchMatches(value, query) {
   const normalize = s => String(s || '').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
   const haystack = normalize(value);
-  return normalize(query).split(' ').filter(Boolean).every(term => haystack.includes(term));
+  let q=normalize(query).replace(/free stuff/g,'free').replace(/things to do/g,'experience').replace(/date night/g,'dining').replace(/cheap dinner/g,'meal').replace(/near me/g,'');
+  const synonyms={schnitty:['schnitzel','schnitty'],schnitzel:['schnitzel','schnitty'],family:['family','families','kids','children'],kids:['kids','children','family'],pub:['pub','tavern','hotel','bar'],dining:['dining','restaurant','wine','pasta','pizza'],meal:['meal','food','pizza','pasta','schnitzel','dining'],experience:['experience','event','gallery','museum','garden','festival','arcade','tour'],cbd:['cbd','5000','city centre']};
+  return q.split(' ').filter(Boolean).every(term=>(synonyms[term]||[term]).some(word=>haystack.includes(word)));
 }

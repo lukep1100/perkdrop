@@ -1,7 +1,8 @@
-import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfilmentLabel, localDate, searchMatches } from '/discovery-rules.mjs?v=v30-product-quality';
+import { availabilityMatches, freshness, scheduleLabel } from '/availability.mjs?v=v32-consumer-utility';
+import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfilmentLabel, localDate, searchMatches } from '/discovery-rules.mjs?v=v32-consumer-utility';
 (() => {
   "use strict";
-  const VERSION = "v30-product-quality";
+  const VERSION = "v32-consumer-utility";
   const API =
     "https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-catalogue-api?limit=200";
   const SUBMIT =
@@ -260,7 +261,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     return `${d.title} ${d.merchant} ${d.description} ${d.location} ${d.category} ${d.kind} ${d.cuisine} ${d.venueType} ${d.timing}`.toLowerCase();
   }
   const isFood = (d) =>
-    /food|restaurant|burger|pizza|schnitzel|meal|cafe|dining|pasta|kitchen|bakery|seafood|eat/.test(
+    /\b(food|restaurant|burgers?|pizzas?|schnitzels?|meals?|caf[eé]|dining|pasta|kitchen|bakery|seafood|eat)\b/.test(
       text(d),
     );
   const isDrink = (d) =>
@@ -325,6 +326,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     return "unclaimed";
   }
   function mBadge(d) {
+    if(d.offerVerification==='business_approved')return '<span class="merchant-status status-verified">BUSINESS-APPROVED OFFER</span>';
     const s = mState(d),
       label =
         s === "exclusive"
@@ -335,7 +337,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
               ? "✓ VERIFIED BUSINESS"
               : s === "pending"
                 ? "CLAIM PENDING"
-                : "UNCLAIMED";
+                : "PUBLIC-SOURCE OFFER";
     return `<span class="merchant-status status-${s}">${label}</span>`;
   }
   function route(d) {
@@ -405,17 +407,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
       n = new Date(localDate(d.state));
     return !Number.isNaN(e) && e >= n && e - n <= 7 * 86400000;
   }
-  function weekend(d) {
-    const n = new Date(),
-      e = d.end ? new Date(d.end) : null,
-      sun = new Date(n);
-    sun.setDate(n.getDate() + ((7 - n.getDay()) % 7));
-    sun.setHours(23, 59, 59, 999);
-    return (
-      (e && !Number.isNaN(e) && e >= n && e <= sun) ||
-      /weekend|saturday|sunday|sat\b|sun\b/.test(text(d))
-    );
-  }
+  const weekend=d=>availabilityMatches(d,"weekend");
   function list(kind) {
     let x = kind==="near-me"&&state.user?state.deals.filter(d=>mapped(d)&&distance(state.user.lat,state.user.lng,d.latitude,d.longitude)<=50):cityDeals();
     const verticals = {
@@ -499,7 +491,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
       ["food", "🍴", "Food", "/food"],
       ["map", "⌖", "Map", "/map"],
       ["free", "✦", "Free", "/free"],
-      ["saved", "♡", "My Perks", "/my-perks"],
+      ["saved", "♡", "Saved", "/my-perks?tab=saved"],
     ];
     return `<nav class="bottom-nav">${xs.map((x) => `<a data-internal href="${x[3]}" class="${active === x[0] ? "on" : ""}"><b>${x[1]}</b>${x[2]}</a>`).join("")}</nav>`;
   }
@@ -523,12 +515,25 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     return `<form role="search" id="search-form" class="searchbar"><span>⌕</span><input id="search-input" value="${esc(v)}" placeholder="Search deals, food, venues, events…" aria-label="Search PerkDrop"><button>Search</button>${v?'<button type="button" id="clear-search" aria-label="Clear search">✕</button>':''}</form>`;
   }
   function chips() {
-    return `<div class="quick-chips"><a data-internal href="/food">🍴 Food</a><a data-internal href="/beauty">✂ Beauty</a><a data-internal href="/experiences">✦ Experiences</a><a data-internal href="/events">★ Events</a><a data-internal href="/family">👨‍👩‍👧 Family</a><a data-internal href="/fitness">◉ Fitness</a><a data-internal href="/travel">⌂ Stays</a><a data-internal href="/shopping">◆ Shopping</a><a data-internal href="/freebies">$0 Freebies</a><a data-internal href="/today">Free things to do</a><a data-internal href="/last-minute">⚡ Last minute</a><a data-internal href="/near-me">⌖ Near Me</a></div>`;
+    const options=[['/tonight','Tonight',cityDeals().filter(d=>availabilityMatches(d,'tonight')).length],['/food','Food deals',list('food').length],['/family','Family',list('kids').length],['/free','Free',list('free').length],['/weekend','This weekend',cityDeals().filter(d=>availabilityMatches(d,'weekend')).length]];
+    return '<div class="quick-chips"><a data-internal href="/near-me">⌖ Near me</a>'+options.filter(x=>x[2]>=2).map(x=>'<a data-internal href="'+x[0]+'">'+x[1]+'</a>').join('')+'</div>';
+  }
+  function reportLink(drop,merchant) {
+    return '<a class="report-link" href="/report?'+(drop?'drop='+encodeURIComponent(drop):'merchant='+encodeURIComponent(merchant))+'">Report incorrect information</a>';
+  }
+  function reportPage() {
+    const p=new URLSearchParams(location.search),d=state.deals.find(x=>x.id===p.get('drop')),b=state.businesses.find(x=>x.id===p.get('merchant'));
+    return shell('<main class="page"><section class="legal-page"><h1>Something not right?</h1><p>'+esc(d?.title||b?.name||'Report a listing')+'</p><p>A short report helps us check the facts. It goes to PerkDrop staff; it does not automatically remove a business.</p><form id="report-form" class="report-form"><label>What needs checking?<select name="reason" required><option value="">Choose a reason</option><option value="unavailable">Deal no longer available</option><option value="price">Wrong price</option><option value="times">Wrong days or times</option><option value="closed">Business closed</option><option value="location">Wrong location</option><option value="other">Other</option></select></label><label>Anything helpful? (optional)<textarea name="detail" rows="3" maxlength="1000" placeholder="What did you find? Please don’t include personal information."></textarea></label><label class="report-honeypot" aria-hidden="true">Website<input name="website" tabindex="-1" autocomplete="off"></label><button class="btn primary" type="submit">Send report</button><p id="report-status" role="status"></p></form><p class="muted">No account or email needed. Reports are rate-limited using a private, hashed network identifier.</p><a data-internal href="/">Back to deals</a></section></main>');
+  }
+  function availabilityPage() {
+    const mode=new URLSearchParams(location.search).get('when')||(state.route==='/today'?'today':'tonight'),all=cityDeals(),items=all.filter(d=>availabilityMatches(d,mode));
+    const options=[['tonight','Tonight'],['today','Today'],['now','Right now'],['week','Next 7 days'],['weekend','This weekend'],...['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map((d,i)=>['day-'+(i+1),d])];
+    return shell('<main class="page"><section class="section"><div class="eyebrow">'+esc(CITIES[state.city]?.[0]||state.city)+'</div><h1>Make a plan</h1><p>Offers with checked service times. Tonight means a service running after 5pm, in the venue’s local time. Booking, weather and listed conditions still apply.</p><label class="availability-filter">When? <select id="availability-filter">'+options.map(x=>'<option value="'+x[0]+'" '+(x[0]===mode?'selected':'')+'>'+x[1]+'</option>').join('')+'</select></label><p role="status">'+items.length+' with confirmed service times · '+all.filter(d=>!d.availability?.windows?.length).length+' other listings have unconfirmed times.</p><div class="grid">'+items.map(card).join('')+'</div>'+(!items.length?'<div class="empty"><h2>No confirmed options for this time</h2><p>We won’t guess opening hours. Try another day, or browse food deals and check directly with the venue.</p><a class="btn secondary" data-internal href="/food">Browse food deals</a></div>':'')+'</section></main>');
   }
   function card(d) {
     const t = type(d),
       dist = distLabel(d);
-    return `<article class="deal-card"><a class="card-link" data-internal href="${esc(route(d))}"><div class="card-image"><img loading="lazy" src="${esc(image(d))}" alt="${esc(image(d)===PLACEHOLDER?"Photo unavailable":d.imageUrl?.includes("perkdrop-union-slideshow")?"Food at Union Hotel, Adelaide":d.imageAlt||d.title)}"><div class="shade"></div><span class="badge">${esc(badge(d))}</span><span class="type-pill type-${t[0]}">${t[1]} ${t[2]}</span></div><div class="card-body"><div class="merchant-line"><span>${esc(d.merchant)}</span><span class="distance">${esc(dist)}</span></div>${mBadge(d)}<h3>${esc(d.title)}</h3><div class="meta">${esc(d.timing || "Check availability")}</div>${d.capacityRemaining != null ? `<div class="spots ${Number(d.capacityRemaining) <= 5 ? "urgent" : ""}">${Number(d.capacityRemaining) <= 0 ? "SOLD OUT" : `${esc(d.capacityRemaining)} ${unitLabel(d)} LEFT`}</div>` : ""}</div></a><button class="save" aria-label="Save ${esc(d.title)}" data-save="${esc(d.id)}">${state.saved.includes(d.id) ? "♥" : "♡"}</button></article>`;
+    return `<article class="deal-card"><a class="card-link" data-internal href="${esc(route(d))}"><div class="card-image"><img loading="lazy" src="${esc(image(d))}" alt="${esc(image(d)===PLACEHOLDER?"Photo unavailable":d.imageUrl?.includes("perkdrop-union-slideshow")?"Food at Union Hotel, Adelaide":d.imageAlt||d.title)}"><div class="shade"></div><span class="badge">${esc(badge(d))}</span><span class="type-pill type-${t[0]}">${t[1]} ${t[2]}</span></div><div class="card-body"><div class="merchant-line"><span>${esc(d.merchant)}</span><span class="distance">${esc(dist)}</span></div>${mBadge(d)}<h3>${esc(d.title)}</h3><div class="meta">${esc(scheduleLabel(d))}</div><div class="meta freshness">${esc(freshness(d).label)}</div><div class="card-condition">${esc(d.conditions || "Check conditions with the venue")}</div>${d.capacityRemaining != null ? `<div class="spots ${Number(d.capacityRemaining) <= 5 ? "urgent" : ""}">${Number(d.capacityRemaining) <= 0 ? "SOLD OUT" : `${esc(d.capacityRemaining)} ${unitLabel(d)} LEFT`}</div>` : ""}</div></a><button class="save" aria-label="Save ${esc(d.title)}" data-save="${esc(d.id)}">${state.saved.includes(d.id) ? "♥" : "♡"}</button></article>`;
   }
   function listPage(k, title, eye = "PERKDROP") {
     const xs = list(k),
@@ -555,6 +560,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     }
   }
   function trust(d) {
+    if(d.offerVerification==='business_approved')return '<div class="trust verified"><b>Business-approved offer</b><span>The business approved these offer terms. This is separate from claiming its directory profile.</span></div>';
     const s = mState(d);
     if (s === "exclusive")
       return `<div class="trust exclusive"><b>🔥 PerkDrop Exclusive</b><span>This business currently has an exclusive PerkDrop offer.</span></div>`;
@@ -562,7 +568,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
       return `<div class="trust partner"><b>💜 PerkDrop Partner</b><span>This business has an active relationship with PerkDrop.</span></div>`;
     if (s === "verified")
       return `<div class="trust verified"><b>✓ Verified business</b><span>The business-profile controller has been verified as authorised to act for this business.</span></div>`;
-    return `<div class="trust"><b>UNCLAIMED</b><span>Information sourced from publicly available information.</span>${d.claimable !== false ? `<a class="claim-link" href="${esc(claimUrl(d))}">Claim this venue →</a>` : ""}</div>`;
+    return `<div class="trust"><b>Public-source offer</b><span>Checked against a public source, not verified by the business.</span>${d.claimable !== false ? `<a class="claim-link" href="${esc(claimUrl(d))}">Claim this venue →</a>` : ""}</div>`;
   }
   function capLabel(d) {
     if (d.capacityRemaining == null) return "CHECK AVAILABILITY";
@@ -626,7 +632,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
       saved = state.saved.includes(d.id),
       cap = Boolean(d.redemptionAvailable);
     document.title = `${d.title} | PerkDrop`;
-    return `<div class="app-shell"><main class="detail"><section class="detail-hero"><button id="back-btn" class="back" aria-label="Go back">←</button><img src="${esc(image(d))}" alt="${esc(image(d)===PLACEHOLDER?"Photo unavailable":d.imageAlt||d.title)}"><div class="detail-title"><span class="badge static">${esc(badge(d))}</span><span class="detail-type type-${t[0]}">${t[1]} ${t[2]}</span><h1>${esc(d.title)}</h1><div>${esc(d.merchant)}</div></div></section><div class="detail-body"><div class="detail-tools"><button class="tool-btn" data-save="${esc(d.id)}">${saved ? "♥ Saved" : "♡ Save"}</button><button id="share-drop" class="tool-btn">↗ Share</button></div><div class="facts">📍 ${esc(d.location || "Check venue location")}<br>◷ ${esc(d.timing || "Check availability")}<br>✓ OFFER CHECKED ${esc(d.verified || "")}</div>${cap ? capacity(d) : trust(d)}<p>${esc(d.description)}</p><div class="catch"><b>THE CATCH</b><br>${esc(d.conditions || "Check the official source before travelling, booking or paying.")}</div>${mapped(d) ? '<div id="detail-map" class="detail-map"></div>' : ""}${cap ? "" : `<div class="detail-cta"><a id="official-cta" class="btn primary" target="_blank" rel="noopener" href="${esc(d.goUrl || d.source || d.officialSource)}">View official deal →</a><a id="nav-cta" class="btn secondary" target="_blank" rel="noopener" href="${esc(navUrl(d))}">⌖ Navigate</a></div>`}</div></main>${footer()}${nav(isFood(d) ? "food" : isFree(d) ? "free" : "home")}</div>`;
+    return `<div class="app-shell"><main class="detail"><section class="detail-hero"><button id="back-btn" class="back" aria-label="Go back">←</button><img src="${esc(image(d))}" alt="${esc(image(d)===PLACEHOLDER?"Photo unavailable":d.imageAlt||d.title)}"><div class="detail-title"><span class="badge static">${esc(badge(d))}</span><span class="detail-type type-${t[0]}">${t[1]} ${t[2]}</span><h1>${esc(d.title)}</h1><div>${esc(d.merchant)}</div></div></section><div class="detail-body"><div class="detail-tools"><button class="tool-btn" data-save="${esc(d.id)}">${saved ? "♥ Saved" : "♡ Save"}</button><button id="share-drop" class="tool-btn">↗ Share</button></div><div class="facts">📍 ${esc(d.location || "Check venue location")}<br>◷ ${esc(d.timing || "Check availability")}<br>${esc(freshness(d).label)}</div>${reportLink(d.id,d.merchantId)}${d.availability?.notes?`<p class="availability-note">${esc(d.availability.notes)}</p>`:""}${cap ? capacity(d) : trust(d)}<p>${esc(d.description)}</p><div class="catch"><b>THE CATCH</b><br>${esc(d.conditions || "Check the official source before travelling, booking or paying.")}</div>${mapped(d) ? '<div id="detail-map" class="detail-map"></div>' : ""}${cap ? "" : `<div class="detail-cta"><a id="official-cta" class="btn primary" target="_blank" rel="noopener" href="${esc(d.goUrl || d.source || d.officialSource)}">View official deal →</a><a id="nav-cta" class="btn secondary" target="_blank" rel="noopener" href="${esc(navUrl(d))}">⌖ Navigate</a></div>`}</div></main>${footer()}${nav(isFood(d) ? "food" : isFree(d) ? "free" : "home")}</div>`;
   }
   const legal = {
     terms: [
@@ -698,7 +704,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     return [...entries.values()].filter(d => state.mapFilter !== 'offers' || d.offers.length);
   }
   function venueCard(d) {
-    return '<article class="venue-card"><h3>'+esc(d.merchant)+'</h3><p>'+esc(d.location)+'</p><p class="muted">Business listing · No active offer listed</p><a class="btn secondary" data-internal href="/venues/'+encodeURIComponent(d.slug)+'">View business</a></article>';
+    return '<article class="venue-card">'+(d.image?'<img class="venue-thumb" loading="lazy" src="'+esc(safeImage(d.image))+'" alt="'+esc(d.name||d.merchant)+'">':'')+'<h3>'+esc(d.merchant)+'</h3><p>'+esc(d.location)+'</p><p class="muted">Business listing · No active offer listed</p><a class="btn secondary" data-internal href="/venues/'+encodeURIComponent(d.slug)+'">View business</a></article>';
   }
   function mapPage() {
     const xs = mapEntries(), pins=xs.filter(mapped), missing=xs.length-pins.length;
@@ -706,7 +712,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
   }
   function venuePage(b) {
     const offers=state.deals.filter(d=>d.merchantId===b.id);
-    return shell('<main class="page"><section class="section"><div class="eyebrow">BUSINESS LISTING</div><h1>'+esc(b.name)+'</h1><p>'+esc(b.location)+'</p><p>'+esc(b.publicLabel)+'</p><p>'+esc(b.category)+'</p>'+(b.image?'<img class="venue-photo" src="'+esc(safeImage(b.image))+'" alt="'+esc(b.name)+'">':'<p class="muted">A verified venue photo is not available yet.</p>')+'<div class="hero-actions">'+(b.website?'<a class="btn primary" target="_blank" rel="noopener" href="'+esc(b.website)+'">Official website</a>':'')+'<a class="btn secondary" target="_blank" rel="noopener" href="'+esc(navUrl({...b,merchant:b.name}))+'">Directions</a>'+(b.claimable?'<a class="btn secondary" href="/claim?merchant='+encodeURIComponent(b.slug)+'">Claim this business</a>':'')+'</div><h2>Current offers</h2><div class="grid">'+offers.map(card).join('')+'</div>'+(!offers.length?'<p>No active offer is listed. Check the official website for current information.</p>':'')+'</section></main>');
+    return shell('<main class="page"><section class="section"><div class="eyebrow">BUSINESS LISTING</div><h1>'+esc(b.name)+'</h1><p>'+esc(b.location)+'</p><p>'+esc(b.publicState==='unclaimed'?'Public listing · not yet business-verified':b.publicLabel)+'</p><p>'+esc(String(b.category||'').replaceAll('_',' '))+'</p>'+(b.image?'<img class="venue-photo" src="'+esc(safeImage(b.image))+'" alt="'+esc(b.name)+'">':'<p class="muted">A verified venue photo is not available yet.</p>')+reportLink(null,b.id)+(b.photoCaption?'<p class="muted">'+esc(b.photoCaption)+'</p>':'')+'<div class="hero-actions">'+(b.website?'<a class="btn primary" target="_blank" rel="noopener" href="'+esc(b.website)+'">Official website</a>':'')+'<a class="btn secondary" target="_blank" rel="noopener" href="'+esc(navUrl({...b,merchant:b.name}))+'">Directions</a>'+(b.claimable?'<a class="btn secondary" href="/claim?merchant='+encodeURIComponent(b.slug)+'">Claim this business</a>':'')+'</div><h2>Current offers</h2><div class="grid">'+offers.map(card).join('')+'</div>'+(!offers.length?'<p>No active offer is listed. Check the official website for current information.</p>':'')+'</section></main>');
   }
   let leafletReady;
   function ensureLeaflet() {
@@ -859,6 +865,13 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     }
   }
   function bind() {
+    $('#availability-filter')?.addEventListener('change',e=>go('/tonight?when='+encodeURIComponent(e.target.value)));
+    $('#report-form')?.addEventListener('submit',async e=>{
+      e.preventDefault();const f=e.currentTarget,button=f.querySelector('button'),status=$('#report-status'),p=new URLSearchParams(location.search),body=Object.fromEntries(new FormData(f));
+      body.drop=p.get('drop');body.merchant=p.get('merchant');button.disabled=true;status.textContent='Sending…';
+      try{const r=await fetch('https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-listing-reports',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(12000)}),j=await r.json();if(!r.ok||!j.ok)throw Error(j.error||'Please try again.');status.textContent='Thank you. Your report is saved for PerkDrop review. Nothing has been removed automatically.';f.querySelector('textarea').value='';}
+      catch(err){status.textContent=err.message||'Could not send. Please try again.';}finally{button.disabled=false;}
+    });
     $("#clear-search")?.addEventListener("click",()=>go(state.route==="/map"?"/map":"/search"));
     $("#map-filter")?.addEventListener("change",e=>{state.mapFilter=e.target.value;render();});
     $("#close-location")?.addEventListener("click",()=>{state.locationOpen=false;render();$("#location-pill")?.focus();});
@@ -895,6 +908,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     $("#search-form")?.addEventListener("submit", (e) => {
       e.preventDefault();
       const q = clean($("#search-input")?.value);
+      if(/^near\s+me$/i.test(q)){go('/near-me');return;}
       if (q) track("search", { search_term: q.slice(0, 80) });
       go(`${state.route==="/map"?"/map":"/search"}?q=${encodeURIComponent(q)}`);
     });
@@ -1114,29 +1128,9 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
         .catch(() => {}),
     );
   function home() {
-    const all = cityDeals(),
-      fresh = all.slice(0, 10),
-      soon = all.filter(ending).slice(0, 6),
-      last = all
-        .filter(
-          (d) => d.dropType === "last_minute" || d.dropType === "cancellation",
-        )
-        .slice(0, 6),
-      week = all.filter(weekend).slice(0, 6),
-      free = all
-        .filter(
-          (d) =>
-            d.vertical === "free" || d.vertical === "freebies" || isFree(d),
-        )
-        .slice(0, 6);
-    const section = (eye, title, xs, href) =>
-      xs.length
-        ? `<section class="section"><div class="section-head"><div><div class="eyebrow">${eye}</div><h2>${title}</h2></div><a data-internal href="${href}">See all</a></div><div class="grid">${xs.map(card).join("")}</div></section>`
-        : "";
-    return shell(
-      `<main class="page"><section class="hero"><div class="eyebrow">${esc(CITIES[state.city]?.[0] || "LOCAL").toUpperCase()} DEALS & EVENTS</div><h1>Local deals.<br><strong>Things to do.</strong></h1><p>Find food specials, free events and local offers—with the conditions up front.</p>${searchBox()}${chips()}</section>${section("WHAT JUST DROPPED", "Fresh near you", fresh, "/")}${section("ENDING SOON", "Ending soon", soon, "/ending-soon")}${section("LAST MINUTE", "Last-minute availability", last, "/last-minute")}${section("THIS WEEKEND", "Make a plan", week, "/weekend")}${section("FREE DROPS", "Worth knowing, $0", free, "/free")}</main>`,
-      "home",
-    );
+    const all=cityDeals().filter(d=>['A','B'].includes(d.qualityGrade)&&freshness(d).state==='recent'),tonight=all.filter(d=>availabilityMatches(d,'tonight')),food=all.filter(isFood),free=all.filter(isFree);
+    const section=(title,xs,href)=>xs.length?'<section class="section"><div class="section-head"><h2>'+title+'</h2><a data-internal href="'+href+'">See all</a></div><div class="grid">'+xs.slice(0,6).map(card).join('')+'</div></section>':'';
+    return shell('<main class="page"><section class="hero"><div class="eyebrow">'+esc(CITIES[state.city]?.[0]||state.city)+' · LOCAL OFFERS</div><h1>Find something<br><strong>worth going out for.</strong></h1><p>Food specials, free places and clear conditions. Choose your area, then make a plan.</p>'+searchBox()+chips()+'</section>'+(tonight.length?section('Use it tonight',tonight,'/tonight'):'<p class="availability-note">No confirmed tonight options in this area. <a data-internal href="/tonight">Check another day</a> or browse the offers below.</p>')+section('Food worth a look',food,'/food')+section('Free things to do',free,'/free')+(!food.length&&!free.length?section('Around your area',all,'/search'):'')+'</main>');
   }
   const MARKET_PAGES = {
     beauty: ["beauty", "Beauty & wellness", "APPOINTMENTS & SELF-CARE"],
@@ -1180,6 +1174,8 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     });
   render = function () {
     if(state.loading||state.error)return baseRender();
+    if(state.route==="/tonight"||state.route==="/today"){document.title="When can I use it? | PerkDrop";$("#app").innerHTML=availabilityPage();bind();return;}
+    if(state.route==="/report"){if(new URLSearchParams(location.search).has('merchant')&&!state.directoryLoaded&&!state.directoryLoading&&!state.directoryError)loadDirectory();document.title="Report incorrect information | PerkDrop";$("#app").innerHTML=reportPage();bind();return;}
     const key = state.route.slice(1);
     if (MARKET_PAGES[key]) {
       const [kind, title, eye] = MARKET_PAGES[key],
@@ -1199,5 +1195,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
       `<main class="page"><section class="business-hero"><div class="eyebrow">FOR LOCAL BUSINESSES & ORGANISERS</div><h1>Put unused capacity to work.</h1><p><strong>No upfront cost.</strong> Claiming is free. Any offer fees are confirmed with you before launch. You control your offer, dates and available quantity.</p><div class="business-points"><span>✓ Controlled capacity</span><span>✓ Direct bookings stay yours</span><span>✓ Fees agreed before launch</span><span>✓ Mobile verification</span></div></section><form id="merchant-form" class="merchant-form"><div class="form-grid"><label>Business / organisation *<input name="business_name" required maxlength="160"></label><label>Your name *<input name="contact_name" required maxlength="160"></label><label>Email *<input name="contact_email" type="email" required maxlength="254"></label><label>Phone *<input name="contact_phone" required maxlength="80"></label><label>Category<select name="vertical"><option value="food">Food & drink</option><option value="beauty">Beauty & wellness</option><option value="experiences">Experiences</option><option value="events">Events</option><option value="shopping">Shopping</option><option value="family_kids">Family & kids</option><option value="fitness">Health & fitness</option><option value="travel_stays">Travel & stays</option><option value="freebies">Freebies</option><option value="services">Services</option></select></label><label>How customers use the offer<select name="fulfilment_mode"><option value="external_booking">Customer books directly</option><option value="appointment">Appointment required</option><option value="direct_claim">Walk-in claim</option><option value="ticket">Ticket / session booking</option><option value="merchant_confirmation">Merchant confirmation</option></select></label><label>Availability<select name="drop_type"><option value="capacity">Planned capacity</option><option value="last_minute">Last minute</option><option value="cancellation">Cancellation / spare place</option></select></label><label>Capacity *<input name="capacity_total" required type="number" min="1" max="10000"></label><label>Capacity unit<select name="inventory_unit"><option value="person">Guests / people</option><option value="appointment">Appointments</option><option value="ticket">Tickets</option><option value="class_spot">Class spots</option><option value="room">Rooms</option><option value="item">Items</option></select></label><label>Location *<input name="location" required></label><label class="wide">Offer title *<input name="offer_title" required maxlength="180"></label><label class="wide">Customer benefit *<textarea name="description" required maxlength="2500" rows="4" placeholder="e.g. complimentary treatment add-on or value-add perk"></textarea></label><label>Start *<input name="starts_at" required type="datetime-local"></label><label>End *<input name="ends_at" required type="datetime-local"></label><label>Booking / website link<input name="booking_url" type="url"></label><label>Image URL (licensed / owned)<input name="media_url" type="url"></label><label class="wide">Conditions / minimum spend / booking instructions *<textarea name="conditions" required minlength="12" maxlength="1800" rows="3"></textarea></label><label>Redemption verifier *<input name="redemption_verifier" required maxlength="160"></label><label class="check wide"><input type="checkbox" name="authority_confirmed" required> I’m authorised to submit this offer and imagery.</label><label class="check wide"><input type="checkbox" name="accuracy_confirmed" required> Details are accurate. I understand that any commercial terms must be agreed before launch.</label><label class="check wide"><input type="checkbox" name="terms_accepted" required> I accept the PerkDrop merchant terms.</label></div><button class="btn primary submit-btn">Submit for review</button><div id="merchant-status" class="form-status"></div></form></main>`,
     );
   }
+  // Re-evaluate visible time-sensitive views at minute boundaries without fetching the directory.
+  setInterval(()=>{if(!document.hidden&&!document.activeElement?.matches('input,textarea,select')&&!state.loading&&!state.error&&['/','/tonight','/today'].includes(state.route))render();},60000);
   load();
 })();

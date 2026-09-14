@@ -8,7 +8,7 @@ const folder=path.resolve('.audit/browser-quality/'+new URL(base).hostname);
 await mkdir(folder,{recursive:true});
 function run(args){const raw=execFileSync(binary,['--session',session,'--json',...args],{encoding:'utf8',windowsHide:true,timeout:40000});const out=JSON.parse(raw);if(!out.success)throw Error(JSON.stringify(out.error));return out.data;}
 run(['open',base+route]);
-run(['wait',route.startsWith('/claim?merchant=')?'#change-business':route.startsWith('/claim')?'#business-search':route==='/map'?'.venue-card':route.startsWith('/deals/')?'main':'.deal-card']);
+run(['wait',route.startsWith('/claim?merchant=')?'#change-business':route.startsWith('/claim')?'#business-search':route==='/map'?'.venue-card':route.startsWith('/tonight')?'#availability-filter':route.startsWith('/report')?'#report-form':route.startsWith('/venues/')?'a[href*="/claim?merchant="]':route.startsWith('/deals/')?'main':'.deal-card']);
 const results=[];
 for(const width of [320,360,375,390,412,430,768,1280]) {
   run(['set','viewport',String(width),width>=768?'900':'844']);

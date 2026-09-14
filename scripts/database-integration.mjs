@@ -273,6 +273,8 @@ try {
   });
   const {testProductQuality}=await import('../tests/database/product-quality.mjs');
   await testProductQuality(pool,check);
+  const {testConsumerUtility}=await import('../tests/database/consumer-utility.mjs');
+  await testConsumerUtility(pool,check);
   console.log(`REAL DATABASE: ${count} checks passed. No production connection or fixture writes.`);
 } finally {
   if (pool) await pool.end();

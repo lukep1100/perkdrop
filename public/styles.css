@@ -983,3 +983,6 @@ a {
 .map-legend{font-size:13px;line-height:1.5;margin:12px 0}
 .toast{pointer-events:none}
 .btn.primary,.searchbar button,.badge{background:linear-gradient(135deg,#aa126d,#5430d0);color:#fff}
+
+/* Consumer utility: compact evidence and readable report form. */
+.freshness{font-size:12px;color:#b8d7c9;margin-top:8px}.card-condition{font-size:12px;line-height:1.5;color:#c6c9d0;margin-top:7px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.availability-note{padding:16px;border:1px solid #373346;border-radius:14px;color:#cdc6dc}.availability-filter{display:flex;align-items:center;gap:12px}.availability-filter select,.report-form select,.report-form textarea{min-height:44px;font-size:16px;background:#171824;color:#fff;border:1px solid #555063;border-radius:10px;padding:10px;max-width:100%}.report-form{display:grid;gap:18px;margin:24px 0}.report-form label{display:grid;gap:8px}.report-form button{justify-self:start}.report-honeypot{position:absolute!important;left:-9999px}.report-link{display:inline-flex;align-items:center;min-height:44px;text-decoration:underline;color:#d3baff}.venue-photo{width:100%;max-height:360px;object-fit:cover;border-radius:18px}.venue-card .venue-thumb{width:100%;height:150px;object-fit:cover;border-radius:12px}

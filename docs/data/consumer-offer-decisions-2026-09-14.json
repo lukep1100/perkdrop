@@ -1,0 +1,652 @@
+[
+  {
+    "id": "PD-2026-0006",
+    "merchant": "Adelaide Botanic Garden",
+    "beforeGrade": "B",
+    "grade": "A",
+    "note": "Added exact walk window and cancellation conditions.",
+    "plan": {
+      "windows": [
+        {
+          "days": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "start": "10:30",
+          "end": "12:00"
+        }
+      ],
+      "label": "Daily · 10:30am–12pm",
+      "excludedDates": [
+        "2026-12-25"
+      ],
+      "notes": "Volunteer-led walk; cancelled for extreme heat (36°C+) and on Good Friday/Christmas. Groups of five or more must arrange a booking."
+    }
+  },
+  {
+    "id": "PD-2026-0005",
+    "merchant": "Adelaide Botanic Garden",
+    "beforeGrade": "B",
+    "grade": "A",
+    "note": "Added seasonal September opening windows; no hours inferred beyond September.",
+    "plan": {
+      "windows": [
+        {
+          "days": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "start": "07:15",
+          "end": "17:30"
+        },
+        {
+          "days": [
+            6,
+            7
+          ],
+          "start": "09:00",
+          "end": "17:30"
+        }
+      ],
+      "validUntil": "2026-09-30",
+      "label": "September · weekdays 7:15am–5:30pm; weekends 9am–5:30pm",
+      "notes": "September opening hours only. Seasonal hours change in October."
+    }
+  },
+  {
+    "id": "PD-2026-0049",
+    "merchant": "Archie Brothers Cirque Electriq",
+    "beforeGrade": "C",
+    "grade": "C",
+    "note": "Monday price is supported; exact service times and game exclusions need venue confirmation.",
+    "plan": null
+  },
+  {
+    "id": "PD-2026-0072",
+    "merchant": "Art Gallery of South Australia",
+    "beforeGrade": "B",
+    "grade": "A",
+    "note": "Replaced vague TICKETED with adult timed admission price; exact general opening hours.",
+    "plan": {
+      "windows": [
+        {
+          "days": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "start": "10:00",
+          "end": "17:00"
+        }
+      ],
+      "label": "Daily · 10am–5pm · until 8 Nov",
+      "notes": "Adult timed ticket $30; flexi and concession prices differ. Book tickets with AGSA."
+    }
+  },
+  {
+    "id": "PD-2026-0063",
+    "merchant": "Art Gallery of South Australia",
+    "beforeGrade": "A",
+    "grade": "A",
+    "note": "Friday evening session and ticket conditions are explicit. Last entry 8pm.",
+    "plan": {
+      "windows": [
+        {
+          "days": [
+            5
+          ],
+          "start": "17:30",
+          "end": "20:00"
+        }
+      ],
+      "label": "Fridays · 5:30–8:30pm · last entry 8pm",
+      "notes": "Last admission 8pm. Online tickets only; availability is confirmed by AGSA, not PerkDrop."
+    }
+  },
+  {
+    "id": "PD-2026-0008",
+    "merchant": "Art Gallery of South Australia",
+    "beforeGrade": "B",
+    "grade": "A",
+    "note": "Added general-entry hours, distinct from paid Friday exhibition.",
+    "plan": {
+      "windows": [
+        {
+          "days": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "start": "10:00",
+          "end": "17:00"
+        }
+      ],
+      "label": "Daily · 10am–5pm",
+      "excludedDates": [
+        "2026-12-25"
+      ],
+      "notes": "General entry only. Major exhibitions and late ticketed events may cost extra."
+    }
+  },
+  {
+    "id": "PD-2026-0057",
+    "merchant": "Canopy",
+    "beforeGrade": "B",
+    "grade": "A",
+    "note": "Restricted daily happy hour to Thursday–Sunday trading days.",
+    "plan": {
+      "windows": [
+        {
+          "days": [
+            4,
+            5,
+            6,
+            7
+          ],
+          "start": "16:30",
+          "end": "18:30"
+        }
+      ],
+      "label": "Thu–Sun · 4:30–6:30pm",
+      "notes": "Happy hour during stated trading days. Selected drinks listed in the offer; no table availability guarantee."
+    }
+  },
+  {
+    "id": "PD-2026-0058",
+    "merchant": "Cucina by Liquid",
+    "beforeGrade": "D",
+    "grade": "D",
+    "note": "Official homepage Monday pasta from 5pm conflicts with contact page Monday closure at 3pm.",
+    "plan": null
+  },
+  {
+    "id": "PD-2026-0062",
+    "merchant": "Grand Junction Tavern",
+    "beforeGrade": "A",
+    "grade": "A",
+    "note": "Explicit Monday 5–9pm and public-holiday exclusion.",
+    "plan": {
+      "windows": [
+        {
+          "days": [
+            1
+          ],
+          "start": "17:00",
+          "end": "21:00"
+        }
+      ],
+      "label": "Mondays · 5–9pm",
+      "excludedDates": [
+        "2026-10-05",
+        "2026-12-28"
+      ],
+      "notes": "Not valid on public holidays. Excludes snacks, seniors meals, kids meals, entrees and toppers. Holiday dates checked against SafeWork SA."
+    }
+  },
+  {
+    "id": "PD-2026-0054",
+    "merchant": "Harry's Bar on Grenfell",
+    "beforeGrade": "B",
+    "grade": "B",
+    "note": "Tuesday price and drink condition clear; hours remain unconfirmed.",
+    "plan": null
+  },
+  {
+    "id": "PD-2026-0050",
+    "merchant": "Hijinx Hotel",
+    "beforeGrade": "C",
+    "grade": "C",
+    "note": "Monday unlimited play price supported; exact service and exclusions unclear.",
+    "plan": null
+  },
+  {
+    "id": "PD-2026-0055",
+    "merchant": "Jimmy's Bar & Grill",
+    "beforeGrade": "B",
+    "grade": "B",
+    "note": "Monday/Tuesday and drink condition clear; exact service hours unconfirmed.",
+    "plan": null
+  },
+  {
+    "id": "PD-2026-0041",
+    "merchant": "OPSM",
+    "beforeGrade": "B",
+    "grade": "B",
+    "note": "Discount and expiry supported; photo broken and full in-store conditions required.",
+    "plan": null
+  },
+  {
+    "id": "PD-2026-0019",
+    "merchant": "Rundle Mall",
+    "beforeGrade": "C",
+    "grade": "C",
+    "note": "Exhibition spread across venues; cannot infer one service window from mall header hours.",
+    "plan": null
+  },
+  {
+    "id": "PD-2026-0009",
+    "merchant": "South Australian Museum",
+    "beforeGrade": "A",
+    "grade": "A",
+    "note": "Existing checked general museum hours; no re-verification timestamp invented from homepage fetch.",
+    "plan": {
+      "windows": [
+        {
+          "days": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "start": "10:00",
+          "end": "17:00"
+        }
+      ],
+      "label": "Daily · 10am–5pm",
+      "checkedAt": "2026-09-10 08:55:26.62241+00",
+      "notes": "Existing source check from 10 September; holiday exceptions apply."
+    }
+  },
+  {
+    "id": "PD-2026-0075",
+    "merchant": "Stella Restaurant",
+    "beforeGrade": "D",
+    "grade": "D",
+    "note": "Removed TONIGHT. Stored Saturday extension conflicts with official winter Mon–Sat offer; expiry/service need confirmation.",
+    "plan": null
+  },
+  {
+    "id": "PD-2026-0056",
+    "merchant": "The Reserve Social",
+    "beforeGrade": "B",
+    "grade": "B",
+    "note": "Monday special supported by current official menu; service times not supplied.",
+    "plan": null
+  },
+  {
+    "id": "PD-2026-0059",
+    "merchant": "The Woodville Hotel",
+    "beforeGrade": "B",
+    "grade": "B",
+    "note": "Monday kids offer and main-meal/public-holiday conditions supported; bistro times unknown.",
+    "plan": null
+  },
+  {
+    "id": "UNION-HOTEL-LUNCH-20-OFF",
+    "merchant": "Union Hotel",
+    "beforeGrade": "A",
+    "grade": "A",
+    "note": "Merchant-approved lunch terms preserved; eligibility also requires a matching live session and capacity.",
+    "plan": {
+      "windows": [
+        {
+          "days": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "start": "11:30",
+          "end": "14:30"
+        }
+      ],
+      "label": "Mon–Thu lunch · 11:30am–2:30pm",
+      "checkedAt": "2026-09-07 20:56:58.862584+00",
+      "notes": "Merchant-approved lunch only. A drink purchase and real booking are required. Choose 1–6 diners. Live session capacity is checked separately."
+    }
+  },
+  {
+    "id": "PD-2026-0001",
+    "merchant": "Bunnings Warehouse",
+    "beforeGrade": "C",
+    "grade": "C",
+    "note": "National participating-store workshops require individual booking slots; no national service window.",
+    "plan": null
+  },
+  {
+    "id": "PD-2026-0032",
+    "merchant": "Brisbane Botanic Gardens Mt Coot-tha",
+    "beforeGrade": "D",
+    "grade": "D",
+    "note": "Stored official council source returns 410. Needs replacement session evidence.",
+    "plan": null
+  },
+  {
+    "id": "PD-2026-0028",
+    "merchant": "Brisbane Festival",
+    "beforeGrade": "C",
+    "grade": "C",
+    "note": "Festival date range is supported; precinct/program times vary.",
+    "plan": null
+  },
+  {
+    "id": "PD-2026-0031",
+    "merchant": "Museum of Brisbane",
+    "beforeGrade": "B",
+    "grade": "A",
+    "note": "Replaced obsolete 410 council link with current Museum of Brisbane tour source.",
+    "plan": {
+      "windows": [
+        {
+          "days": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "start": "10:15",
+          "end": "16:45"
+        }
+      ],
+      "label": "Daily · tours 10:15am–4:45pm",
+      "sourceUrl": "https://www.museumofbrisbane.com.au/whats-on/clock-tower-tours/",
+      "notes": "Book every person, including children and carers. Arrive 15 minutes early. Limited places; venue booking system confirms availability."
+    }
+  },
+  {
+    "id": "PD-2026-0004",
+    "merchant": "QAGOMA",
+    "beforeGrade": "C",
+    "grade": "C",
+    "note": "Current source blocks automated fetch; general entry plausible but service time remains unconfirmed.",
+    "plan": null
+  },
+  {
+    "id": "PD-2026-0066",
+    "merchant": "Sculptors Queensland / Brisbane City Council",
+    "beforeGrade": "D",
+    "grade": "D",
+    "note": "Official session source returns 410; do not prominently promote.",
+    "plan": null
+  },
+  {
+    "id": "PD-2026-0070",
+    "merchant": "Floriade",
+    "beforeGrade": "C",
+    "grade": "C",
+    "note": "Event dates supported; source now says times not specified, so no confirmed service window.",
+    "plan": null
+  },
+  {
+    "id": "PD-2026-0011",
+    "merchant": "National Gallery of Australia",
+    "beforeGrade": "B",
+    "grade": "B",
+    "note": "Existing dated general-entry evidence; current source fetch blocked, retain last check unchanged.",
+    "plan": null
+  },
+  {
+    "id": "PD-2026-0069",
+    "merchant": "Darwin International Film Festival",
+    "beforeGrade": "C",
+    "grade": "C",
+    "note": "Festival includes individually ticketed sessions; no general availability assertion.",
+    "plan": null
+  },
+  {
+    "id": "PD-2026-0013",
+    "merchant": "Darwin Waterfront",
+    "beforeGrade": "C",
+    "grade": "C",
+    "note": "Free lagoon subject to daily safety/lifeguard conditions; not equivalent to open now.",
+    "plan": null
+  },
+  {
+    "id": "PD-2026-0039",
+    "merchant": "Hindu Society of the Northern Territory",
+    "beforeGrade": "C",
+    "grade": "C",
+    "note": "Event ends today; programme/service times not sufficiently clear.",
+    "plan": null
+  },
+  {
+    "id": "PD-2026-0014",
+    "merchant": "HOTA Gallery",
+    "beforeGrade": "A",
+    "grade": "A",
+    "note": "Explicit first-Saturday 9–10am sessions, encoded as dates rather than every Saturday.",
+    "plan": {
+      "windows": [
+        {
+          "dates": [
+            "2026-10-03",
+            "2026-11-07",
+            "2026-12-05"
+          ],
+          "start": "09:00",
+          "end": "10:00"
+        }
+      ],
+      "label": "First Saturday monthly · 9–10am",
+      "notes": "The next listed Quiet Hour is 3 October. Not every Saturday."
+    }
+  },
+  {
+    "id": "PD-2026-0060",
+    "merchant": "SWELL Sculpture Festival",
+    "beforeGrade": "D",
+    "grade": "D",
+    "note": "Stored official offer page returns 404; replacement programme/time evidence required.",
+    "plan": null
+  },
+  {
+    "id": "PD-2026-0012",
+    "merchant": "Tasmanian Museum and Art Gallery",
+    "beforeGrade": "C",
+    "grade": "C",
+    "note": "Seasonal opening schedule absent; current source fetch blocked.",
+    "plan": null
+  },
+  {
+    "id": "PD-2026-0027",
+    "merchant": "Fed Square",
+    "beforeGrade": "C",
+    "grade": "C",
+    "note": "Festival consists of discrete dates/sessions, not every day in its date range.",
+    "plan": null
+  },
+  {
+    "id": "PD-2026-0003",
+    "merchant": "National Gallery of Victoria",
+    "beforeGrade": "C",
+    "grade": "C",
+    "note": "Collection free but source accessibility page is not an explicit venue service schedule.",
+    "plan": null
+  },
+  {
+    "id": "PD-2026-0010",
+    "merchant": "Art Gallery of Western Australia",
+    "beforeGrade": "B",
+    "grade": "A",
+    "note": "Official site now says daily 10am–5pm; removed outdated Tuesday closure.",
+    "plan": {
+      "windows": [
+        {
+          "days": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "start": "10:00",
+          "end": "17:00"
+        }
+      ],
+      "label": "Daily · 10am–5pm",
+      "excludedDates": [
+        "2026-12-25"
+      ],
+      "notes": "Official gallery hours now include Tuesdays. Voluntary donation requested; special events may differ."
+    }
+  },
+  {
+    "id": "PD-2026-0053",
+    "merchant": "City of Perth / Tourism WA",
+    "beforeGrade": "B",
+    "grade": "B",
+    "note": "Existing dated event evidence; source fetch blocked, old timestamp preserved.",
+    "plan": null
+  },
+  {
+    "id": "PD-2026-0067",
+    "merchant": "Perth City Farm",
+    "beforeGrade": "A",
+    "grade": "A",
+    "note": "Existing checked explicit second-Thursday dates; no new verification inferred from blocked fetch.",
+    "plan": {
+      "windows": [
+        {
+          "dates": [
+            "2026-10-08",
+            "2026-11-12"
+          ],
+          "start": "17:00",
+          "end": "20:00"
+        }
+      ],
+      "label": "8 Oct / 12 Nov · 5–8pm",
+      "checkedAt": "2026-09-10 14:27:09.538612+00",
+      "notes": "Existing 10 September source check; not reverified today because source blocks automated access. Free entry, paid activities may apply."
+    }
+  },
+  {
+    "id": "PD-2026-0002",
+    "merchant": "Australian Museum",
+    "beforeGrade": "B",
+    "grade": "A",
+    "note": "Added official daily general-entry hours and Christmas closure.",
+    "plan": {
+      "windows": [
+        {
+          "days": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "start": "10:00",
+          "end": "17:00"
+        }
+      ],
+      "label": "Daily · 10am–5pm",
+      "excludedDates": [
+        "2026-12-25"
+      ],
+      "notes": "Permanent exhibitions only. Major exhibitions may require paid tickets."
+    }
+  },
+  {
+    "id": "PD-2026-0035",
+    "merchant": "Barangaroo",
+    "beforeGrade": "A",
+    "grade": "A",
+    "note": "Explicit Friday 7–8am schedule; existing date range retained.",
+    "plan": {
+      "windows": [
+        {
+          "days": [
+            5
+          ],
+          "start": "07:00",
+          "end": "08:00"
+        }
+      ],
+      "label": "Fridays · 7–8am",
+      "validFrom": "2026-09-04",
+      "notes": "Outdoor workout. Check the organiser if conditions change."
+    }
+  },
+  {
+    "id": "PD-2026-0065",
+    "merchant": "Placemaking NSW / Darling Harbour",
+    "beforeGrade": "B",
+    "grade": "A",
+    "note": "Encoded five actual festival dates and their distinct closing times.",
+    "plan": {
+      "windows": [
+        {
+          "dates": [
+            "2026-09-19",
+            "2026-09-20",
+            "2026-11-22"
+          ],
+          "start": "10:00",
+          "end": "17:00"
+        },
+        {
+          "dates": [
+            "2026-11-07",
+            "2026-11-21"
+          ],
+          "start": "10:00",
+          "end": "18:00"
+        }
+      ],
+      "label": "Selected festival dates · see details",
+      "notes": "19–20 Sep: 10am–5pm; 7 & 21 Nov: 10am–6pm; 22 Nov: 10am–5pm. Not a daily festival."
+    }
+  },
+  {
+    "id": "PD-2026-0071",
+    "merchant": "Sydney Opera House",
+    "beforeGrade": "C",
+    "grade": "C",
+    "note": "Mix of free and paid performances with separate bookings; no blanket FREE or service claim.",
+    "plan": null
+  },
+  {
+    "id": "PD-2026-0046",
+    "merchant": "Waverley Council / NSW Department of Education",
+    "beforeGrade": "A",
+    "grade": "A",
+    "note": "Explicit exhibition 10am–4pm dates and official source.",
+    "plan": {
+      "windows": [
+        {
+          "days": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "start": "10:00",
+          "end": "16:00"
+        }
+      ],
+      "label": "Daily · 10am–4pm · until 25 Oct",
+      "validFrom": "2026-08-29",
+      "notes": "Check entry arrangements with the official exhibition listing."
+    }
+  }
+]

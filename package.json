@@ -12,8 +12,9 @@
     "test:inline-scripts": "node --test tests/inline-scripts.test.mjs",
     "test:analytics": "node --test tests/analytics-contract.test.mjs",
     "test:saves": "node --test tests/saved-listings.test.mjs",
+    "test:availability": "node --test tests/availability.test.mjs",
     "test:database": "node scripts/database-integration.mjs",
-    "test": "npm run test:harness && npm run test:discovery && npm run test:inline-scripts && npm run test:analytics && npm run test:saves && npm run test:database && npm run test:smoke"
+    "test": "npm run test:harness && npm run test:discovery && npm run test:availability && npm run test:inline-scripts && npm run test:analytics && npm run test:saves && npm run test:database && npm run test:smoke"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",

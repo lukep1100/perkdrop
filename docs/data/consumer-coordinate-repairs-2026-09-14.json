@@ -1,0 +1,65 @@
+[
+  {
+    "id": "8b81e1a7-9adb-4b9d-b208-bd571e9472bf",
+    "name": "Borsa Pasta Cucina",
+    "latitude": -34.92436989999999,
+    "longitude": 138.6007438,
+    "address": "1/25 Grenfell Street, Adelaide SA 5000",
+    "source": "https://www.borsapastacucina.com/",
+    "basis": "Venue-specific GeoCoordinates plus matching street address in official site structured data."
+  },
+  {
+    "id": "aef007b7-f31d-49b9-84fb-255145f106fd",
+    "name": "Steampunk Surfers Paradise",
+    "latitude": -28.00098,
+    "longitude": 153.42889,
+    "address": "Level 1, 3113 Surfers Paradise Boulevard, Surfers Paradise QLD 4217",
+    "source": "https://www.steampunksurfersparadise.com.au/",
+    "basis": "Official venue-specific GeoCoordinates and visible address."
+  },
+  {
+    "id": "15adcbf6-8f8c-4449-8f65-e39215727604",
+    "name": "The Waggon",
+    "latitude": -42.8721989,
+    "longitude": 147.3183144,
+    "address": "327 Argyle Street, North Hobart TAS 7000",
+    "source": "https://www.thewaggon.au/",
+    "basis": "Destination !3d/!4d in official venue map link, not map viewport @ coordinates."
+  },
+  {
+    "id": "f49274f8-2bd4-429d-b351-3faf8aef1513",
+    "name": "The Best Brew Bar & Kitchen",
+    "latitude": -31.94913928044456,
+    "longitude": 115.85175911259734,
+    "address": "707 Wellington Street, Perth WA 6000",
+    "source": "https://www.thebestbrew.com.au/",
+    "basis": "Official venue-specific GeoCoordinates and visible address."
+  },
+  {
+    "id": "0cb3cd8d-8a75-4e9d-bdd9-3453bbc40129",
+    "name": "The Boat Mindarie",
+    "latitude": -31.6904703,
+    "longitude": 115.7027547,
+    "address": "33 Ocean Falls Boulevard, Mindarie WA 6030",
+    "source": "https://themarinamindarie.com/the-boat/",
+    "basis": "The Boat sub-business GeoCoordinates; deliberately not parent Marina coordinates."
+  },
+  {
+    "id": "0c2240de-e28b-44be-bb41-e1a08cec8090",
+    "name": "Hurricane's Grill Circular Quay",
+    "latitude": -33.861785,
+    "longitude": 151.209889,
+    "address": "L202–L203 Gateway Building, 1 Macquarie Place, Sydney NSW 2000",
+    "source": "https://hurricanesgrillrestaurants.com.au/circular-quay/",
+    "basis": "Destination coordinates in the specific Circular Quay official page map link."
+  },
+  {
+    "id": "4c1c0664-dac4-430f-a12d-4694793d0483",
+    "name": "Steersons Steakhouse",
+    "latitude": -33.8666848,
+    "longitude": 151.2015819,
+    "address": "17 Lime Street, King Street Wharf, Sydney NSW 2000",
+    "source": "https://steersons.com/",
+    "basis": "Destination !3d/!4d coordinates in official venue map link."
+  }
+]
