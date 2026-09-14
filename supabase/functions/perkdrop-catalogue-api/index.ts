@@ -173,11 +173,14 @@ function priorityScore(
   return 100;
 }
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers });
+  const started = Date.now();
+  const requestId = String(req.headers.get("x-vercel-id") || req.headers.get("x-request-id") || crypto.randomUUID()).slice(0, 180);
+  const responseHeaders = { ...headers, "x-perkdrop-request-id": requestId };
+  if (req.method === "OPTIONS") return new Response("ok", { headers: responseHeaders });
   if (req.method !== "GET")
     return new Response(
       JSON.stringify({ ok: false, error: "method_not_allowed" }),
-      { status: 405, headers },
+      { status: 405, headers: responseHeaders },
     );
   const url = new URL(req.url);
   const supabase = createClient(
@@ -200,6 +203,7 @@ Deno.serve(async (req) => {
         .eq("active", true),
       supabase.from("merchants").select("id", { count: "exact", head: true }),
     ]);
+    if (error) console.warn(JSON.stringify({ msg: "catalogue_health_query_failed", requestId, failed: ["catalogue_items"], ms: Date.now() - started }));
     return new Response(
       JSON.stringify({
         ok: !error,
@@ -210,7 +214,7 @@ Deno.serve(async (req) => {
         merchants: merchantCount || 0,
         sourceOfTruth: "supabase",
       }),
-      { status: error ? 500 : 200, headers },
+      { status: error ? 500 : 200, headers: responseHeaders },
     );
   }
   const q = (url.searchParams.get("q") || "").trim().toLowerCase(),
@@ -281,11 +285,13 @@ Deno.serve(async (req) => {
       .order("service_date", { ascending: true })
       .limit(3000),
   ]);
-  if (error || merchantError || offerError || locError)
+  if (error || merchantError || offerError || locError) {
+    console.warn(JSON.stringify({ msg: "catalogue_query_failed", requestId, failed: [error && "catalogue_items", merchantError && "merchants", offerError && "merchant_offers", locError && "catalogue_locations"].filter(Boolean), ms: Date.now() - started }));
     return new Response(
       JSON.stringify({ ok: false, error: "catalogue_failed" }),
-      { status: 500, headers },
+      { status: 500, headers: responseHeaders },
     );
+  }
   const merchantMap = new Map((merchants || []).map((m: any) => [m.id, m]));
   const offerByDrop = new Map<string, any>();
   for (const o of offers || [])
@@ -454,10 +460,10 @@ Deno.serve(async (req) => {
     list=list.filter(d=>d.slug===requestedSlug||d.detail_url===`/deals/${requestedSlug}`);
     if (!list.length) {
       const {data:past,error:pastError}=await supabase.from('catalogue_items').select('id,merchant_id,slug,title,merchant,active,end_date,state').eq('slug',requestedSlug).maybeSingle();
-      if(pastError)return new Response(JSON.stringify({ok:false,error:'catalogue_failed'}),{status:503,headers});
+      if(pastError){console.warn(JSON.stringify({msg:'catalogue_slug_query_failed',requestId,ms:Date.now()-started}));return new Response(JSON.stringify({ok:false,error:'catalogue_failed'}),{status:503,headers:responseHeaders});}
       const visible=past&&(!past.merchant_id||directoryVisible(merchantMap.get(past.merchant_id)));
       const ended=visible&&(!past.active||(past.end_date&&past.end_date<localDay(past.state)));
-      return new Response(JSON.stringify({ok:false,status:ended?'ended':'not_found',deal:ended?{title:past.title,merchant:past.merchant,slug:past.slug}:null}),{status:ended?410:404,headers});
+      return new Response(JSON.stringify({ok:false,status:ended?'ended':'not_found',deal:ended?{title:past.title,merchant:past.merchant,slug:past.slug}:null}),{status:ended?410:404,headers:responseHeaders});
     }
   }
   const total = list.length;
@@ -631,6 +637,6 @@ Deno.serve(async (req) => {
       total,
       deals: list,
     }),
-    { headers },
+    { headers: responseHeaders },
   );
 });
