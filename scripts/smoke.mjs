@@ -26,10 +26,21 @@ for(const result of slugChecks)console.log(`${result.status} catalogue slug ${re
 if(slugChecks.some(result=>result.status!==404||result.preflight!=='miss'))process.exitCode=1;
 
 const results=await Promise.all([...routes,liveDealRoute].map(async route=>{
- try{const response=await fetch(base+route,{redirect:'manual'});return {route,status:response.status};}
+ try{
+  const response=await fetch(base+route,{redirect:'manual'});
+  const health=route==='/api/health'?await response.json().catch(()=>null):null;
+  return {route,status:response.status,health,upstreamRequestId:response.headers.get('x-perkdrop-upstream-request-id')};
+ }
  catch{return {route,status:0};}
 }));
 const missing=new Set(['/deals/null','/deals/expired-shared-link']);
 const bad=results.filter(result=>missing.has(result.route)?result.status!==404:result.status<200||result.status>=400);
 for(const result of results)console.log(`${result.status} ${result.route}`);
 if(bad.length)process.exitCode=1;
+const healthResult=results.find(result=>result.route==='/api/health');
+if(base==='https://perkdrop.au'&&healthResult?.status===200&&(
+ !healthResult.upstreamRequestId||healthResult.health?.catalogue?.upstreamRequestId!==healthResult.upstreamRequestId
+)){
+ console.error('Production health diagnostics did not preserve the upstream catalogue request ID.');
+ process.exitCode=1;
+}
