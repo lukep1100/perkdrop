@@ -39,6 +39,7 @@ This is an evidence ledger, not a launch certificate. `VERIFIED` means the state
 - `5161cff` — make merchant quick drops taxonomy-aware; pushed and deployed.
 - `619ea14` — report tracked merchant value only; pushed and deployed.
 - `3d4e5be` — short-circuit unknown catalogue slugs and add direct preflight regression checks; Supabase `perkdrop-catalogue-api` v35 ACTIVE, Vercel `dpl_2SpyjuqgDpMkFvxVQHPt6NGWvie3` READY.
+- `f020749` — record the 20-request concurrent health-burst verification; Vercel `dpl_E4xMDwYy5FvHBhLZgP7FmTYeodBa` READY and aliased to the production domains.
 - Supabase `perkdrop-portal` v21 is ACTIVE with `verify_jwt=false`, matching the existing portal contract.
 - Vercel production deployment `dpl_6stEpySDuFxadqQSP5ovWuJiKWV4` (source `4cd1a20`) is READY and aliased to `perkdrop.au` / `www.perkdrop.au`.
 - Integrated local suites: marketplace 10, discovery/notification 16, availability 12, inline scripts 2, analytics 2, saves 2, database 60; production smoke passed when run with `SMOKE_BASE_URL=https://perkdrop.au` (the package-level smoke invocation without that variable is intentionally non-production and returns connection failures).
