@@ -74,7 +74,7 @@ export default function SocialPublishing(){
       setJob(result.job);await openJob(result.job.id);await uploadAndVerify(result.job);jobId.current=null;
     });
   }
-  const canApprove=job&&['ready','draft_failed'].includes(job.status)&&job.verification.length===5&&job.verification.every(v=>v.ok);
+  const canApprove=settings?.enabled===true&&job&&['ready','draft_failed'].includes(job.status)&&job.verification.length===5&&job.verification.every(v=>v.ok);
   return <><Head><title>Social publishing · PerkDrop</title><meta name="robots" content="noindex,nofollow"/></Head>
     <main className="social"><header><div><p className="eyebrow">PERKDROP / PRIVATE OPERATIONS</p><h1>Social publishing</h1>
     <p>Exact finished images. Owner approval. Nothing scheduled or published here.</p></div><a href="/admin">Back to HQ</a></header>
@@ -114,7 +114,7 @@ export default function SocialPublishing(){
           <button disabled={busy} onClick={()=>run(async()=>{await api({action:'verify',job_id:job.id});await refresh();})}>{job.status==='uploading'?'Verify hosted files':'Retry failed verification'}</button>
           <button disabled={busy||files.length!==5} onClick={()=>run(()=>uploadAndVerify(job))}>Resume original file upload</button></div>}
         {['verifying','drafting'].includes(job.status)&&<button disabled={busy||Date.now()-Date.parse(job.updated_at)<180000} onClick={()=>run(async()=>{await api({action:'recover',job_id:job.id});await refresh();})}>Recover stalled operation</button>}
-        <hr/><h3>Owner approval — Buffer drafts only</h3><p>Creates genuine drafts in the selected Buffer channels. It does not queue, schedule or publish. Approval is locked until every original PNG passes verification.</p>
+        <hr/><h3>Owner approval — Buffer drafts only</h3><p>{settings?.enabled===true?'Creates genuine drafts in the selected Buffer channels. It does not queue, schedule or publish. Approval is locked until every original PNG passes verification.':'Buffer publishing is disabled in production. No draft approval or Buffer request is available until the owner enables and verifies the integration.'}</p>
         <label className="check"><input type="checkbox" checked={approved} disabled={!canApprove||busy} onChange={e=>setApproved(e.target.checked)}/>I have reviewed all five images, their order, channels and exact caption.</label>
         <button disabled={!canApprove||!approved||busy} onClick={()=>run(async()=>{if(!window.confirm('Create genuine Buffer drafts for this exact preview? Nothing will be scheduled or published.'))return;
           await api({action:'approve_drafts',job_id:job.id,preview_hash:job.preview_hash,confirmation:'CREATE_BUFFER_DRAFTS'});await refresh();})}>{job.status==='draft_failed'?'Retry rejected draft only':'Approve & create Buffer drafts'}</button>
