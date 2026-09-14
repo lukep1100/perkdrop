@@ -51,7 +51,9 @@ This is an evidence ledger, not a launch certificate. `VERIFIED` means the state
 - Supabase `perkdrop-nearby-api` v4 is ACTIVE (`verify_jwt=false`, preserving its existing public contract) with Australian coordinate validation, request correlation, bounded transient retries, sanitized failure diagnostics and service-only failure-ledger persistence.
 - Supabase migration `20260914181858_catalogue_failure_ledger` is now registered and applied idempotently; the failure ledger retains RLS and service-role-only grants.
 - Supabase `perkdrop-portal` v21 is ACTIVE with `verify_jwt=false`, matching the existing portal contract.
+- `f4ef582` — preserve the merchant's explicit offer-photo rights confirmation in the portal editor and outbound offer create/update payload; pushed to `origin/main` and deployed through the authorised Supabase dashboard (live function reported successfully updated, then returned the patched HTML with HTTP 200).
 - Vercel production deployment `dpl_6stEpySDuFxadqQSP5ovWuJiKWV4` (source `4cd1a20`) is READY and aliased to `perkdrop.au` / `www.perkdrop.au`.
+- Vercel auto-deployment `dpl_9JjX6PfUH99mLdk6qZXGxYLNxYmc` for the pushed `main` state is READY/Production and aliased to `perkdrop.au` / `www.perkdrop.au`.
 - Integrated local suites: marketplace 10, discovery/notification 16, availability 12, inline scripts 2, analytics 2, saves 2, database 60; production smoke passed when run with `SMOKE_BASE_URL=https://perkdrop.au` (the package-level smoke invocation without that variable is intentionally non-production and returns connection failures).
 
 ## Current read-only production configuration
@@ -72,6 +74,7 @@ This is an evidence ledger, not a launch certificate. `VERIFIED` means the state
 - Additional live reliability check: 20 concurrent `/api/health` requests returned 20/20 `200` responses, all reported 52 live rows, and all carried distinct `X-PerkDrop-Request-Id` values; the failure ledger remained empty afterward.
 - Nearby production probes: Adelaide coordinates returned `200` with three deals and `X-PerkDrop-Request-Id`; missing coordinates and `(0,0)` both returned `400 valid_australian_lat_lng_required` with correlation IDs. No writes, bookings or notifications were triggered.
 - Latest health correlation probe: production `/api/health` returned `200` with 52 live rows, and its wrapper request ID matched the upstream catalogue request ID exactly.
+- Latest portal deployment probe: `https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-portal` with the existing proxy header returned HTTP `200`, `text/plain`, 62,575 bytes, and contained both `originalEditOffer` and `media_rights_confirmed` safeguards. No authenticated owner action was performed.
 - Production scheduler readback: expiry job (`17 * * * *`), booking reconciliation (`* * * * *`) and session closure (`*/15 * * * *`) are active; their latest runs succeeded at 2026-09-14 18:17, 18:23 and 18:15 UTC respectively. Notification dispatch and five-minute matching also showed successful latest runs; no notification release was enabled.
 
 ## Owner action bundle
