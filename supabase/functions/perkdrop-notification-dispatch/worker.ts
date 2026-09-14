@@ -14,7 +14,7 @@ export async function sendRequest(apiKey:string,id:string,body:RequestBody,trans
     }
     const retryable=response.status===429||response.status>=500||
       (response.status===409&&payload.name==='concurrent_idempotent_requests');
-    return {accepted:false as const,retryable,uncertain:response.status>=500,code:`provider_http_${response.status}`};
+    return {accepted:false as const,retryable,uncertain:response.status>=500||response.status===409,code:`provider_http_${response.status}`};
   }catch{
     return {accepted:false as const,retryable:true,uncertain:true,code:'provider_network_or_timeout'};
   }
@@ -58,7 +58,9 @@ export async function dispatchMerchantBatch(sb:any,apiKey:string,limit:number,re
       totals.provider_accepted++;
     }else{
       const next=result.retryable?retryState(row.attempt_count,row.first_attempt_at):
-        {status:result.uncertain?'delivery_unknown':'failed',next_attempt_at:null};
+        // A later rejection cannot establish that an earlier ambiguous attempt was
+        // never accepted (for example, if credentials were revoked between attempts).
+        {status:result.uncertain||row.attempt_count>1?'delivery_unknown':'failed',next_attempt_at:null};
       await save({...next,last_error:result.code,processing_started_at:null});
       if(next.status==='pending')totals.requeued++;
       else if(next.status==='delivery_unknown')totals.delivery_unknown++;

@@ -56,3 +56,10 @@ test('named Union special IDs navigate and absent coordinates never become zero'
   assert.equal(navigationDestination({latitude:null,longitude:null,location:'174 Grand Junction Road'}),'174 Grand Junction Road');
   assert.equal(navigationDestination({latitude:-34.8516159,longitude:138.5297088}),'-34.8516159,138.5297088');
 });
+test('a later provider rejection cannot erase an earlier ambiguous delivery attempt',async()=>{
+  const f=fakeDatabase();f.row.attempt_count=2;
+  const result=await dispatchMerchantBatch(f.db,'fixture',20,()=>body,async()=>Response.json({name:'invalid_api_key'},{status:403}));
+  assert.equal(result.delivery_unknown,1);assert.equal(result.failed,0);
+  assert.equal(f.writes.at(-1).patch.status,'delivery_unknown');
+  assert.equal((await sendRequest('fixture','id',body,async()=>Response.json({name:'invalid_idempotent_request'},{status:409}))).uncertain,true);
+});
