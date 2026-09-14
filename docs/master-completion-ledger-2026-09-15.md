@@ -1,6 +1,6 @@
 # PerkDrop master completion ledger
 
-Snapshot: 15 September 2026, after commit `bf89955` and production deployment `dpl_FLLgXDA2PU9841hCyopJaNSFPL2r`.
+Snapshot: 15 September 2026 current-state readback; deployment IDs are recorded with their matching source commits below.
 
 This is an evidence ledger, not a launch certificate. `VERIFIED` means the stated acceptance check passed in the named environment. A blocked or untested participant/provider requirement remains non-green.
 
@@ -39,8 +39,16 @@ This is an evidence ledger, not a launch certificate. `VERIFIED` means the state
 - `5161cff` — make merchant quick drops taxonomy-aware; pushed and deployed.
 - `619ea14` — report tracked merchant value only; pushed and deployed.
 - Supabase `perkdrop-portal` v21 is ACTIVE with `verify_jwt=false`, matching the existing portal contract.
-- Vercel production deployment `dpl_FLLgXDA2PU9841hCyopJaNSFPL2r` is READY and aliased to `perkdrop.au` / `www.perkdrop.au`.
+- Vercel production deployment `dpl_6stEpySDuFxadqQSP5ovWuJiKWV4` (source `4cd1a20`) is READY and aliased to `perkdrop.au` / `www.perkdrop.au`.
 - Integrated local suites: marketplace 10, discovery/notification 16, availability 12, inline scripts 2, analytics 2, saves 2, database 60; production smoke passed when run with `SMOKE_BASE_URL=https://perkdrop.au` (the package-level smoke invocation without that variable is intentionally non-production and returns connection failures).
+
+## Current read-only production configuration
+
+- Supabase Auth provider page shows signups enabled, email confirmation required, email provider enabled, anonymous sign-ins disabled, and no third-party/custom providers enabled.
+- Supabase Auth URL configuration shows site URL `https://perkdrop.au` and exactly four redirect URLs: the plain claim path, Union preselection, recovery, and Union recovery preselection.
+- Auth template page shows default Supabase templates are in use; editing is gated until custom SMTP is configured. SMTP page shows custom SMTP disabled.
+- Supabase Attack Protection shows leaked-password protection disabled as an owner policy decision; it was not changed during this run.
+- Supabase retained unified logs currently return no rows for the selected recent window; the historical incident remains insufficiently correlated for a definitive root cause.
 
 ## Tests recorded
 
