@@ -1,6 +1,6 @@
 # PerkDrop master completion ledger
 
-Snapshot: 15 September 2026, after commit `a0eda29` and production deployment `dpl_4YJ5NbL5EpuMDc56EyGf7onD6ohi`.
+Snapshot: 15 September 2026, after commit `2e9ba53` and production deployment `dpl_7uXJoUXYamstWbeeSaWAcvBbKYUp`.
 
 This is an evidence ledger, not a launch certificate. `VERIFIED` means the stated acceptance check passed in the named environment. A blocked or untested participant/provider requirement remains non-green.
 
@@ -36,7 +36,7 @@ This is an evidence ledger, not a launch certificate. `VERIFIED` means the state
 - `5161cff` — make merchant quick drops taxonomy-aware; pushed and deployed.
 - `619ea14` — report tracked merchant value only; pushed and deployed.
 - Supabase `perkdrop-portal` v21 is ACTIVE with `verify_jwt=false`, matching the existing portal contract.
-- Vercel production deployment `dpl_4YJ5NbL5EpuMDc56EyGf7onD6ohi` is READY and aliased to `perkdrop.au` / `www.perkdrop.au`.
+- Vercel production deployment `dpl_7uXJoUXYamstWbeeSaWAcvBbKYUp` is READY and aliased to `perkdrop.au` / `www.perkdrop.au`.
 
 ## Tests recorded
 
