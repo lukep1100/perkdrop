@@ -298,7 +298,38 @@ Deno.serve(async (req) => {
     category = (url.searchParams.get("category") || "").trim().toLowerCase(),
     vertical = (url.searchParams.get("vertical") || "").trim().toLowerCase(),
     kind = (url.searchParams.get("kind") || "").trim().toLowerCase(),
-    ids = (url.searchParams.get("id") || "").trim();
+    ids = (url.searchParams.get("id") || "").trim(),
+    requestedSlug = (url.searchParams.get("slug") || "").trim();
+  // Missing/invalid detail slugs should not fan out into every catalogue
+  // dependency. Keep a cheap, bounded index read ahead of the enrichment
+  // path; valid base and multi-location slugs continue through the existing
+  // visibility, expiry and offer/session safeguards below.
+  if (requestedSlug) {
+    const slugIndex = await queryWithRetry(() => supabase
+      .from("catalogue_items")
+      .select("id,slug,detail_url")
+      .limit(1000));
+    if (slugIndex.error) {
+      const status = queryErrorLabel(slugIndex.error);
+      responseHeaders["x-perkdrop-query-failure"] = "catalogue_items";
+      responseHeaders["x-perkdrop-query-status"] = `catalogue_items:${status}`;
+      responseHeaders["x-perkdrop-query-ms"] = String(Date.now() - started);
+      await recordFailure(supabase, requestId, "slug", ["catalogue_items"], [status], Date.now() - started);
+      console.warn(JSON.stringify({ msg: "catalogue_slug_preflight_failed", requestId, failureStatus: status, ms: Date.now() - started }));
+      return new Response(JSON.stringify({ ok: false, error: "catalogue_failed" }), { status: 503, headers: responseHeaders });
+    }
+    const requestedPath = `/deals/${requestedSlug}`;
+    const known = (slugIndex.data || []).some((row: any) =>
+      row.slug === requestedSlug ||
+      row.detail_url === requestedPath ||
+      (row.slug && requestedSlug.startsWith(`${row.slug}-`)),
+    );
+    if (!known) {
+      responseHeaders["x-perkdrop-slug-preflight"] = "miss";
+      return new Response(JSON.stringify({ ok: false, status: "not_found", deal: null }), { status: 404, headers: responseHeaders });
+    }
+    responseHeaders["x-perkdrop-slug-preflight"] = "hit";
+  }
   const limit = Math.max(
     1,
     Math.min(200, Number(url.searchParams.get("limit") || 200) || 200),
@@ -547,7 +578,6 @@ Deno.serve(async (req) => {
     if (Boolean(a.hot) !== Boolean(b.hot)) return a.hot ? -1 : 1;
     return 0;
   });
-  const requestedSlug=url.searchParams.get('slug');
   if (requestedSlug) {
     list=list.filter(d=>d.slug===requestedSlug||d.detail_url===`/deals/${requestedSlug}`);
     if (!list.length) {

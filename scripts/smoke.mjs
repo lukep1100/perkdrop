@@ -15,6 +15,16 @@ if(!liveDealRoute){
  process.exit(1);
 }
 
+const catalogueBase=catalogueUrl.split('?')[0];
+const slugChecks=await Promise.all(['null','does-not-exist-xyz'].map(async slug=>{
+ try{
+  const response=await fetch(`${catalogueBase}?slug=${encodeURIComponent(slug)}`,{redirect:'manual'});
+  return {slug,status:response.status,preflight:response.headers.get('x-perkdrop-slug-preflight')};
+ }catch{return {slug,status:0,preflight:null};}
+}));
+for(const result of slugChecks)console.log(`${result.status} catalogue slug ${result.slug} (${result.preflight||'no preflight header'})`);
+if(slugChecks.some(result=>result.status!==404||result.preflight!=='miss'))process.exitCode=1;
+
 const results=await Promise.all([...routes,liveDealRoute].map(async route=>{
  try{const response=await fetch(base+route,{redirect:'manual'});return {route,status:response.status};}
  catch{return {route,status:0};}
