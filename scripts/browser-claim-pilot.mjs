@@ -6,7 +6,7 @@ const run=args=>{const r=JSON.parse(execFileSync(bin,['--session','perkdrop-clai
 const evaluate=js=>run(['eval',js]).result;
 const check=(name,result)=>{assert.ok(result,name);results.push({name,passed:true});console.log('ISOLATED UI PASS: '+name);};
 run(['set','viewport','390','844']);
-for(const phase of ['pending','approved','recovery','expired']){
+for(const phase of ['pending','approved','recovery','expired','admin']){
  run(['open',`http://127.0.0.1:4199/claim?merchant=isolated-fixture&phase=${phase}${phase==='expired'?'#error=access_denied&error_code=otp_expired':''}`]);
  run(['wait',phase==='expired'?'#auth:not(.hidden)':'#claim-receipt:not(.hidden)']);
  check(phase+' mobile has no horizontal overflow',evaluate('document.documentElement.scrollWidth<=innerWidth'));
@@ -21,6 +21,7 @@ for(const phase of ['pending','approved','recovery','expired']){
  }
  if(phase==='recovery')check('recovery session exposes reset form',evaluate('!document.querySelector("#reset-password-card").classList.contains("hidden")'));
  if(phase==='expired')check('expired or reused link has actionable guidance',evaluate('document.querySelector("#msg").innerText.includes("expired")&&document.querySelector("#msg").innerText.includes("resend")'));
+ if(phase==='admin'){run(['wait','#admin-notifications']);check('approval states distinguish queue, acceptance, legacy sent and unknown outcome',evaluate('(()=>{const t=document.querySelector("#admin-notifications").innerText;return t.includes("Provider accepted — delivery unconfirmed")&&t.includes("Legacy sent — delivery unconfirmed")&&t.includes("reconcile before retry")&&t.includes("Queued — not delivered")})()'));run(['screenshot']);}
  check(phase+' fixture made no mutation requests',evaluate('window.__qaOutbound.every(x=>x.method==="GET")'));
 }
 await writeFile('.audit/claim-ui-result.json',JSON.stringify({testedAt:new Date().toISOString(),environment:'loopback-only mocked transport; actual changed portal HTML',results,realOwner:false},null,2));

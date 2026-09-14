@@ -32,7 +32,7 @@ Deno.serve(async(req)=>{
         service.from('merchant_commercial_terms').select('*,merchants:merchant_id(name,slug)').order('created_at',{ascending:false}).limit(200),
         service.from('merchant_profile_change_requests').select('*,merchants:merchant_id(name,slug,primary_location,primary_city,primary_state)').order('created_at',{ascending:false}).limit(200),
         service.from('merchant_ownership_requests').select('*,merchants:merchant_id(name,slug,listing_status)').order('created_at',{ascending:false}).limit(200),
-        service.from('merchant_notification_outbox').select('id,merchant_id,event_type,recipient_email,status,attempt_count,last_error,created_at,sent_at').order('created_at',{ascending:false}).limit(200),
+        service.from('merchant_notification_outbox').select('id,merchant_id,event_type,recipient_email,status,attempt_count,last_error,created_at,sent_at,provider_message_id,provider_accepted_at,next_attempt_at').order('created_at',{ascending:false}).limit(200),
         service.from('merchants').select('id,name,slug,listing_status,partner_tier,primary_city,primary_state,business_group_id,verified_at,created_at,updated_at').order('name').limit(1000),
         service.from('redemptions').select('id,merchant_id,merchant_offer_id,status,party_size,gross_value,discount_value,commission_value,created_at,redeemed_at,expires_at').order('created_at',{ascending:false}).limit(5000),
         service.from('commission_ledger').select('id,merchant_id,redemption_id,entry_type,gross_value,perkdrop_value,merchant_value,currency,status,occurred_at,paid_at').order('occurred_at',{ascending:false}).limit(5000),

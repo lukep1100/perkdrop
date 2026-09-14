@@ -8,7 +8,7 @@
     "start": "next start",
     "test:smoke": "node scripts/smoke.mjs",
     "test:harness": "node scripts/marketplace-harness.mjs",
-    "test:discovery": "node --test tests/discovery-rules.test.mjs",
+    "test:discovery": "node --test tests/discovery-rules.test.mjs tests/notification-worker.test.mjs",
     "test:inline-scripts": "node --test tests/inline-scripts.test.mjs",
     "test:analytics": "node --test tests/analytics-contract.test.mjs",
     "test:saves": "node --test tests/saved-listings.test.mjs",

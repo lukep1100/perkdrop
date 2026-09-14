@@ -83,3 +83,6 @@ verify_jwt = true
 verify_jwt = false
 [functions.perkdrop-marketplace]
 verify_jwt = false
+[functions.perkdrop-notification-dispatch]
+# Existing dispatcher uses its secret header, checked before config or queue actions.
+verify_jwt = false
