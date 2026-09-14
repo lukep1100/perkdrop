@@ -110,6 +110,26 @@ function queryErrorLabel(error: any) {
     .slice(0, 48);
   return code || "unknown";
 }
+async function recordFailure(
+  db: any,
+  requestId: string,
+  endpoint: "health" | "catalogue" | "slug",
+  failed: string[],
+  statuses: string[],
+  durationMs: number,
+) {
+  try {
+    await db.from("catalogue_api_failures").insert({
+      request_id: requestId,
+      endpoint,
+      failure_status: statuses.length === 1 ? statuses[0] : "multi_failure",
+      failed_queries: failed.map((name, i) => `${name}:${statuses[i] || "unknown"}`).slice(0, 6),
+      duration_ms: Math.max(0, Math.min(120000, Math.round(durationMs))),
+    });
+  } catch {
+    // Failure telemetry must never change the client's truthful error path.
+  }
+}
 async function queryWithRetry(run: () => Promise<any>) {
   let result: any = null;
   for (let attempt = 0; attempt < 2; attempt += 1) {
@@ -254,6 +274,7 @@ Deno.serve(async (req) => {
       responseHeaders["x-perkdrop-query-failure"] = failed.join(",");
       responseHeaders["x-perkdrop-query-status"] = failureStatus.join(",");
       responseHeaders["x-perkdrop-query-ms"] = String(Date.now() - started);
+      await recordFailure(supabase, requestId, "health", failed, failureStatus, Date.now() - started);
       console.warn(JSON.stringify({ msg: "catalogue_health_query_failed", requestId, failed, failureStatus, ms: Date.now() - started }));
     }
     return new Response(
@@ -355,6 +376,7 @@ Deno.serve(async (req) => {
     responseHeaders["x-perkdrop-query-failure"] = failed.join(",");
     responseHeaders["x-perkdrop-query-status"] = failureStatus.join(",");
     responseHeaders["x-perkdrop-query-ms"] = String(Date.now() - started);
+    await recordFailure(supabase, requestId, "catalogue", failed, failureStatus, Date.now() - started);
     console.warn(JSON.stringify({ msg: "catalogue_query_failed", requestId, failed, failureStatus, ms: Date.now() - started }));
     return new Response(
       JSON.stringify({ ok: false, error: "catalogue_failed" }),
@@ -529,7 +551,7 @@ Deno.serve(async (req) => {
     list=list.filter(d=>d.slug===requestedSlug||d.detail_url===`/deals/${requestedSlug}`);
     if (!list.length) {
       const {data:past,error:pastError}=await queryWithRetry(() => supabase.from('catalogue_items').select('id,merchant_id,slug,title,merchant,active,end_date,state').eq('slug',requestedSlug).maybeSingle());
-      if(pastError){console.warn(JSON.stringify({msg:'catalogue_slug_query_failed',requestId,ms:Date.now()-started}));return new Response(JSON.stringify({ok:false,error:'catalogue_failed'}),{status:503,headers:responseHeaders});}
+      if(pastError){await recordFailure(supabase, requestId, "slug", ["catalogue_items"], [queryErrorLabel(pastError)], Date.now() - started);console.warn(JSON.stringify({msg:'catalogue_slug_query_failed',requestId,ms:Date.now()-started}));return new Response(JSON.stringify({ok:false,error:'catalogue_failed'}),{status:503,headers:responseHeaders});}
       const visible=past&&(!past.merchant_id||directoryVisible(merchantMap.get(past.merchant_id)));
       const ended=visible&&(!past.active||(past.end_date&&past.end_date<localDay(past.state)));
       return new Response(JSON.stringify({ok:false,status:ended?'ended':'not_found',deal:ended?{title:past.title,merchant:past.merchant,slug:past.slug}:null}),{status:ended?410:404,headers:responseHeaders});
