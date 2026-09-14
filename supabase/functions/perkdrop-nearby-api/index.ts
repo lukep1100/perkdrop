@@ -7,7 +7,18 @@ const australianPoint = (lat: number, lng: number) => valid(lat, -44, -10) && va
 const requestId = (req: Request) => { const supplied = req.headers.get("x-request-id")?.trim(); return supplied && /^[A-Za-z0-9._:-]{1,100}$/.test(supplied) ? supplied : crypto.randomUUID(); };
 const safe = (value: unknown) => String(value ?? "").replace(/[^A-Za-z0-9._:-]/g, "").slice(0, 100);
 const reply = (id: string, body: unknown, status = 200, extra: Record<string, string> = {}) => new Response(JSON.stringify(body), { status, headers: { ...H, "x-perkdrop-request-id": id, ...extra } });
-async function withRetry<T>(fn: () => Promise<T>, shouldRetry: (value: T) => boolean): Promise<T> { let value = await fn(); if (shouldRetry(value)) { await new Promise((resolve) => setTimeout(resolve, 120)); value = await fn(); } return value; }
+async function withRetry<T>(fn: () => Promise<T>, shouldRetry: (value: T) => boolean): Promise<T> {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const value = await fn();
+      if (!shouldRetry(value) || attempt === 1) return value;
+    } catch (error) {
+      if (attempt === 1) throw error;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 120));
+  }
+  throw new Error("retry_exhausted");
+}
 
 Deno.serve(async (req) => {
   const id = requestId(req);
