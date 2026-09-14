@@ -6,7 +6,7 @@ This is an evidence ledger, not a launch certificate. `VERIFIED` means the state
 
 | Area | Status | Evidence / acceptance state | Remaining dependency |
 |---|---|---|---|
-| Auth site URL and callback handling | VERIFIED / NEEDS LIVE OWNER TEST | `/claim` and the four supported same-site redirect forms are implemented; `claimRedirect()` preserves a validated merchant slug and recovery flag. Live portal redirects for Union, A Bite to Eat and Adelaide Zoo preserve their slugs; empty, traversal and external-looking values resolve to plain `/claim`. | A real verification/recovery message and link-use journey still needs owner-approved QA recipient and inbox confirmation. |
+| Auth site URL and callback handling | VERIFIED / NEEDS LIVE OWNER TEST | `/claim` and the four supported same-site redirect forms are implemented; `claimRedirect()` preserves a validated merchant slug and recovery flag. Rendered production browser checks selected Union Hotel, Adelaide Botanic Garden and HOTA Gallery by slug; generic `/claim` stayed unselected; unknown, traversal and external-looking values stayed on the safe unselected shell. | A real verification/recovery message and link-use journey still needs owner-approved QA recipient and inbox confirmation. |
 | Auth transport | EXTERNALLY BLOCKED | Production configuration was read as default Supabase mail with custom SMTP disabled. | Owner must approve/establish the production sender/transport; no password, token or secret in chat. |
 | Approval notifications | EXTERNALLY BLOCKED | `merchant_notification_config` is disabled, `provider=resend`, `from_email` is unset; queue/release gates remain closed. | Owner-controlled non-admin recipient, sender/domain, exact test messages and transport approval. |
 | Business claiming / owner access | NEEDS LIVE OWNER TEST | Claim, role, consent, authority-evidence, competing-owner and pending-state gates are implemented and isolated concurrency-tested. | A real authorised business representative must submit, be reviewed and use the resulting access. |
@@ -57,8 +57,9 @@ This is an evidence ledger, not a launch certificate. `VERIFIED` means the state
 - Vercel follow-on auto-deployment `dpl_EJhALjTZGLH91ypogXc1Dij7VmoB` (after the evidence-ledger commit) is READY/Production and remains aliased to `perkdrop.au` / `www.perkdrop.au`.
 - `e2ccd65` — add a regression assertion that the portal keeps offer-photo rights explicit on edit and submit; `npm run test:inline-scripts` now passes 3/3.
 - Vercel follow-on deployment `dpl_HYcvTtg6kXA2Ui5K7n4xW1k4PrhJ` is READY/Production and aliased to `perkdrop.au` / `www.perkdrop.au`.
+- Vercel production deployment `dpl_5V8Y7fJZbFEhztgWRgbkiLLZhxNo` (source `b85644c`) is READY/Production and aliased to `perkdrop.au` / `www.perkdrop.au`.
 - Live public-catalogue audit at 2026-09-14T20:04:56Z: 52 displayed location rows, 44 unique deal IDs, 33 represented merchants, 100 directory rows returned under the requested cap, 23 unique image URLs checked with 0 HTTP/decode failures (2 exceeded 1 MB before optimizer delivery).
-- Integrated local suites: marketplace 10, discovery/notification 16, availability 12, inline scripts 2, analytics 2, saves 2, database 60; production smoke passed when run with `SMOKE_BASE_URL=https://perkdrop.au` (the package-level smoke invocation without that variable is intentionally non-production and returns connection failures).
+- Integrated local suites: marketplace 10, discovery/notification 16, availability 12, inline scripts 3, analytics 2, saves 2, database 60; production smoke passed when run with `SMOKE_BASE_URL=https://perkdrop.au` (the package-level smoke invocation without that variable is intentionally non-production and returns connection failures).
 
 ## Current read-only production configuration
 
@@ -72,14 +73,15 @@ This is an evidence ledger, not a launch certificate. `VERIFIED` means the state
 
 - `npm run lint -- --no-cache` — passed.
 - `npm run build` — passed.
-- `npm run test:inline-scripts` — 2/2 passed.
-- Full `npm test` rerun after the registered failure-ledger migration: marketplace harness 10, discovery/notification 16, availability 12, inline scripts 2, analytics 2, saves 2, real database 60, and production smoke all passed; expected 200/404 outcomes and health-correlation assertion included.
+- `npm run test:inline-scripts` — 3/3 passed.
+- Full `npm test` rerun after the registered failure-ledger migration: marketplace harness 10, discovery/notification 16, availability 12, inline scripts 3, analytics 2, saves 2, real database 60, and production smoke all passed; expected 200/404 outcomes and health-correlation assertion included.
 - Live checks after the latest release: `/claim` 200 with canonical controls; `/api/health` 200; direct catalogue health 200; six concurrent catalogue reads 200; current Vercel runtime errors in the selected 15-minute window: none.
 - Additional live reliability check: 20 concurrent `/api/health` requests returned 20/20 `200` responses, all reported 52 live rows, and all carried distinct `X-PerkDrop-Request-Id` values; the failure ledger remained empty afterward.
 - Nearby production probes: Adelaide coordinates returned `200` with three deals and `X-PerkDrop-Request-Id`; missing coordinates and `(0,0)` both returned `400 valid_australian_lat_lng_required` with correlation IDs. No writes, bookings or notifications were triggered.
 - Latest health correlation probe: production `/api/health` returned `200` with 52 live rows, and its wrapper request ID matched the upstream catalogue request ID exactly.
 - Latest portal deployment probe: `https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-portal` with the existing proxy header returned HTTP `200`, `text/plain`, 62,575 bytes, and contained both `originalEditOffer` and `media_rights_confirmed` safeguards. No authenticated owner action was performed.
 - The public `/claim?merchant=union-hotel-adelaide` proxy returned HTTP `200`, `text/html; charset=utf-8`, and included the deployed rights-confirmation safeguards and the selected-business journey copy.
+- Rendered production callback matrix (15 September 2026): Union Hotel, Adelaide Botanic Garden and HOTA Gallery each resolved to a visible `Your business` card with `Listing: UNCLAIMED · Ready to claim`; `/claim` remained the generic search shell; `does-not-exist`, `../../evil`, and an encoded `https://evil.example` remained on the generic shell with `That listing was not found` and no external navigation.
 - Production scheduler readback: expiry job (`17 * * * *`), booking reconciliation (`* * * * *`) and session closure (`*/15 * * * *`) are active; their latest runs succeeded at 2026-09-14 18:17, 18:23 and 18:15 UTC respectively. Notification dispatch and five-minute matching also showed successful latest runs; no notification release was enabled.
 
 ## Owner action bundle
