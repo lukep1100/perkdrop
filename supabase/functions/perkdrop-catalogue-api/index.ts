@@ -280,6 +280,7 @@ Deno.serve(async (req) => {
     Math.min(200, Number(url.searchParams.get("limit") || 200) || 200),
   );
   const now = new Date().toISOString();
+  const today = now.slice(0, 10);
   const [
     { data, error },
     { data: locations, error: locError },
@@ -294,6 +295,9 @@ Deno.serve(async (req) => {
         "availability,quality_grade,quality_note,last_verified_at,id,merchant_id,merchant,title,description,category,kind,city,state,location,timing,end_date,price,conditions,booking,source,verified,hot,featured,slug,detail_url,city_label,active,metadata,latitude,longitude,image_url,image_alt,cuisine,discount_percent,venue_type,offer_origin,exclusive,affiliate_url,affiliate_network",
       )
       .eq("active", true)
+      // Exclude stale rows before the limit; the per-state local-day check
+      // below remains the final guard for offers ending today.
+      .or(`end_date.is.null,end_date.gte.${today}`)
       .order("featured", { ascending: false })
       .order("hot", { ascending: false })
       .order("end_date", { ascending: true, nullsFirst: false })
