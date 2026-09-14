@@ -16,6 +16,37 @@ const validNum = (v: string | null, min: number, max: number) => {
   const n = Number(v);
   return Number.isFinite(n) && n >= min && n <= max ? n : null;
 };
+const QUERY_RETRY_DELAY_MS = 150;
+function isTransientQueryError(error: any) {
+  const status = Number(error?.status ?? error?.statusCode ?? error?.cause?.status);
+  if ([408, 409, 429, 500, 502, 503, 504].includes(status)) return true;
+  const message = String(error?.message || error || "").toLowerCase();
+  return /network|fetch failed|timeout|timed out|temporarily unavailable|connection reset|econnreset|socket/i.test(message);
+}
+async function queryWithRetry(run: () => Promise<any>) {
+  let result: any = null;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      result = await run();
+    } catch (error) {
+      result = { data: null, error };
+    }
+    if (!result?.error || !isTransientQueryError(result.error) || attempt === 1)
+      return result;
+    await new Promise((resolve) => setTimeout(resolve, QUERY_RETRY_DELAY_MS));
+  }
+  return result;
+}
+// Keep directory discovery from fanning out all three PostgREST reads at once.
+// The catalogue worker uses the same bounded-wave pattern because these reads
+// share the project's connection pool.
+async function runQueryWaves(tasks: Array<() => Promise<any>>, width = 2) {
+  const results: any[] = [];
+  for (let i = 0; i < tasks.length; i += width) {
+    results.push(...(await Promise.all(tasks.slice(i, i + width).map((task) => task()))));
+  }
+  return results;
+}
 function distKm(a: number, b: number, c: number, d: number) {
   const r = Math.PI / 180,
     x =
@@ -76,21 +107,21 @@ Deno.serve(async (req) => {
     .neq("directory_status", "removed")
     .limit(1200);
   if (slug) query = query.eq("slug", slug);
-  const [{ data, error }, { data: xo, error: exclusiveError }, { data: xc, error: catalogueError }] = await Promise.all([
-    query,
-    sb
+  const [{ data, error }, { data: xo, error: exclusiveError }, { data: xc, error: catalogueError }] = await runQueryWaves([
+    () => queryWithRetry(() => query),
+    () => queryWithRetry(() => sb
       .from("merchant_offers")
       .select("merchant_id")
       .eq("exclusive", true)
       .eq("status", "active")
       .eq("visibility", "public")
-      .or(`ends_at.is.null,ends_at.gt.${new Date().toISOString()}`),
-    sb
+      .or(`ends_at.is.null,ends_at.gt.${new Date().toISOString()}`)),
+    () => queryWithRetry(() => sb
       .from("catalogue_items")
       .select("merchant_id,end_date,state,exclusive,quality_grade")
       .eq("active", true)
-      .not("merchant_id", "is", null),
-  ]);
+      .not("merchant_id", "is", null)),
+  ], 2);
   if (error || exclusiveError || catalogueError) {
     const failed = [error && "merchants", exclusiveError && "merchant_offers", catalogueError && "catalogue_items"].filter(Boolean) as string[];
     responseHeaders["x-perkdrop-query-failure"] = failed.join(",");
