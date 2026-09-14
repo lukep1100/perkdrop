@@ -95,6 +95,27 @@ function localParts(tz: string) {
     };
   }
 }
+const QUERY_RETRY_DELAY_MS = 150;
+function isTransientQueryError(error: any) {
+  const status = Number(error?.status ?? error?.statusCode ?? error?.cause?.status);
+  if ([408, 409, 429, 500, 502, 503, 504].includes(status)) return true;
+  const message = String(error?.message || error || "").toLowerCase();
+  return /network|fetch failed|timeout|timed out|temporarily unavailable|connection reset|econnreset|socket/i.test(message);
+}
+async function queryWithRetry(run: () => Promise<any>) {
+  let result: any = null;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      result = await run();
+    } catch (error) {
+      result = { data: null, error };
+    }
+    if (!result?.error || !isTransientQueryError(result.error) || attempt === 1)
+      return result;
+    await new Promise((resolve) => setTimeout(resolve, QUERY_RETRY_DELAY_MS));
+  }
+  return result;
+}
 function timeMinutes(v: any) {
   const [h, m] = String(v || "00:00")
     .split(":")
@@ -193,15 +214,15 @@ Deno.serve(async (req) => {
       { count: locationCount, error: locationError },
       { count: merchantCount, error: merchantCountError },
     ] = await Promise.all([
-      supabase
+      queryWithRetry(() => supabase
         .from("catalogue_items")
         .select("id", { count: "exact", head: true })
-        .eq("active", true),
-      supabase
+        .eq("active", true)),
+      queryWithRetry(() => supabase
         .from("catalogue_locations")
         .select("id", { count: "exact", head: true })
-        .eq("active", true),
-      supabase.from("merchants").select("id", { count: "exact", head: true }),
+        .eq("active", true)),
+      queryWithRetry(() => supabase.from("merchants").select("id", { count: "exact", head: true })),
     ]);
     const healthFailures = [
       error && "catalogue_items",
@@ -245,7 +266,7 @@ Deno.serve(async (req) => {
     { data: campaigns, error: campaignError },
     { data: sessions, error: sessionError },
   ] = await Promise.all([
-    supabase
+    queryWithRetry(() => supabase
       .from("catalogue_items")
       .select(
         "availability,quality_grade,quality_note,last_verified_at,id,merchant_id,merchant,title,description,category,kind,city,state,location,timing,end_date,price,conditions,booking,source,verified,hot,featured,slug,detail_url,city_label,active,metadata,latitude,longitude,image_url,image_alt,cuisine,discount_percent,venue_type,offer_origin,exclusive,affiliate_url,affiliate_network",
@@ -254,20 +275,20 @@ Deno.serve(async (req) => {
       .order("featured", { ascending: false })
       .order("hot", { ascending: false })
       .order("end_date", { ascending: true, nullsFirst: false })
-      .limit(200),
-    supabase
+      .limit(200)),
+    queryWithRetry(() => supabase
       .from("catalogue_locations")
       .select(
         "id,drop_id,name,address,city,state,latitude,longitude,is_primary,verified_at,source_url,metadata",
       )
       .eq("active", true)
-      .limit(1000),
-    supabase
+      .limit(1000)),
+    queryWithRetry(() => supabase
       .from("merchants")
       .select(
         "id,name,slug,listing_status,partner_tier,claimable,verified_at,partner_since,description,cuisine,venue_type,website_url,booking_url,public_phone,public_email,logo_url,hero_image_url,image_rights_status,opening_hours,facilities,permanent_listing,directory_status",
-      ),
-    supabase
+      )),
+    queryWithRetry(() => supabase
       .from("merchant_offers")
       .select(
         "id,merchant_id,published_drop_id,status,exclusive,featured,vertical,drop_type,inventory_unit,fulfilment_mode,booking_provider,visibility,capacity_total,capacity_remaining,starts_at,ends_at,booking_url,action_type,promo_code,affiliate_url",
@@ -275,8 +296,8 @@ Deno.serve(async (req) => {
       .eq("status", "active")
       .eq("visibility", "public")
       .or(`ends_at.is.null,ends_at.gt.${now}`)
-      .limit(1000),
-    supabase
+      .limit(1000)),
+    queryWithRetry(() => supabase
       .from("featured_campaigns")
       .select(
         "id,merchant_id,merchant_offer_id,catalogue_item_id,placement,status,starts_at,ends_at",
@@ -284,15 +305,15 @@ Deno.serve(async (req) => {
       .eq("status", "active")
       .lte("starts_at", now)
       .gte("ends_at", now)
-      .limit(500),
-    supabase
+      .limit(500)),
+    queryWithRetry(() => supabase
       .from("offer_sessions")
       .select(
         "id,merchant_offer_id,service_date,timezone,service_start,service_end,capacity_total,capacity_remaining,status",
       )
       .eq("status", "active")
       .order("service_date", { ascending: true })
-      .limit(3000),
+      .limit(3000)),
   ]);
   if (error || merchantError || offerError || locError || campaignError || sessionError) {
     const failed = [error && "catalogue_items", merchantError && "merchants", offerError && "merchant_offers", locError && "catalogue_locations", campaignError && "featured_campaigns", sessionError && "offer_sessions"].filter(Boolean) as string[];
@@ -471,7 +492,7 @@ Deno.serve(async (req) => {
   if (requestedSlug) {
     list=list.filter(d=>d.slug===requestedSlug||d.detail_url===`/deals/${requestedSlug}`);
     if (!list.length) {
-      const {data:past,error:pastError}=await supabase.from('catalogue_items').select('id,merchant_id,slug,title,merchant,active,end_date,state').eq('slug',requestedSlug).maybeSingle();
+      const {data:past,error:pastError}=await queryWithRetry(() => supabase.from('catalogue_items').select('id,merchant_id,slug,title,merchant,active,end_date,state').eq('slug',requestedSlug).maybeSingle());
       if(pastError){console.warn(JSON.stringify({msg:'catalogue_slug_query_failed',requestId,ms:Date.now()-started}));return new Response(JSON.stringify({ok:false,error:'catalogue_failed'}),{status:503,headers:responseHeaders});}
       const visible=past&&(!past.merchant_id||directoryVisible(merchantMap.get(past.merchant_id)));
       const ended=visible&&(!past.active||(past.end_date&&past.end_date<localDay(past.state)));
