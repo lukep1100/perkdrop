@@ -3,13 +3,15 @@
   "version": "24.0.0",
   "private": true,
   "scripts": {
+    "lint": "eslint pages public lib scripts tests *.config.js *.config.mjs --max-warnings=0",
     "build": "next build",
     "start": "next start",
     "test:smoke": "node scripts/smoke.mjs",
     "test:harness": "node scripts/marketplace-harness.mjs",
     "test:discovery": "node --test tests/discovery-rules.test.mjs",
+    "test:inline-scripts": "node --test tests/inline-scripts.test.mjs",
     "test:database": "node scripts/database-integration.mjs",
-    "test": "npm run test:harness && npm run test:discovery && npm run test:database && npm run test:smoke"
+    "test": "npm run test:harness && npm run test:discovery && npm run test:inline-scripts && npm run test:database && npm run test:smoke"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
@@ -22,6 +24,7 @@
   },
   "devDependencies": {
     "embedded-postgres": "18.4.0-beta.17",
+    "eslint": "10.10.0",
     "pg": "8.16.3"
   }
 }

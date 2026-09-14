@@ -19,6 +19,7 @@ const results=await Promise.all([...routes,liveDealRoute].map(async route=>{
  try{const response=await fetch(base+route,{redirect:'manual'});return {route,status:response.status};}
  catch{return {route,status:0};}
 }));
-const bad=results.filter(result=>result.status<200||result.status>=400);
+const missing=new Set(['/deals/null','/deals/expired-shared-link']);
+const bad=results.filter(result=>missing.has(result.route)?result.status!==404:result.status<200||result.status>=400);
 for(const result of results)console.log(`${result.status} ${result.route}`);
 if(bad.length)process.exitCode=1;

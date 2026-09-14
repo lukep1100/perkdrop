@@ -19,20 +19,16 @@ export async function getServerSideProps({ query, res }) {
     if (!r.ok) throw Error("portal");
     let html = await r.text();
     html = html.replace(
-      '<div class="toplinks">',
-      '<div class="toplinks"><a class="pill" href="/merchant-floor">Business sign in</a>',
-    );
-    html = html.replace(
       /<div class="step"><span>1\. Claim your business<\/span><span>2\. PerkDrop verifies access<\/span><span>3\. Create and control Drops<\/span><span>4\. Redeem codes \+ track customers<\/span><\/div>/,
       JOURNEY,
     );
     html = html.replace(
       "Create a Drop. Control the capacity.",
-      "Claim your business. Keep it up to date.",
+      "Claim your business.",
     );
     html = html.replace(
-      "Nothing goes live until it has been reviewed.",
-      "Claiming is free. We check that you are authorised before giving access. You can create offers after approval.",
+      "Claim your business for free, create genuine limited-time offers, choose the number of spots available and track customers PerkDrop sends you. Nothing goes live until it has been reviewed.",
+      "Claiming is free. Confirm your role, then we verify your access. Create offers after approval.",
     );
     html = html.replace(
       "Redeem codes + track customers",
@@ -49,7 +45,7 @@ export async function getServerSideProps({ query, res }) {
     res.setHeader("Content-Type", "text/html; charset=utf-8");
     res.setHeader("Cache-Control", "no-store");
     res.end(
-      "<!doctype html><title>PerkDrop for Business</title><p>The business portal is temporarily unavailable. Please try again.</p>",
+      '<!doctype html><html lang="en-AU"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PerkDrop for Business</title><body style="margin:0;padding:24px;background:#08090e;color:#f5f6f8;font:18px/1.5 Arial,sans-serif"><main><h1>Please try again shortly</h1><p>The business portal is temporarily unavailable. Your details have not been submitted.</p><p><a href="" style="color:#ffce45">Try again</a> · <a href="/" style="color:#ffce45">Back to PerkDrop</a></p></main></body></html>',
     );
   }
   return { props: {} };

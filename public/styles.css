@@ -44,6 +44,8 @@ input, select, textarea { min-height: 44px; font-size: 16px; }
 .venue-card { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 20px; }
 .venue-card h3, .venue-card p { overflow-wrap: anywhere; }
 .venue-photo { width: 100%; max-height: 420px; object-fit: cover; border-radius: 16px; }
+.save { min-width: 44px; }
+.btn.primary, .searchbar button, .badge { background: linear-gradient(135deg,#b31878,#5c2de0); color: #fff; }
 .map-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
 .map-toolbar select { background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: 8px; }
 .map-pin.pin-business { background: #48515f; }
@@ -354,6 +356,7 @@ a {
   border: 1px solid rgba(255, 255, 255, 0.24);
 }
 .type-food {
+  color: #08090e;
   background: #f24fa8 !important;
 }
 .type-drinks {
@@ -368,6 +371,7 @@ a {
   color: #071612 !important;
 }
 .type-shopping {
+  color: #08090e;
   background: #9b6dff !important;
 }
 .type-experience {
@@ -974,3 +978,7 @@ a {
     grid-template-columns: 126px minmax(0, 1fr);
   }
 }
+.map-page h1{font-size:clamp(24px,5vw,34px);line-height:1.2;margin:6px 0}
+.map-page .section{margin-top:20px}
+.map-legend{font-size:13px;line-height:1.5;margin:12px 0}
+.toast{pointer-events:none}

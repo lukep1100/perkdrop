@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
-import { isAustralianPoint } from "../_shared/discovery.ts";
+import { isAustralianPoint, localDay } from "../_shared/discovery.ts";
 const H = {
   "content-type": "application/json; charset=utf-8",
   "access-control-allow-origin": "*",
@@ -73,17 +73,18 @@ Deno.serve(async (req) => {
     .neq("directory_status", "removed")
     .limit(1200);
   if (slug) query = query.eq("slug", slug);
-  else if (market && lat === null) query = query.eq("market_id", market);
   const [{ data, error }, { data: xo }, { data: xc }] = await Promise.all([
     query,
     sb
       .from("merchant_offers")
       .select("merchant_id")
       .eq("exclusive", true)
-      .eq("status", "active"),
+      .eq("status", "active")
+      .eq("visibility", "public")
+      .or(`ends_at.is.null,ends_at.gt.${new Date().toISOString()}`),
     sb
       .from("catalogue_items")
-      .select("merchant_id")
+      .select("merchant_id,end_date,state")
       .eq("exclusive", true)
       .eq("active", true)
       .not("merchant_id", "is", null),
@@ -94,9 +95,14 @@ Deno.serve(async (req) => {
       { status: 500, headers: H },
     );
   const exclusive = new Set<string>(
-    [...(xo || []), ...(xc || [])].map((x: any) => String(x.merchant_id)),
+    [...(xo || []), ...(xc || []).filter((x: any) => !x.end_date || x.end_date >= localDay(x.state))].map((x: any) => String(x.merchant_id)),
   );
   let list = (data || []) as any[];
+  // Filter using the same fallback returned to clients. Older approved listings
+  // can have primary_city set while market_id is still null.
+  if (!slug && market && lat === null) list = list.filter(m =>
+    String(m.market_id || m.primary_city || '').toLowerCase().replace(/\s+/g, '-') === market.replace(/\s+/g, '-')
+  );
   if (q)
     list = list.filter((m) =>
       [
@@ -135,7 +141,8 @@ Deno.serve(async (req) => {
   const total = list.length;
   list = list.slice(0, limit).map((m) => {
     const ps = publicState(m, exclusive);
-    const canClaim = Boolean(m.claimable) && ps === "unclaimed";
+    // An exclusive offer is not proof that a business owner has claimed access.
+    const canClaim = Boolean(m.claimable) && m.listing_status === "unclaimed";
     return {
       id: m.id,
       name: m.name,
@@ -166,7 +173,7 @@ Deno.serve(async (req) => {
           : null,
       imageRightsStatus: m.image_rights_status,
       sourceConfidence: m.source_confidence || "",
-      claimUrl: `https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-portal?merchant=${encodeURIComponent(m.slug)}`,
+      claimUrl: `https://perkdrop.au/claim?merchant=${encodeURIComponent(m.slug)}`,
     };
   });
   return new Response(

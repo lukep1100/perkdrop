@@ -65,9 +65,9 @@ const routeMeta = {
     "PerkDrop helps local businesses move expiring capacity and measure delivered value.",
   ],
 };
-export default function Shell({ deal, canonicalPath, expiredDeal = false, unavailable = false, missing = false }) {
+export default function Shell({ deal, venue, canonicalPath, expiredDeal = false, unavailable = false, missing = false }) {
   const h = React.createElement,
-    meta = routeMeta[canonicalPath] || [
+    meta = (venue ? [`${venue.name} | PerkDrop`, `${venue.name}${venue.location ? ' — '+venue.location : ''}. View business details and current offers. Check conditions with the venue.`] : routeMeta[canonicalPath]) || [
       "PerkDrop — Deals near you",
       "Deals worth knowing about.",
     ];
@@ -128,7 +128,7 @@ export default function Shell({ deal, canonicalPath, expiredDeal = false, unavai
       }),
       h("link", {
         rel: "stylesheet",
-        href: "/styles.css?v=v27-product-quality",
+        href: "/styles.css?v=v29-product-quality",
       }),
     ),
     h(
@@ -139,13 +139,13 @@ export default function Shell({ deal, canonicalPath, expiredDeal = false, unavai
         { className: "boot" },
         h("img", { src: "/icon.svg", className: "boot-icon", alt: "" }),
         h("div", { className: "boot-logo" }, "Perk", h("span", null, "Drop")),
-        h("h1", null, expiredDeal ? "This offer has ended" : missing ? "Page not found" : unavailable ? "Temporarily unavailable" : deal?.title || "Local deals, free events and things to do"),
+        h("h1", null, expiredDeal ? "This offer has ended" : missing ? "Page not found" : unavailable ? "Temporarily unavailable" : deal?.title || venue?.name || "Local deals, free events and things to do"),
         h("p", null, deal?.description || description),
         h("a", {href:"/"}, "Explore current deals"),
         h("p", {role:"status"}, "Loading live availability…"),
       ),
     ),
-    h("script", { src: "/app.js?v=v27-product-quality", type:"module" }),
+    h("script", { src: "/app.js?v=v29-product-quality", type:"module" }),
   );
 }
 export async function getServerSideProps({ params, resolvedUrl, res }) {
@@ -161,7 +161,7 @@ export async function getServerSideProps({ params, resolvedUrl, res }) {
     if(r.status===410){res.statusCode=410;return{props:{deal:null,canonicalPath,expiredDeal:true}};}
     if(r.status===404){res.statusCode=404;return{props:{deal:null,canonicalPath,missing:true}};}
     if (!r.ok) throw Error('catalogue_unavailable');
-    if(entity==='venues') {const j=await r.json();if(!j.businesses?.length){res.statusCode=404;return{props:{deal:null,canonicalPath,missing:true}};}return{props:{deal:null,canonicalPath}};}
+    if(entity==='venues') {const j=await r.json();if(!j.businesses?.length){res.statusCode=404;return{props:{deal:null,canonicalPath,missing:true}};}const b=j.businesses[0];return{props:{deal:null,venue:{name:b.name,location:b.location||''},canonicalPath}};}
     const p = await r.json(),
       deals = Array.isArray(p) ? p : p.deals || [],
       requested = parts[1],

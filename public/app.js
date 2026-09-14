@@ -1,7 +1,7 @@
-import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfilmentLabel, localDate, searchMatches } from '/discovery-rules.mjs?v=v27-product-quality';
+import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfilmentLabel, localDate, searchMatches } from '/discovery-rules.mjs?v=v29-product-quality';
 (() => {
   "use strict";
-  const VERSION = "v27-product-quality";
+  const VERSION = "v29-product-quality";
   const API =
     "https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-catalogue-api?limit=200";
   const SUBMIT =
@@ -80,6 +80,8 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
   const state = {
     deals: [],
     businesses: [],
+    directoryLoaded: false,
+    directoryLoading: false,
     directoryError: "",
     mapFilter: "all",
     detailMap: null,
@@ -295,7 +297,12 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     );
   }
   const mapped = d => validCoordinates(d.latitude, d.longitude);
-  const image = d => safeImage(d.imageUrl);
+  const image = d => {
+    let source=safeImage(d.imageUrl);
+    if(source.includes('/functions/v1/perkdrop-union-slideshow'))source='https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-union-slideshow?still=1';
+    if(source.startsWith('https://www.datocms-assets.com/88015/')||source.startsWith('https://hota.com.au/uploads/')||source.endsWith('/perkdrop-union-slideshow?still=1'))return '/_next/image?url='+encodeURIComponent(source)+'&w=828&q=75';
+    return source;
+  };
   const badge = (d) =>
     d.discountPercent != null && Number.isFinite(Number(d.discountPercent))
       ? `${Math.round(Number(d.discountPercent))}% OFF`
@@ -410,7 +417,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     );
   }
   function list(kind) {
-    let x = cityDeals();
+    let x = kind==="near-me"&&state.user?state.deals.filter(d=>mapped(d)&&distance(state.user.lat,state.user.lng,d.latitude,d.longitude)<=50):cityDeals();
     const verticals = {
       beauty: "beauty",
       wellness: "wellness",
@@ -459,6 +466,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     $(".toast")?.remove();
     const n = document.createElement("div");
     n.className = "toast";
+    n.setAttribute("role", "status");
     n.textContent = t;
     document.body.appendChild(n);
     setTimeout(() => n.remove(), 2200);
@@ -474,6 +482,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     }
     const u = new URL(href, location.origin);
     history.pushState({}, "", u.pathname + u.search);
+    state.viewedDeal="";state.viewedMap="";
     state.route = u.pathname;
     state.query = u.searchParams.get("q") || "";
     destroyMap();
@@ -514,22 +523,12 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     return `<form role="search" id="search-form" class="searchbar"><span>⌕</span><input id="search-input" value="${esc(v)}" placeholder="Search deals, food, venues, events…" aria-label="Search PerkDrop"><button>Search</button>${v?'<button type="button" id="clear-search" aria-label="Clear search">✕</button>':''}</form>`;
   }
   function chips() {
-    return `<div class="quick-chips"><a data-internal href="/food">🍴 Food</a><a data-internal href="/beauty">✂ Beauty</a><a data-internal href="/experiences">✦ Experiences</a><a data-internal href="/events">★ Events</a><a data-internal href="/family">👨‍👩‍👧 Family</a><a data-internal href="/fitness">◉ Fitness</a><a data-internal href="/travel">⌂ Stays</a><a data-internal href="/shopping">◆ Shopping</a><a data-internal href="/freebies">$0 Freebies</a><a data-internal href="/today">Today</a><a data-internal href="/last-minute">⚡ Last minute</a><a data-internal href="/near-me">⌖ Near Me</a></div>`;
+    return `<div class="quick-chips"><a data-internal href="/food">🍴 Food</a><a data-internal href="/beauty">✂ Beauty</a><a data-internal href="/experiences">✦ Experiences</a><a data-internal href="/events">★ Events</a><a data-internal href="/family">👨‍👩‍👧 Family</a><a data-internal href="/fitness">◉ Fitness</a><a data-internal href="/travel">⌂ Stays</a><a data-internal href="/shopping">◆ Shopping</a><a data-internal href="/freebies">$0 Freebies</a><a data-internal href="/today">Free things to do</a><a data-internal href="/last-minute">⚡ Last minute</a><a data-internal href="/near-me">⌖ Near Me</a></div>`;
   }
   function card(d) {
     const t = type(d),
       dist = distLabel(d);
-    return `<article class="deal-card"><a class="card-link" data-internal href="${esc(route(d))}"><div class="card-image"><img loading="lazy" src="${esc(image(d))}" alt="${esc(d.imageAlt || d.title)}"><div class="shade"></div><span class="badge">${esc(badge(d))}</span><span class="type-pill type-${t[0]}">${t[1]} ${t[2]}</span></div><div class="card-body"><div class="merchant-line"><span>${esc(d.merchant)}</span><span class="distance">${esc(dist)}</span></div>${mBadge(d)}<h3>${esc(d.title)}</h3><div class="meta">${esc(d.timing || "Check availability")}</div>${d.capacityRemaining != null ? `<div class="spots ${Number(d.capacityRemaining) <= 5 ? "urgent" : ""}">${Number(d.capacityRemaining) <= 0 ? "SOLD OUT" : `${esc(d.capacityRemaining)} ${unitLabel(d)} LEFT`}</div>` : ""}</div></a><button class="save" aria-label="Save ${esc(d.title)}" data-save="${esc(d.id)}">${state.saved.includes(d.id) ? "♥" : "♡"}</button></article>`;
-  }
-  function home() {
-    const all = cityDeals(),
-      featured = all.slice(0, 10),
-      food = all.filter(isFood).slice(0, 9),
-      events = all.filter(isEvent).slice(0, 6);
-    return shell(
-      `<main class="page"><section class="hero"><div class="eyebrow">DEALS WORTH KNOWING ABOUT</div><h1>Find it. Save it. <strong>Go there.</strong></h1><p>Local deals, food, events, experiences and freebies — with the catch explained before you go.</p>${searchBox()}${chips()}<div class="hero-actions"><a class="btn primary" data-internal href="/weekend">★ What’s on this weekend</a><a class="btn secondary" data-internal href="/business">＋ List your deal FREE</a></div></section><section class="section"><div class="section-head"><div><div class="eyebrow">DISCOVER</div><h2>Worth knowing about</h2></div><span>${featured.length} showing</span></div><div class="horizontal">${featured.map(card).join("")}</div></section><section class="section"><div class="section-head"><div><div class="eyebrow">EAT & DRINK FOR LESS</div><h2>Food & drink deals</h2></div><a data-internal href="/food">See all</a></div><div class="grid">${food.map(card).join("")}</div></section><section class="section"><div class="section-head"><div><div class="eyebrow">WHAT’S ON</div><h2>Events</h2></div><a data-internal href="/events">See all</a></div><div class="grid">${events.map(card).join("")}</div></section></main>`,
-      "home",
-    );
+    return `<article class="deal-card"><a class="card-link" data-internal href="${esc(route(d))}"><div class="card-image"><img loading="lazy" src="${esc(image(d))}" alt="${esc(image(d)===PLACEHOLDER?"Photo unavailable":d.imageUrl?.includes("perkdrop-union-slideshow")?"Food at Union Hotel, Adelaide":d.imageAlt||d.title)}"><div class="shade"></div><span class="badge">${esc(badge(d))}</span><span class="type-pill type-${t[0]}">${t[1]} ${t[2]}</span></div><div class="card-body"><div class="merchant-line"><span>${esc(d.merchant)}</span><span class="distance">${esc(dist)}</span></div>${mBadge(d)}<h3>${esc(d.title)}</h3><div class="meta">${esc(d.timing || "Check availability")}</div>${d.capacityRemaining != null ? `<div class="spots ${Number(d.capacityRemaining) <= 5 ? "urgent" : ""}">${Number(d.capacityRemaining) <= 0 ? "SOLD OUT" : `${esc(d.capacityRemaining)} ${unitLabel(d)} LEFT`}</div>` : ""}</div></a><button class="save" aria-label="Save ${esc(d.title)}" data-save="${esc(d.id)}">${state.saved.includes(d.id) ? "♥" : "♡"}</button></article>`;
   }
   function listPage(k, title, eye = "PERKDROP") {
     const xs = list(k),
@@ -540,9 +539,10 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     );
   }
   function searchPage() {
-    const xs = state.deals.filter(d => searchMatches(text(d) + " " + d.city + " " + d.state, state.query));
+    const xs = (state.query?state.deals:cityDeals()).filter(d => searchMatches(text(d) + " " + d.city + " " + d.state, state.query));
+    const businesses=state.query?state.businesses.filter(b=>searchMatches([b.name,b.market,b.state,b.location,b.category,b.cuisine].join(" "),state.query)):[];
     return shell(
-      `<main class="page">${searchBox(state.query)}${chips()}<section class="section"><div class="section-head"><div><div class="eyebrow">SEARCH</div><h2>${state.query ? `Results for “${esc(state.query)}”` : "Search PerkDrop"}</h2></div><span>${xs.length}</span></div><div class="grid compact">${xs.map(card).join("")}</div>${!xs.length ? '<div class="empty">Nothing matched. Try a venue, suburb, food type or event.</div>' : ""}</section></main>`,
+      `<main class="page">${searchBox(state.query)}${chips()}<section class="section"><div class="section-head"><div><div class="eyebrow">SEARCH</div><h2>${state.query ? `Results across Australia for “${esc(state.query)}”` : "Search PerkDrop"}</h2></div><span>${xs.length}</span></div><div class="grid compact">${xs.map(card).join("")}</div>${!xs.length ? '<div class="empty">No offers matched. Try another food, venue or suburb. Business listings are shown below when available.</div>' : ""}${businesses.length?'<h2>Businesses</h2><div class="grid">'+businesses.slice(0,100).map(b=>venueCard({...b,merchant:b.name})).join('')+'</div>':''}${state.directoryLoading?'<p role="status">Searching business listings…</p>':''}</section></main>`,
     );
   }
   function claimUrl(d) {
@@ -626,12 +626,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
       saved = state.saved.includes(d.id),
       cap = Boolean(d.redemptionAvailable);
     document.title = `${d.title} | PerkDrop`;
-    return `<div class="app-shell"><main class="detail"><section class="detail-hero"><button id="back-btn" class="back" aria-label="Go back">←</button><img src="${esc(image(d))}" alt="${esc(d.imageAlt || d.title)}"><div class="detail-title"><span class="badge static">${esc(badge(d))}</span><span class="detail-type type-${t[0]}">${t[1]} ${t[2]}</span><h1>${esc(d.title)}</h1><div>${esc(d.merchant)}</div></div></section><div class="detail-body"><div class="detail-tools"><button class="tool-btn" data-save="${esc(d.id)}">${saved ? "♥ Saved" : "♡ Save"}</button><button id="share-drop" class="tool-btn">↗ Share</button></div><div class="facts">📍 ${esc(d.location || "Check venue location")}<br>◷ ${esc(d.timing || "Check availability")}<br>✓ OFFER CHECKED ${esc(d.verified || "")}</div>${cap ? capacity(d) : trust(d)}<p>${esc(d.description)}</p><div class="catch"><b>THE CATCH</b><br>${esc(d.conditions || "Check the official source before travelling, booking or paying.")}</div>${mapped(d) ? '<div id="detail-map" class="detail-map"></div>' : ""}${cap ? "" : `<div class="detail-cta"><a id="official-cta" class="btn primary" target="_blank" rel="noopener" href="${esc(d.goUrl || d.source || d.officialSource)}">View official deal →</a><a id="nav-cta" class="btn secondary" target="_blank" rel="noopener" href="${esc(navUrl(d))}">⌖ Navigate</a></div>`}</div></main>${footer()}${nav(isFood(d) ? "food" : isFree(d) ? "free" : "home")}</div>`;
-  }
-  function business() {
-    return shell(
-      `<main class="page"><section class="business-hero"><div class="eyebrow">FOR AUSTRALIAN BUSINESSES & ORGANISERS</div><h1>List a deal on PerkDrop.</h1><p>Submit a genuine discount, food special, event, freebie or experience. PerkDrop reviews it before publication.</p><div class="business-points"><span>✓ Free to submit</span><span>✓ Capacity Drops supported</span><span>✓ Real booking links supported</span><span>✓ Performance tracking</span></div><p><a class="btn secondary" href="/claim">Already listed? Claim your business</a> <a class="btn secondary" href="/merchant-floor">Merchant floor tool</a></p></section><form id="merchant-form" class="merchant-form"><div class="form-grid"><label>Business / organisation *<input name="business_name" required maxlength="160"></label><label>Your name *<input name="contact_name" required maxlength="160"></label><label>Email *<input name="contact_email" type="email" required maxlength="254"></label><label>Phone<input name="contact_phone" maxlength="80"></label><label>Category<select name="category"><option>Food</option><option>Drinks</option><option>Events</option><option>Freebies</option><option>Shopping</option><option>Experiences</option></select></label><label>Location *<input name="location" required></label><label class="wide">Offer / event title *<input name="offer_title" required maxlength="180"></label><label class="wide">What is the offer? *<textarea name="description" required maxlength="2500" rows="5"></textarea></label><label>Normal price<input name="normal_price" type="number" min="0" step="0.01"></label><label>Deal price<input name="deal_price" type="number" min="0" step="0.01"></label><label>Start date<input name="starts_at" type="datetime-local"></label><label>End date<input name="ends_at" type="datetime-local"></label><label>Promo code<input name="promo_code" maxlength="100"></label><label>Booking / offer URL<input name="booking_url" type="url"></label><label class="wide">Photo / media URL<input name="media_url" type="url"></label><label class="wide">Conditions<textarea name="conditions" maxlength="1800" rows="3"></textarea></label><label class="check wide"><input type="checkbox" name="authority_confirmed" required> I’m authorised to submit this offer.</label><label class="check wide"><input type="checkbox" name="accuracy_confirmed" required> Details are accurate and may be reviewed.</label></div><button class="btn primary submit-btn">Submit for review</button><div id="merchant-status" class="form-status"></div></form></main>`,
-    );
+    return `<div class="app-shell"><main class="detail"><section class="detail-hero"><button id="back-btn" class="back" aria-label="Go back">←</button><img src="${esc(image(d))}" alt="${esc(image(d)===PLACEHOLDER?"Photo unavailable":d.imageAlt||d.title)}"><div class="detail-title"><span class="badge static">${esc(badge(d))}</span><span class="detail-type type-${t[0]}">${t[1]} ${t[2]}</span><h1>${esc(d.title)}</h1><div>${esc(d.merchant)}</div></div></section><div class="detail-body"><div class="detail-tools"><button class="tool-btn" data-save="${esc(d.id)}">${saved ? "♥ Saved" : "♡ Save"}</button><button id="share-drop" class="tool-btn">↗ Share</button></div><div class="facts">📍 ${esc(d.location || "Check venue location")}<br>◷ ${esc(d.timing || "Check availability")}<br>✓ OFFER CHECKED ${esc(d.verified || "")}</div>${cap ? capacity(d) : trust(d)}<p>${esc(d.description)}</p><div class="catch"><b>THE CATCH</b><br>${esc(d.conditions || "Check the official source before travelling, booking or paying.")}</div>${mapped(d) ? '<div id="detail-map" class="detail-map"></div>' : ""}${cap ? "" : `<div class="detail-cta"><a id="official-cta" class="btn primary" target="_blank" rel="noopener" href="${esc(d.goUrl || d.source || d.officialSource)}">View official deal →</a><a id="nav-cta" class="btn secondary" target="_blank" rel="noopener" href="${esc(navUrl(d))}">⌖ Navigate</a></div>`}</div></main>${footer()}${nav(isFood(d) ? "food" : isFree(d) ? "free" : "home")}</div>`;
   }
   const legal = {
     terms: [
@@ -687,8 +682,9 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     });
   }
   function mapEntries() {
-    const deals = cityDeals().filter(d => searchMatches(text(d), state.query));
-    const venues = state.businesses.filter(b => b.market === state.city && searchMatches([b.name,b.location,b.category,b.cuisine,b.venueType].join(' '),state.query));
+    const near=d=>!state.user||(mapped(d)&&distance(state.user.lat,state.user.lng,d.latitude,d.longitude)<=50);
+    const deals = (state.user?state.deals.filter(near):cityDeals()).filter(d => searchMatches(text(d), state.query));
+    const venues = state.businesses.filter(b => (state.user?near(b):b.market === state.city) && searchMatches([b.name,b.location,b.category,b.cuisine,b.venueType].join(' '),state.query));
     const entries = new Map();
     for (const d of deals) {
       const key = d.merchantId + ':' + d.latitude + ':' + d.longitude;
@@ -706,7 +702,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
   }
   function mapPage() {
     const xs = mapEntries(), pins=xs.filter(mapped), missing=xs.length-pins.length;
-    return shell('<main class="page">'+searchBox(state.query)+'<section class="section"><div class="section-head"><div><div class="eyebrow">EXPLORE YOUR AREA</div><h1>Deals & businesses</h1></div><span>'+pins.length+' mapped</span></div><div class="map-toolbar"><button id="map-location" class="btn primary">⌖ Use my location</button><label>Show <select id="map-filter"><option value="all" '+(state.mapFilter==='all'?'selected':'')+'>Deals & businesses</option><option value="offers" '+(state.mapFilter==='offers'?'selected':'')+'>Active offers only</option></select></label></div><p class="muted">Purple pins: active offers. Grey pins: business listings. '+(missing?missing+' listings below need a confirmed map location.':'')+'</p>'+(state.directoryError?'<p role="status">Business listings could not load. Active offers are still shown. Refresh to try again.</p>':'')+'<div class="mapbox"><div id="perk-map" aria-label="Map of deals and businesses"><p role="status">Loading map…</p></div></div><div class="grid compact map-list">'+xs.map(d=>d.business?venueCard(d):d.offers.map(card).join('')).join('')+'</div>'+(!xs.length?'<div class="empty">No matches in this area. Clear your search or choose another city.</div>':'')+'</section></main>','map');
+    return shell('<main class="page map-page">'+searchBox(state.query)+'<section class="section"><div class="section-head"><div><div class="eyebrow">EXPLORE YOUR AREA</div><h1>Explore the map</h1></div><span>'+pins.length+' mapped</span></div><div class="map-toolbar"><button id="map-location" class="btn primary">⌖ Use my location</button><label>Show <select id="map-filter"><option value="all" '+(state.mapFilter==='all'?'selected':'')+'>Deals & businesses</option><option value="offers" '+(state.mapFilter==='offers'?'selected':'')+'>Active offers only</option></select></label></div><p class="muted map-legend">Colour pins: offers. Grey: businesses. '+(state.directoryLoading?'Loading businesses… ':'')+''+(missing?missing+' listings have no confirmed pin.':'')+'</p>'+(state.directoryError?'<p role="status">Business listings could not load. Active offers are still shown. Refresh to try again.</p>':'')+'<div class="mapbox"><div id="perk-map" aria-label="Map of deals and businesses"><p role="status">Loading map…</p></div></div><div class="grid compact map-list">'+xs.map(d=>d.business?venueCard(d):d.offers.map(card).join('')).join('')+'</div>'+(!xs.length?'<div class="empty">No matches in this area. Clear your search or choose another city.</div>':'')+'</section></main>','map');
   }
   function venuePage(b) {
     const offers=state.deals.filter(d=>d.merchantId===b.id);
@@ -722,9 +718,10 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     return leafletReady;
   }
   function destroyMap() {
-    if (state.detailMap) { state.detailMap.remove(); state.detailMap=null; }
+    if (state.detailMap) { state.detailMap.stop(); state.detailMap.remove(); state.detailMap=null; }
     if (state.map) {
       try {
+        state.map.stop();
         state.map.remove();
       } catch {}
       state.map = null;
@@ -738,7 +735,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     if (!node.isConnected) return;
     node.textContent="";
     const c = CITIES[state.city] || CITIES.adelaide,
-      m = L.map(node).setView([c[2], c[3]], 12);
+      m = L.map(node,{zoomAnimation:false,fadeAnimation:false}).setView([c[2], c[3]], 12);
     state.map = m;
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
@@ -766,7 +763,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
         .addTo(m)
         .bindTooltip("You are here");
     if (f.getLayers().length > 0)
-      m.fitBounds(f.getBounds().pad(0.12), { maxZoom: 15 });
+      m.fitBounds(f.getBounds().pad(0.12), { maxZoom: 15, animate:false });
     if(state.viewedMap!==state.pageKey){track("map_open", {});state.viewedMap=state.pageKey;}
   }
   async function initDetailMap(d) {
@@ -774,7 +771,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     if (!node || !mapped(d)) return;
     try { await ensureLeaflet(); } catch { node.innerHTML="<p>Map unavailable. Use Directions below.</p>"; return; }
     if(!node.isConnected || node._leaflet_id) return;
-    const m = L.map(node, { scrollWheelZoom: false }).setView(
+    const m = L.map(node, { scrollWheelZoom: false,zoomAnimation:false,fadeAnimation:false }).setView(
       [d.latitude, d.longitude],
       15,
     );
@@ -792,11 +789,12 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     if (!navigator.geolocation) return toast("Location is not available.");
     navigator.geolocation.getCurrentPosition(
       (p) => {
+        if(!validCoordinates(p.coords.latitude,p.coords.longitude)){state.locationOpen=true;render();toast("PerkDrop covers Australia. Choose an Australian city.");return;}
         state.user = { lat: p.coords.latitude, lng: p.coords.longitude };
         let best = state.city,
           bd = Infinity;
         for (const [k, v] of Object.entries(CITIES)) {
-          const d = (v[2] - state.user.lat) ** 2 + (v[3] - state.user.lng) ** 2;
+          const d = distance(state.user.lat,state.user.lng,v[2],v[3]);
           if (d < bd) {
             bd = d;
             best = k;
@@ -936,7 +934,16 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     );
   }
   document.addEventListener("error",e=>{const img=e.target;if(img.tagName==="IMG" && !img.src.endsWith(PLACEHOLDER)){img.src=PLACEHOLDER;img.alt="Photo unavailable";}},true);
-  document.addEventListener("keydown",e=>{if(e.key==="Escape"&&state.locationOpen){state.locationOpen=false;render();$("#location-pill")?.focus();}});
+  document.addEventListener("keydown",e=>{
+    if(!state.locationOpen)return;
+    if(e.key==="Escape"){state.locationOpen=false;render();$("#location-pill")?.focus();}
+    if(e.key==="Tab"){
+      const controls=[...document.querySelectorAll('[role="dialog"] button,[role="dialog"] input,[role="dialog"] select,[role="dialog"] a[href]')].filter(x=>!x.disabled&&x.getBoundingClientRect().width>0);
+      const first=controls[0],last=controls.at(-1);
+      if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus();}
+      else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus();}
+    }
+  });
   document.addEventListener("click", async (e) => {
     const p = e.target.closest("[data-party]");
     if (p) {
@@ -991,6 +998,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
       app.innerHTML = `<div class="boot"><p>${esc(state.error)}</p><button class="btn primary" onclick="location.reload()">Try again</button></div>`;
       return;
     }
+    if ((state.route==='/map'||state.route==='/search'||state.route.startsWith('/venues/'))&&!state.directoryLoaded&&!state.directoryLoading&&!state.directoryError) loadDirectory();
     const d = dealFromRoute();
     if (d) app.innerHTML = detail(d);
     else if (state.route.startsWith("/deals/"))
@@ -999,7 +1007,8 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
       );
     else if (state.route.startsWith("/venues/")) {
       const b=state.businesses.find(b=>"/venues/"+b.slug===state.route);
-      app.innerHTML=b?venuePage(b):shell('<main class="page"><h1>Business not found</h1><a href="/map">Explore the map</a></main>');
+      if(b&&state.lastBusinessPage!==location.pathname+location.search){state.lastBusinessPage=location.pathname+location.search;track("business_open",{merchant_id:b.id,slug:b.slug});}
+      app.innerHTML=b?venuePage(b):shell('<main class="page"><h1>'+(state.directoryLoading?'Loading business…':state.directoryError?'Business details are temporarily unavailable':'Business not found')+'</h1><a href="/map">Explore the map</a></main>');
     }
     else if (state.route === "/") app.innerHTML = home();
     else if (state.route === "/map") app.innerHTML = mapPage();
@@ -1068,7 +1077,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
   }
   async function load() {
     try {
-      await Promise.all([loadCatalogue(),fetch("https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-business-directory?limit=1000",{signal:AbortSignal.timeout(12000)}).then(async r=>{if(!r.ok)throw Error("directory");const j=await r.json();state.businesses=j.businesses||[];}).catch(()=>{state.directoryError="unavailable";})]);
+      await loadCatalogue();
       state.loading = false;
       trackPage();
       render();
@@ -1080,7 +1089,17 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
       render();
     }
   }
+  async function loadDirectory() {
+    state.directoryLoading=true;
+    try {
+      const r=await fetch('https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-business-directory?limit=1000',{signal:AbortSignal.timeout(12000)});
+      if(!r.ok)throw Error('directory');
+      const j=await r.json();state.businesses=j.businesses||[];state.directoryLoaded=true;
+    } catch { state.directoryError='unavailable'; }
+    finally { state.directoryLoading=false;render(); }
+  }
   window.addEventListener("popstate", () => {
+    state.viewedDeal="";state.viewedMap="";
     state.route = location.pathname;
     state.query = new URLSearchParams(location.search).get("q") || "";
     destroyMap();
@@ -1130,8 +1149,8 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     shopping: ["shopping", "Shopping", "LOCAL FINDS"],
     family: ["kids", "Family & kids", "MAKE A FAMILY PLAN"],
     services: ["services", "Local services", "LOCAL HELP & PERKS"],
-    freebies: ["free", "Freebies", "FREE TODAY"],
-    today: ["free", "Free today", "FREE TODAY"],
+    freebies: ["free", "Freebies", "CHECK DAYS, TIMES & CONDITIONS"],
+    today: ["free", "Free things to do", "CHECK EACH LISTING’S DAYS & TIMES"],
     "last-minute": [
       "last_minute",
       "Last-minute availability",
@@ -1159,23 +1178,6 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
         Number(d.capacityRemaining ?? 1) > 0
       );
     });
-  function myPerks() {
-    const passes = Object.values(state.redemptions || {}),
-      saved = state.deals.filter((d) => state.saved.includes(d.id));
-    return shell(
-      `<main class="page"><section class="hero"><div class="eyebrow">YOUR PERKDROP</div><h1>My Perks</h1><p>Your locally stored passes and saved Drops. Keep the claim code available and check the venue terms before using it.</p></section><section class="section"><div class="section-head"><div><div class="eyebrow">UPCOMING</div><h2>Active passes</h2></div><span>${passes.length}</span></div>${passes.length ? passes.map((p) => `<div class="saved-pass card"><strong>${esc(p.title || "PerkDrop claim")}</strong><div class="claim-code">${esc(p.code || "")}</div><div class="meta">${esc(p.party_size || 1)} ${Number(p.party_size || 1) === 1 ? "unit" : "units"} · ${esc(p.status || "active")} · expires ${esc(p.expires_at ? new Date(p.expires_at).toLocaleString() : "check terms")}</div></div>`).join("") : '<div class="empty">No active passes on this device yet.</div>'}</section><section class="section"><div class="section-head"><div><div class="eyebrow">SAVED</div><h2>Saved Drops</h2></div><span>${saved.length}</span></div><div class="grid compact">${saved.map(card).join("")}</div>${!saved.length ? '<div class="empty">Save a Drop to find it here.</div>' : ""}</section><section class="section"><div class="card"><div class="eyebrow">RECOVERY</div><h3>Need this pass on another device?</h3><p class="muted">Secure email recovery is being enabled behind the pass-service rollout. The local claim remains available here until then.</p></div></section></main>`,
-      "saved",
-    );
-  }
-  const previousRender = render;
-  render = function () {
-    if (state.route === "/my-perks") {
-      $("#app").innerHTML = myPerks();
-      bind();
-      return;
-    }
-    previousRender();
-  };
   render = function () {
     if(state.loading||state.error)return baseRender();
     const key = state.route.slice(1);

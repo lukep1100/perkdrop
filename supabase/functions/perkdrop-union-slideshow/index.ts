@@ -24,9 +24,10 @@ function esc(s: string) {
 }
 
 async function fetchImage(url: string) {
-  const r = await fetch(url, { headers: { "user-agent": "PerkDrop/1.0" } });
+  const r = await fetch(url, { headers: { "user-agent": "PerkDrop/1.0" },signal:AbortSignal.timeout(10000) });
   if (!r.ok) throw new Error(`image_${r.status}`);
   const type = (r.headers.get("content-type") || "image/jpeg").split(";")[0];
+  if(!['image/jpeg','image/png','image/webp'].includes(type))throw Error('not_an_image');
   const bytes = new Uint8Array(await r.arrayBuffer());
   return { type, bytes };
 }
@@ -39,7 +40,7 @@ Deno.serve(async (req) => {
     const ua = (req.headers.get("user-agent") || "").toLowerCase();
     const bot = /facebookexternalhit|facebot|twitterbot|linkedinbot|slackbot|discordbot|whatsapp|telegrambot|googlebot|bingbot|pinterest|crawler|spider/.test(ua);
 
-    if (bot) {
+    if (bot || new URL(req.url).searchParams.get('still')==='1') {
       const first = await fetchImage(SOURCES[0]);
       return new Response(req.method === "HEAD" ? null : first.bytes, {
         headers: {
@@ -78,4 +79,3 @@ Deno.serve(async (req) => {
     return new Response("slideshow_failed", { status: 500 });
   }
 });
-
