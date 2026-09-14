@@ -135,7 +135,7 @@ export default function Shell({ deal, venue, canonicalPath, expiredDeal = false,
       "div",
       { id: "app", "data-expired-deal": expiredDeal ? "true" : "false", "data-missing":missing ? "true":"false" },
       h(
-        "div",
+        "main",
         { className: "boot" },
         h("img", { src: "/icon.svg", className: "boot-icon", alt: "" }),
         h("div", { className: "boot-logo" }, "Perk", h("span", null, "Drop")),

@@ -991,11 +991,11 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     const app = $("#app");
     if (state.loading) {
       app.innerHTML =
-        '<div class="boot"><img src="/icon.svg" class="boot-icon"><div class="boot-logo">Perk<span>Drop</span></div><p>Loading nearby Drops…</p></div>';
+        '<main class="boot"><img src="/icon.svg" alt="" class="boot-icon"><div class="boot-logo">Perk<span>Drop</span></div><p role="status">Loading nearby Drops…</p></main>';
       return;
     }
     if (state.error) {
-      app.innerHTML = `<div class="boot"><p>${esc(state.error)}</p><button class="btn primary" onclick="location.reload()">Try again</button></div>`;
+      app.innerHTML = `<main class="boot"><h1>Could not load deals</h1><p>${esc(state.error)}</p><button class="btn primary" onclick="location.reload()">Try again</button></main>`;
       return;
     }
     if ((state.route==='/map'||state.route==='/search'||state.route.startsWith('/venues/'))&&!state.directoryLoaded&&!state.directoryLoading&&!state.directoryError) loadDirectory();

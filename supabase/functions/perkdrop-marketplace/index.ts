@@ -1,5 +1,6 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
+import {resolveSavedListings} from '../_shared/saved-listings.mjs';
 const VERTICALS=['food','events','beauty','wellness','experiences','activities','fitness','stay','shopping','free','other'];
 
 const headers={'Content-Type':'application/json','Cache-Control':'no-store','Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'content-type, authorization, x-perkdrop-identity','Access-Control-Allow-Methods':'POST, OPTIONS','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer'};
@@ -82,7 +83,13 @@ Deno.serve(async req=>{
         rows(db.from('marketplace_saves').select('kind,target,created_at').eq('consumer_id',cid)),
         rows(db.from('marketplace_consumers').select('preferences,email,email_verified_at').eq('id',cid).single())
       ]);
-      return reply({redemptions,saves,profile});
+      const dropIds=saves.filter((s:any)=>s.kind==='drop').map((s:any)=>s.target);
+      const merchantIds=saves.filter((s:any)=>s.kind==='merchant').map((s:any)=>s.target);
+      const [savedDrops,savedMerchants]=await Promise.all([
+        dropIds.length?rows(db.from('catalogue_items').select('id,merchant,title,slug').in('id',dropIds)):[],
+        merchantIds.length?rows(db.from('merchants').select('id,name,slug,permanent_listing,directory_status').in('id',merchantIds)):[]
+      ]);
+      return reply({redemptions,saves:resolveSavedListings(saves,savedDrops,savedMerchants),profile});
     }
     if(action==='save'){
       if(!['drop','merchant'].includes(body.kind))return reply({error:'invalid_save'},400);
