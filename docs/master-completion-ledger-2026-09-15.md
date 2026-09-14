@@ -6,7 +6,7 @@ This is an evidence ledger, not a launch certificate. `VERIFIED` means the state
 
 | Area | Status | Evidence / acceptance state | Remaining dependency |
 |---|---|---|---|
-| Auth site URL and callback handling | VERIFIED / NEEDS LIVE OWNER TEST | `/claim` and the four supported same-site redirect forms are implemented; `claimRedirect()` preserves a validated merchant slug and recovery flag. | A real verification/recovery message and link-use journey still needs owner-approved QA recipient and inbox confirmation. |
+| Auth site URL and callback handling | VERIFIED / NEEDS LIVE OWNER TEST | `/claim` and the four supported same-site redirect forms are implemented; `claimRedirect()` preserves a validated merchant slug and recovery flag. Live portal redirects for Union, A Bite to Eat and Adelaide Zoo preserve their slugs; empty, traversal and external-looking values resolve to plain `/claim`. | A real verification/recovery message and link-use journey still needs owner-approved QA recipient and inbox confirmation. |
 | Auth transport | EXTERNALLY BLOCKED | Production configuration was read as default Supabase mail with custom SMTP disabled. | Owner must approve/establish the production sender/transport; no password, token or secret in chat. |
 | Approval notifications | EXTERNALLY BLOCKED | `merchant_notification_config` is disabled, `provider=resend`, `from_email` is unset; queue/release gates remain closed. | Owner-controlled non-admin recipient, sender/domain, exact test messages and transport approval. |
 | Business claiming / owner access | NEEDS LIVE OWNER TEST | Claim, role, consent, authority-evidence, competing-owner and pending-state gates are implemented and isolated concurrency-tested. | A real authorised business representative must submit, be reviewed and use the resulting access. |
@@ -26,9 +26,10 @@ This is an evidence ledger, not a launch certificate. `VERIFIED` means the state
 ## Current production counts
 
 - Supabase project: DueMate → PerkDrop, reference `khzpdyyywiucfhubxkev`, status `ACTIVE_HEALTHY`.
-- Supabase query: 320 non-removed merchants, 81 without plausible stored coordinates, 0 catalogue failure-ledger rows.
+- Supabase query: 320 merchants total, 6 policy-removed, 314 non-removed; 81 non-removed rows without plausible stored coordinates; 0 catalogue failure-ledger rows.
 - Public `/api/health`: 52 live catalogue rows reported by the deployed aggregator.
-- Raw `catalogue_items`: 78 total, 30 expired rows retained for history; public API excludes expired rows.
+- Raw `catalogue_items`: 78 total, 45 active/public-date-eligible rows, 33 inactive historical rows; public API expands active multi-location rows and excludes expired rows.
+- Active `catalogue_locations`: 20. Direct catalogue health reports 45 live rows and 320 merchants; the public aggregator reports 52 rows after location expansion.
 
 ## Latest implementation and release evidence
 
@@ -39,6 +40,7 @@ This is an evidence ledger, not a launch certificate. `VERIFIED` means the state
 - `619ea14` — report tracked merchant value only; pushed and deployed.
 - Supabase `perkdrop-portal` v21 is ACTIVE with `verify_jwt=false`, matching the existing portal contract.
 - Vercel production deployment `dpl_FLLgXDA2PU9841hCyopJaNSFPL2r` is READY and aliased to `perkdrop.au` / `www.perkdrop.au`.
+- Integrated local suites: marketplace 10, discovery/notification 16, availability 12, inline scripts 2, analytics 2, saves 2, database 60; production smoke passed when run with `SMOKE_BASE_URL=https://perkdrop.au` (the package-level smoke invocation without that variable is intentionally non-production and returns connection failures).
 
 ## Tests recorded
 
