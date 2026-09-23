@@ -8,4 +8,9 @@ export function approvedImage(value: unknown) {
   try {const u=new URL(String(value||''));return u.protocol==='https:'&&!/(^|\.)unsplash\.com$/i.test(u.hostname)?u.href:'';} catch{return '';}
 }
 export function directoryVisible(m: any) {return Boolean(m)&&m.permanent_listing===true&&m.directory_status!=='removed';}
+export function eventEnded(item: {kind?: string; ends_at?: string | null}, now = new Date()) {
+  if (item.kind !== 'event' || !item.ends_at) return false;
+  const end = Date.parse(item.ends_at);
+  return Number.isFinite(end) && end <= now.getTime();
+}
 export const categoryVertical=(category: string)=>({food:'food','food & drink':'food',food_drink:'food',drinks:'drinks',events:'events',experiences:'experiences',experiences_entertainment:'experiences',shopping:'shopping',shopping_fashion:'shopping',freebies:'free',beauty:'beauty',beauty_wellness:'beauty',wellness:'wellness',hair:'hair',fitness:'fitness',fitness_sport:'fitness',activities:'activities',golf:'golf',tourism:'tourism',attractions_events:'tourism',stay:'stay',travel_accommodation:'stay',services:'services',services_other:'services'} as Record<string,string>)[String(category||'').toLowerCase()]||'other';
