@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.102.0";
-import { isAustralianPoint, localDay, approvedImage, directoryVisible, categoryVertical, eventEnded } from "../_shared/discovery.ts";
+import { isAustralianPoint, localDay, publicOfferImage, directoryVisible, categoryVertical, eventEnded } from "../_shared/discovery.ts";
 
 const headers = {
   "content-type": "application/json; charset=utf-8",
@@ -345,7 +345,7 @@ Deno.serve(async (req) => {
     () => queryWithRetry(() => supabase
       .from("catalogue_items")
       .select(
-        "availability,quality_grade,quality_note,last_verified_at,id,merchant_id,merchant,title,description,category,kind,city,state,location,timing,end_date,ends_at,price,conditions,booking,source,verified,hot,featured,slug,detail_url,city_label,active,metadata,latitude,longitude,image_url,image_alt,cuisine,discount_percent,venue_type,offer_origin,exclusive,affiliate_url,affiliate_network",
+        "availability,quality_grade,quality_note,last_verified_at,id,merchant_id,merchant,title,description,category,kind,city,state,location,timing,end_date,ends_at,price,conditions,booking,source,verified,hot,featured,slug,detail_url,city_label,active,metadata,latitude,longitude,image_url,image_alt,media_status,cuisine,discount_percent,venue_type,offer_origin,exclusive,affiliate_url,affiliate_network",
       )
       .eq("active", true)
       // Exclude stale rows before the limit; the per-state local-day check
@@ -709,10 +709,10 @@ Deno.serve(async (req) => {
         validLat !== null && validLng !== null
           ? `${validLat},${validLng}`
           : d.location || merchantName || "",
-      imageUrl: d.metadata?.image_unavailable || d.metadata?.image_review_hold ? "" : approvedImage(d.image_url || (['merchant_authorised','licensed'].includes(merchant?.image_rights_status) ? merchant?.hero_image_url : '')),
+      imageUrl: publicOfferImage(d, merchant),
       imageAlt: d.image_alt || `${merchantName} — ${d.title}`,
       imageFit: d.metadata?.image_fit === 'contain' ? 'contain' : 'cover',
-      imageCredit: d.metadata?.image_provenance ? {caption:d.metadata.image_provenance.caption||'',source:d.metadata.image_provenance.source||'',license:d.metadata.image_provenance.license||'',licenseUrl:d.metadata.image_provenance.licenseUrl||''} : null,
+      imageCredit: d.media_status !== 'permission_required' && !d.metadata?.image_review_hold && d.metadata?.image_provenance ? {caption:d.metadata.image_provenance.caption||'',source:d.metadata.image_provenance.source||'',license:d.metadata.image_provenance.license||'',licenseUrl:d.metadata.image_provenance.licenseUrl||''} : null,
       cuisine,
       discountPercent:
         d.discount_percent === null ? null : Number(d.discount_percent),
