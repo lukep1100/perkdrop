@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.102.0";
-import { isAustralianPoint, localDay, publicOfferImage, directoryVisible, categoryVertical, eventEnded } from "../_shared/discovery.ts";
+import { isAustralianPoint, localDay, publicOfferImage, directoryVisible, categoryVertical, eventEnded, accuracyHeld } from "../_shared/discovery.ts";
 
 const headers = {
   "content-type": "application/json; charset=utf-8",
@@ -463,6 +463,7 @@ Deno.serve(async (req) => {
     }
   let list: any[] = [];
   for (const d of data || []) {
+    if (accuracyHeld(d)) continue;
     if (d.merchant_id && !directoryVisible(merchantMap.get(d.merchant_id))) continue;
     if (d.end_date && String(d.end_date) < localDay(d.state)) continue;
     if (eventEnded(d, new Date(now))) continue;
@@ -582,10 +583,12 @@ Deno.serve(async (req) => {
   if (requestedSlug) {
     list=list.filter(d=>d.slug===requestedSlug||d.detail_url===`/deals/${requestedSlug}`);
     if (!list.length) {
-      const {data:past,error:pastError}=await queryWithRetry(() => supabase.from('catalogue_items').select('id,merchant_id,slug,title,merchant,active,end_date,ends_at,kind,state').eq('slug',requestedSlug).maybeSingle());
+      const {data:past,error:pastError}=await queryWithRetry(() => supabase.from('catalogue_items').select('id,merchant_id,slug,title,merchant,active,end_date,ends_at,kind,state,metadata').eq('slug',requestedSlug).maybeSingle());
       if(pastError){await recordFailure(supabase, requestId, "slug", ["catalogue_items"], [queryErrorLabel(pastError)], Date.now() - started);console.warn(JSON.stringify({msg:'catalogue_slug_query_failed',requestId,ms:Date.now()-started}));return new Response(JSON.stringify({ok:false,error:'catalogue_failed'}),{status:503,headers:responseHeaders});}
       const visible=past&&(!past.merchant_id||directoryVisible(merchantMap.get(past.merchant_id)));
-      const ended=visible&&(!past.active||(past.end_date&&past.end_date<localDay(past.state))||eventEnded(past,new Date(now)));
+      const held=visible&&accuracyHeld(past);
+      const ended=visible&&!held&&((past.end_date&&past.end_date<localDay(past.state))||eventEnded(past,new Date(now)));
+      if(held||visible&&!past.active&&!ended)return new Response(JSON.stringify({ok:false,status:'unavailable',deal:null}),{status:404,headers:responseHeaders});
       return new Response(JSON.stringify({ok:false,status:ended?'ended':'not_found',deal:ended?{title:past.title,merchant:past.merchant,slug:past.slug}:null}),{status:ended?410:404,headers:responseHeaders});
     }
   }
