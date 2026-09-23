@@ -359,6 +359,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
   }
   function mBadge(d) {
     if(d.offerVerification==='business_approved')return '<span class="merchant-status status-verified">BUSINESS-APPROVED OFFER</span>';
+    if(d.offerVerification==='public_source')return '<span class="merchant-status status-unclaimed">PUBLICLY ADVERTISED OFFER</span>';
     const s = mState(d),
       label =
         s === "exclusive"
@@ -613,6 +614,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
   }
   function trust(d) {
     if(d.offerVerification==='business_approved')return '<div class="trust verified"><b>Business-approved offer</b><span>The business approved these offer terms. This is separate from claiming its directory profile.</span></div>';
+    if(d.offerVerification==='public_source')return `<div class="trust"><b>Publicly advertised offer</b><span>Listed from a public source. The business has not approved this offer for PerkDrop claims, even if its business profile is verified or partnered. Check the venue's current terms and availability before booking.</span>${d.claimable !== false ? `<a class="claim-link" href="${esc(claimUrl(d))}">Own this business? Claim its profile →</a>` : ""}</div>`;
     const s = mState(d);
     if (s === "exclusive")
       return `<div class="trust exclusive"><b>🔥 PerkDrop Exclusive</b><span>This business currently has an exclusive PerkDrop offer.</span></div>`;
