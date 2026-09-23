@@ -1,6 +1,6 @@
-const VERSION='v33-local-pilot';
+const VERSION='v34-attributed-actions';
 const CACHE=`perkdrop-${VERSION}`;
-const STATIC=['/app.js?v=v33-local-pilot','/discovery-rules.mjs?v=v33-local-pilot','/styles.css?v=v33-local-pilot','/images/venue-unavailable.svg','/icon.svg','/manifest.webmanifest'];
+const STATIC=['/app.js?v=v34-attributed-actions','/discovery-rules.mjs?v=v33-local-pilot','/styles.css?v=v33-local-pilot','/images/venue-unavailable.svg','/icon.svg','/manifest.webmanifest'];
 // Cache public assets only. Availability, authenticated screens and passes are never cached.
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(STATIC)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('perkdrop-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
