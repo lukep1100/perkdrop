@@ -24,13 +24,13 @@ Deno.serve(async(req)=>{
     if(clean(body.website,200)) return json({ok:true,received:true},202);
 
     const business_name=clean(body.business_name,160),contact_name=clean(body.contact_name,160),contact_email=clean(body.contact_email,254).toLowerCase(),contact_phone=clean(body.contact_phone,80);
-    const offer_title=clean(body.offer_title,180),description=clean(body.description,2500),category=clean(body.category,80),location=clean(body.location,300),city=clean(body.city,100)||"Adelaide",state=clean(body.state,60)||"SA";
+    const offer_title=clean(body.offer_title,180),description=clean(body.description,2500),category=clean(body.category,80),location=clean(body.location,300),city=clean(body.city,100),state=clean(body.state,60).toUpperCase();
     const promo_code=clean(body.promo_code,100),conditions=clean(body.conditions,1800),booking_url=httpsUrl(clean(body.booking_url,1200)),media_url=httpsUrl(clean(body.media_url,1200));
     const vertical=verticals.includes(clean(body.vertical,40))?clean(body.vertical,40):'food',fulfilment_mode=fulfilmentModes.includes(clean(body.fulfilment_mode,40))?clean(body.fulfilment_mode,40):'external_booking',inventory_unit=inventoryUnits.includes(clean(body.inventory_unit,40))?clean(body.inventory_unit,40):'person',drop_type=dropTypes.includes(clean(body.drop_type,40))?clean(body.drop_type,40):'capacity',discount_type=discountTypes.includes(clean(body.discount_type,40))?clean(body.discount_type,40):'value_add';
     const authority_confirmed=body.authority_confirmed===true,accuracy_confirmed=body.accuracy_confirmed===true,exclusive_requested=body.exclusive_requested===true;
     const termsAccepted=body.terms_accepted===true,termsAcceptedAt=termsAccepted?new Date().toISOString():null;
     const commercial_model_requested=clean(body.commercial_model_requested,80)||null;
-    if(!business_name||!contact_name||!emailOk(contact_email)||!contact_phone||!offer_title||!description||!location||conditions.length<12) return json({ok:false,error:"Please complete the required fields and conditions."},400);
+    if(!business_name||!contact_name||!emailOk(contact_email)||!contact_phone||!offer_title||!description||!location||!city||!(["ACT","NSW","NT","QLD","SA","TAS","VIC","WA"].includes(state))||conditions.length<12) return json({ok:false,error:"Please complete the required fields and conditions."},400);
     if(!authority_confirmed||!accuracy_confirmed||!termsAccepted) return json({ok:false,error:"Authority, accuracy and merchant-terms confirmations are required."},400);
     const num=(v:unknown)=>{if(v===null||v===""||v===undefined)return null;const n=Number(v);return Number.isFinite(n)&&n>=0&&n<=1000000?n:null};
     const date=(v:unknown)=>{const s=clean(v,80);if(!s)return null;const d=new Date(s);return Number.isNaN(d.getTime())?null:d.toISOString()};
@@ -40,7 +40,7 @@ Deno.serve(async(req)=>{
     const starts=date(body.starts_at),ends=date(body.ends_at),normal=num(body.normal_price),deal=num(body.deal_price),capacity=Math.floor(Number(body.capacity_total));
     if(!starts||!ends||new Date(ends)<=new Date(starts)||!Number.isInteger(capacity)||capacity<1||capacity>10000) return json({ok:false,error:'Add a valid capacity and offer window.'},400);
     let merchant:any=null;
-    const {data:exact}=await supabase.from('merchants').select('id,name,listing_status').eq('name',business_name).limit(1).maybeSingle();merchant=exact;
+    const {data:exact}=await supabase.from('merchants').select('id,name,listing_status').eq('name',business_name).eq('primary_state',state).eq('primary_location',location).limit(1).maybeSingle();merchant=exact;
     if(!merchant){
       const suffix=crypto.randomUUID().replace(/-/g,'').slice(0,6);
       const {data,error}=await supabase.from('merchants').insert({name:business_name,slug:`${slugify(business_name)}-${suffix}`,listing_status:'unclaimed',primary_city:city.toLowerCase().replace(/\s+/g,'-'),primary_state:state,primary_location:location}).select('id,name,listing_status').single();
