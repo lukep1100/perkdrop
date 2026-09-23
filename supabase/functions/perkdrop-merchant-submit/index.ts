@@ -37,6 +37,8 @@ Deno.serve(async(req)=>{
     const forwarded=req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()||"";let source_ip_hash:string|null=null;try{source_ip_hash=forwarded?await hashIp(forwarded):null}catch{}
     const supabase=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
+    const starts=date(body.starts_at),ends=date(body.ends_at),normal=num(body.normal_price),deal=num(body.deal_price),capacity=Math.floor(Number(body.capacity_total));
+    if(!starts||!ends||new Date(ends)<=new Date(starts)||!Number.isInteger(capacity)||capacity<1||capacity>10000) return json({ok:false,error:'Add a valid capacity and offer window.'},400);
     let merchant:any=null;
     const {data:exact}=await supabase.from('merchants').select('id,name,listing_status').eq('name',business_name).limit(1).maybeSingle();merchant=exact;
     if(!merchant){
@@ -45,10 +47,8 @@ Deno.serve(async(req)=>{
       if(error){console.error('merchant create',error);return json({ok:false,error:'Business profile could not be created.'},500)}merchant=data;
     }
 
-    const starts=date(body.starts_at),ends=date(body.ends_at),normal=num(body.normal_price),deal=num(body.deal_price),capacity=Math.floor(Number(body.capacity_total));
-    if(!starts||!ends||new Date(ends)<=new Date(starts)||!Number.isInteger(capacity)||capacity<1||capacity>10000) return json({ok:false,error:'Add a valid capacity and offer window.'},400);
     let discountPercent:number|null=null;if(normal!==null&&deal!==null&&normal>0&&deal<=normal)discountPercent=Math.round(((normal-deal)/normal)*10000)/100;
-    const {data:offer,error:offerError}=await supabase.from('merchant_offers').insert({merchant_id:merchant.id,title:offer_title,description,category:category||vertical,vertical,drop_type,inventory_unit,fulfilment_mode,discount_type,discount_percent:discountPercent,normal_price:normal,deal_price:deal,promo_code:promo_code||null,conditions,starts_at:starts,ends_at:ends,capacity_total:capacity,capacity_remaining:capacity,location,city:city.toLowerCase().replace(/\s+/g,'-'),state,booking_url:booking_url||null,media_url:media_url||null,exclusive:exclusive_requested,status:'pending',metadata:{submission_source:'public_business_form',redemption_verifier:clean(body.redemption_verifier,160),commercial_model:'$3_per_confirmed_guest',media_rights_confirmed:false}}).select('id').single();
+    const {data:offer,error:offerError}=await supabase.from('merchant_offers').insert({merchant_id:merchant.id,title:offer_title,description,category:category||vertical,vertical,drop_type,inventory_unit,fulfilment_mode,discount_type,discount_percent:discountPercent,normal_price:normal,deal_price:deal,promo_code:promo_code||null,conditions,starts_at:starts,ends_at:ends,capacity_total:capacity,capacity_remaining:capacity,location,city:city.toLowerCase().replace(/\s+/g,'-'),state,booking_url:booking_url||null,media_url:media_url||null,exclusive:exclusive_requested,status:'pending',metadata:{submission_source:'public_business_form',redemption_verifier:clean(body.redemption_verifier,160),commercial_model:'free_standard',media_rights_confirmed:false}}).select('id').single();
     if(offerError){console.error('offer create',offerError);return json({ok:false,error:'Offer could not be saved. Please try again.'},500)}
 
     const {data,error}=await supabase.from("merchant_submissions").insert({
