@@ -2,7 +2,7 @@ import { availabilityMatches, freshness, scheduleLabel, selectedAvailability, lo
 import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfilmentLabel, localDate, searchMatches } from '/discovery-rules.mjs?v=v33-local-pilot';
 (() => {
   "use strict";
-  const VERSION = "v33-local-pilot";
+  const VERSION = "v34-attributed-actions";
   const API =
     "https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-catalogue-api?limit=200";
   const SUBMIT =
@@ -189,7 +189,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
       conditions: x.conditions || "",
       source: x.source || "",
       officialSource: x.officialSource || x.official_source || "",
-      goUrl: x.goUrl || x.go_url || "",
+      goUrl: attributedRedirect(x.goUrl || x.go_url || "", "perkdrop-go"),
       imageUrl: x.imageUrl || x.image_url || "",
       imageAlt: x.imageAlt || x.image_alt || "",
       imageCredit: x.imageCredit || null,
@@ -381,11 +381,22 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
       : "/food";
   }
   function navUrl(d) {
-    if (d.navigationUrl) return d.navigationUrl;
+    if (d.navigationUrl) return attributedRedirect(d.navigationUrl, "perkdrop-nav");
     const dest = mapped(d)
       ? `${d.latitude},${d.longitude}`
       : d.location || d.merchant;
     return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(dest)}`;
+  }
+  function attributedRedirect(value, functionName) {
+    try {
+      const url = new URL(value, location.origin);
+      if (url.hostname === "khzpdyyywiucfhubxkev.supabase.co" &&
+          url.pathname === `/functions/v1/${functionName}`) {
+        url.searchParams.set("sid", sid);
+        return url.toString();
+      }
+    } catch {}
+    return value;
   }
   function props(d, extra = {}) {
     return {
@@ -976,11 +987,11 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     $("#claim-drop")?.addEventListener("click", () => d && claim(d));
     $("#official-cta")?.addEventListener(
       "click",
-      () => d && track("official_deal_click", props(d)),
+      () => d && !String(d.goUrl || "").includes("/functions/v1/perkdrop-go?") && track("official_deal_click", props(d)),
     );
     $("#nav-cta")?.addEventListener(
       "click",
-      () => d && track("directions_click", props(d)),
+      () => d && !String(d.navigationUrl || "").includes("/functions/v1/perkdrop-nav?") && track("directions_click", props(d)),
     );
     $$(".claim-link").forEach((a) =>
       a.addEventListener(
