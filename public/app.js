@@ -2,7 +2,7 @@ import { availabilityMatches, freshness, scheduleLabel, selectedAvailability, lo
 import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfilmentLabel, localDate, searchMatches } from '/discovery-rules.mjs?v=v33-local-pilot';
 (() => {
   "use strict";
-  const VERSION = "v34-attributed-actions";
+  const VERSION = "v35-reviewed-now";
   const API =
     "https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-catalogue-api?limit=200";
   const SUBMIT =
@@ -1241,17 +1241,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
       `<div class="meta fulfilment">${esc(fulfil)}</div></div></a><button class="save"`,
     );
   };
-  const nowDrops = () =>
-    cityDeals().filter((d) => {
-      const start = d.offerStartsAt ? new Date(d.offerStartsAt).getTime() : NaN,
-        end = d.offerEndsAt ? new Date(d.offerEndsAt).getTime() : NaN,
-        now = Date.now();
-      return (
-        start <= now + 30 * 60000 &&
-        end > now &&
-        Number(d.capacityRemaining ?? 1) > 0
-      );
-    });
+  const nowDrops = () => cityDeals().filter(d => availabilityMatches(d, 'now'));
   render = function () {
     if(state.loading||state.error)return baseRender();
     if(state.route==="/tonight"||state.route==="/today"){document.title="When can I use it? | PerkDrop";$("#app").innerHTML=availabilityPage();bind();return;}
@@ -1262,7 +1252,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
         items = key === "now" ? nowDrops() : list(kind);
       document.title = `${title} | PerkDrop`;
       $("#app").innerHTML = shell(
-        `<main class="page">${searchBox()}${chips()}<section class="section"><div class="section-head"><div><div class="eyebrow">${eye}</div><h2>${title}</h2></div><span>${items.length}</span></div><div class="grid compact">${items.map(card).join("")}</div>${!items.length ? '<div class="empty">No live Drops match this view right now. Check back when a business releases capacity.</div>' : ""}</section></main>`,
+        `<main class="page">${searchBox()}${chips()}<section class="section"><div class="section-head"><div><div class="eyebrow">${eye}</div><h2>${title}</h2></div><span>${items.length}</span></div>${key==='now'?'<p>Showing reviewed service windows that are open in the venue’s local time. Booking and listed conditions still apply.</p>':''}<div class="grid compact">${items.map(card).join("")}</div>${!items.length ? '<div class="empty">No confirmed options match this view right now. Check back later or browse current deals and confirm directly with the venue.</div>' : ""}</section></main>`,
         "home",
       );
       bind();
