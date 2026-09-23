@@ -7,6 +7,11 @@ export function localDay(state: string, now=new Date()) {
 export function approvedImage(value: unknown) {
   try {const u=new URL(String(value||''));return u.protocol==='https:'&&!/(^|\.)unsplash\.com$/i.test(u.hostname)?u.href:'';} catch{return '';}
 }
+export function publicOfferImage(item: {image_url?: string | null; media_status?: string | null; metadata?: any}, merchant?: {hero_image_url?: string | null; image_rights_status?: string | null}) {
+  if (item.metadata?.image_unavailable || item.metadata?.image_review_hold) return '';
+  const merchantImage = ['merchant_authorised','licensed'].includes(merchant?.image_rights_status || '') ? merchant?.hero_image_url : '';
+  return approvedImage((item.media_status === 'permission_required' ? '' : item.image_url) || merchantImage);
+}
 export function directoryVisible(m: any) {return Boolean(m)&&m.permanent_listing===true&&m.directory_status!=='removed';}
 export function eventEnded(item: {kind?: string; ends_at?: string | null}, now = new Date()) {
   if (item.kind !== 'event' || !item.ends_at) return false;
