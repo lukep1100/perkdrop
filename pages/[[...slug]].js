@@ -177,7 +177,7 @@ export default function Shell({ deal, venue, canonicalPath, expiredDeal = false,
         h("p", {role:"status"}, "Loading live availability…"),
       ),
     ),
-    h("script", { src: "/app.js?v=v36-free-standard", type:"module" }),
+    h("script", { src: "/app.js?v=v37-merchant-location", type:"module" }),
   );
 }
 export async function getServerSideProps({ params, resolvedUrl, req, res }) {
