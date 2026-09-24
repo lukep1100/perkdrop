@@ -798,7 +798,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
   function mapPage() {
     const xs = mapEntries(), pins=xs.filter(mapped), missing=xs.length-pins.length;
     const offers=xs.filter(x=>!x.business).flatMap(x=>x.offers||[]);
-    return shell('<main class="page map-page map-discover-page">'+searchBox(state.query)+chips()+'<section class="map-heading"><div><div class="eyebrow">EXPLORE YOUR AREA</div><h1>See what’s nearby</h1></div><div class="view-switch"><a data-internal href="/near-me">List</a><span>⌖ Map</span></div></section><div class="map-toolbar"><button id="map-location" class="btn primary">⌖ Near me</button><label class="map-filter-label">Show <select id="map-filter"><option value="all" '+(state.mapFilter==='all'?'selected':'')+'>Everything</option><option value="offers" '+(state.mapFilter==='offers'?'selected':'')+'>Offers</option></select></label></div><p class="muted map-legend">'+pins.length+' places on the map'+(missing?' · '+missing+' still need a confirmed pin.':'')+'</p>'+(state.directoryError?'<p role="status">Business listings could not load. Current offers are still shown.</p>':'')+'<div class="mapbox"><div id="perk-map" aria-label="Map of deals and businesses"><p role="status">Loading map…</p></div></div>'+(!xs.length?'<div class="empty">No matches in this area. Clear your search or choose another city.</div>':offers.length?'<section class="map-nearby"><div class="section-head"><div><div class="eyebrow">FROM THE MAP</div><h2>Nearby deals</h2></div><a data-internal href="/near-me">List view</a></div><div class="deal-rail map-deal-rail">'+offers.slice(0,12).map(card).join('')+'</div></section>':'')+'</main>','map');
+    return shell('<main class="page map-page map-discover-page">'+searchBox(state.query)+chips()+'<section class="map-heading"><div><div class="eyebrow">EXPLORE YOUR AREA</div><h1>See what’s nearby</h1></div><div class="view-switch"><a data-internal href="/near-me">List</a><span>⌖ Map</span></div></section><div class="map-toolbar"><button id="map-location" class="btn primary">⌖ Near me</button><label class="map-filter-label">Show <select id="map-filter"><option value="all" '+(state.mapFilter==='all'?'selected':'')+'>Everything</option><option value="offers" '+(state.mapFilter==='offers'?'selected':'')+'>Offers</option></select></label></div><p class="muted map-legend">'+pins.length+' places on the map · pins spread slightly when nearby places overlap'+(missing?' · '+missing+' still need a confirmed pin.':'')+'</p>'+(state.directoryError?'<p role="status">Business listings could not load. Current offers are still shown.</p>':'')+'<div class="mapbox"><div id="perk-map" aria-label="Map of deals and businesses"><p role="status">Loading map…</p></div></div>'+(!xs.length?'<div class="empty">No matches in this area. Clear your search or choose another city.</div>':offers.length?'<section class="map-nearby"><div class="section-head"><div><div class="eyebrow">FROM THE MAP</div><h2>Nearby deals</h2></div><a data-internal href="/near-me">List view</a></div><div class="deal-rail map-deal-rail">'+offers.slice(0,12).map(card).join('')+'</div></section>':'')+'</main>','map');
   }
   function venuePage(b) {
     const offers=state.deals.filter(d=>d.merchantId===b.id);
@@ -840,14 +840,16 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     const f = L.featureGroup().addTo(m);
     const overlapping=new Map();
     for(const d of mapEntries().filter(mapped)) {
-      const key=d.latitude+':'+d.longitude;
+      // A city-centre postcode can put several separately valid venues within a few metres.
+      // Spread their display pins while preserving each listing's real coordinate for directions.
+      const key=Math.round(d.latitude*1000)+':'+Math.round(d.longitude*1000);
       if(!overlapping.has(key)) overlapping.set(key,[]);
       overlapping.get(key).push(d);
     }
     for(const group of overlapping.values()) {
       group.forEach((d,index)=>{
         // Show each place separately instead of hiding several venues under a numbered cluster.
-        const count=group.length, angle=(Math.PI*2*index)/Math.max(count,1), radius=count>1?0.00042:0;
+        const count=group.length, angle=(Math.PI*2*index)/Math.max(count,1), ring=Math.floor(index/6)+1, radius=count>1?0.0005*ring:0;
         const lat=d.latitude+Math.sin(angle)*radius, lng=d.longitude+Math.cos(angle)*radius;
         const body=d.business?'<div class="popup"><h3>'+esc(d.merchant)+'</h3><p>'+esc(d.location)+'</p><p>Business listing · No active offer</p><a data-internal href="/venues/'+encodeURIComponent(d.slug)+'">View business</a> · <a target="_blank" rel="noopener" href="'+esc(navUrl(d))+'">Directions</a></div>':d.offers.map(popup).join('');
         L.marker([lat,lng],{icon:pin(d),title:d.merchant})
