@@ -1024,7 +1024,10 @@ a {
 .deal-rail .merchant-line{font-size:11px;color:#dcdfe7}
 .deal-rail .deal-card h3{font-size:16px;line-height:1.24;margin:5px 0 6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .deal-rail .meta{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.photo-credit-compact{display:none}
 .deal-rail .merchant-status,.deal-rail .freshness,.deal-rail .card-condition,.deal-rail .fulfilment,.deal-rail .photo-credit,.deal-rail .spots{display:none}
+.deal-rail .photo-credit-compact{display:block;position:absolute;z-index:7;top:60px;left:12px;right:58px;padding:0;color:#fff;font-size:9px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 4px rgba(0,0,0,.82)}
+.deal-rail .photo-credit-compact a{color:inherit;text-decoration:underline;text-underline-offset:2px}
 .card-image--pending{background:radial-gradient(circle at 78% 18%,rgba(255,77,184,.42),transparent 27%),radial-gradient(circle at 15% 85%,rgba(108,59,255,.47),transparent 35%),#16131f!important}
 .card-image--pending>img{opacity:0}
 .photo-pending{position:absolute;z-index:2;inset:0;display:flex;align-items:center;justify-content:center;padding:22px;text-align:center;color:#f1eafa;font-size:11px;font-weight:800;letter-spacing:.2px}
