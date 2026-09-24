@@ -13,7 +13,8 @@ export function publicOfferImage(item: {image_url?: string | null; media_status?
   // pending/rejected/revoked asset must never leak via a stale catalogue row.
   if (item.metadata?.merchant_media_asset_id && item.metadata?.media_review_status !== 'approved') return '';
   const merchantImage = ['merchant_authorised','licensed'].includes(merchant?.image_rights_status || '') ? merchant?.hero_image_url : '';
-  return approvedImage((item.media_status === 'permission_required' ? '' : item.image_url) || merchantImage);
+  const itemImage = ['approved','licensed','merchant_authorised','placeholder'].includes(item.media_status || '') ? item.image_url : '';
+  return approvedImage(itemImage || merchantImage);
 }
 export function directoryVisible(m: any) {return Boolean(m)&&m.permanent_listing===true&&m.directory_status!=='removed';}
 export function eventEnded(item: {kind?: string; ends_at?: string | null}, now = new Date()) {
