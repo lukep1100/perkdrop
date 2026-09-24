@@ -160,7 +160,7 @@ export default function Shell({ deal, venue, canonicalPath, expiredDeal = false,
       }),
       h("link", {
         rel: "stylesheet",
-        href: "/styles.css?v=v38-discovery-refresh",
+        href: "/styles.css?v=v39-venue-rails",
       }),
     ),
     h(
@@ -177,7 +177,7 @@ export default function Shell({ deal, venue, canonicalPath, expiredDeal = false,
         h("p", {role:"status"}, "Loading live availability…"),
       ),
     ),
-    h("script", { src: "/app.js?v=v38-discovery-refresh", type:"module" }),
+    h("script", { src: "/app.js?v=v39-venue-rails", type:"module" }),
   );
 }
 export async function getServerSideProps({ params, resolvedUrl, req, res }) {

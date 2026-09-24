@@ -1,8 +1,8 @@
-import { availabilityMatches, freshness, scheduleLabel, selectedAvailability, localClock } from '/availability.mjs?v=v38-discovery-refresh';
-import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfilmentLabel, localDate, searchMatches } from '/discovery-rules.mjs?v=v38-discovery-refresh';
+import { availabilityMatches, freshness, scheduleLabel, selectedAvailability, localClock } from '/availability.mjs?v=v39-venue-rails';
+import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfilmentLabel, localDate, searchMatches } from '/discovery-rules.mjs?v=v39-venue-rails';
 (() => {
   "use strict";
-  const VERSION = "v38-discovery-refresh";
+  const VERSION = "v39-venue-rails";
   const API =
     "https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-catalogue-api?limit=200";
   const SUBMIT =
