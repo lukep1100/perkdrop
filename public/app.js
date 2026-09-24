@@ -638,10 +638,34 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
   function discoveryRank(d) {
     return (d.featured ? 40 : 0) + (hasPhoto(d) ? 20 : 0) + (d.capacityRemaining != null ? 8 : 0) + (availabilityMatches(d, 'tonight') ? 6 : 0) + (freshness(d).state === 'recent' ? 4 : 0);
   }
+  function venueGroups(items) {
+    const groups=new Map();
+    for(const d of items){
+      const key=String(d.merchantId||'')||[d.merchant,d.location,d.city].map(x=>String(x||'').trim().toLowerCase()).join('|');
+      if(!groups.has(key))groups.set(key,[]);
+      groups.get(key).push(d);
+    }
+    return [...groups.values()].map(offers=>{
+      const ordered=[...offers].sort((a,b)=>discoveryRank(b)-discoveryRank(a));
+      return {primary:ordered[0],offers:ordered};
+    }).sort((a,b)=>discoveryRank(b.primary)-discoveryRank(a.primary));
+  }
+  function venueHref(d){
+    const business=state.businesses.find(b=>String(b.id)===String(d.merchantId));
+    const slug=business?.slug||d.merchantSlug;
+    return slug?'/venues/'+encodeURIComponent(slug):route(d);
+  }
+  function venueRailCard(group){
+    const d=group.primary,t=type(d),count=group.offers.length;
+    const titles=group.offers.slice(0,2).map(x=>'<span>'+esc(x.title)+'</span>').join('');
+    const more=count>2?'<span>+'+(count-2)+' more current Drop'+(count-2===1?'':'s')+'</span>':'';
+    const heading=count===1?d.title:count+' current Drops';
+    return `<article class="deal-card venue-rail-card ${d.imageFit==='contain'?'poster-card':''}"><a class="card-link" data-internal href="${esc(venueHref(d))}">${photoFrame(d)}<span class="badge">${count===1?esc(badge(d)):count+' TO EXPLORE'}</span><span class="type-pill type-${t[0]}">${t[1]} ${count===1?t[2]:'Venue'}</span><div class="card-body"><div class="merchant-line"><span>${esc(d.merchant)}</span><span class="distance">${esc(distLabel(d))}</span></div><h3>${esc(heading)}</h3>${count>1?'<div class="venue-offer-lines">'+titles+more+'</div>':'<div class="meta">'+esc(scheduleLabel(d))+'</div>'}</div></a>${photoCredit(d)}${photoCredit(d,true)}<button class="save" aria-label="Save ${esc(d.merchant)}" data-save="${esc(d.id)}">${state.saved.includes(d.id)?'♥':'♡'}</button></article>`;
+  }
   function dealRail(title, items, href, eyebrow = "DISCOVER") {
-    const picks = [...items].sort((a, b) => discoveryRank(b) - discoveryRank(a)).slice(0, 12);
+    const picks=venueGroups(items).slice(0,12);
     if (!picks.length) return "";
-    return `<section class="discover-section"><div class="section-head"><div><div class="eyebrow">${esc(eyebrow)}</div><h2>${esc(title)}</h2></div><a data-internal href="${esc(href)}">See all</a></div><div class="deal-rail" role="region" aria-label="${esc(title)}">${picks.map(card).join("")}</div></section>`;
+    return `<section class="discover-section"><div class="section-head"><div><div class="eyebrow">${esc(eyebrow)}</div><h2>${esc(title)}</h2></div><a data-internal href="${esc(href)}">See all</a></div><div class="deal-rail" role="region" aria-label="${esc(title)}">${picks.map(venueRailCard).join("")}</div></section>`;
   }
   function searchPage() {
     const xs = (state.query?state.deals:cityDeals()).filter(d => searchMatches(text(d) + " " + d.city + " " + d.state, state.query));
@@ -814,7 +838,8 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
   function mapPage() {
     const xs = mapEntries(), pins=xs.filter(mapped), missing=xs.length-pins.length;
     const offers=xs.filter(x=>!x.business).flatMap(x=>x.offers||[]);
-    return shell('<main class="page map-page map-discover-page">'+searchBox(state.query)+chips()+'<section class="map-heading"><div><div class="eyebrow">EXPLORE YOUR AREA</div><h1>See what’s nearby</h1></div><div class="view-switch"><a data-internal href="/near-me">List</a><span>⌖ Map</span></div></section><div class="map-toolbar"><button id="map-location" class="btn primary">⌖ Near me</button><label class="map-filter-label">Show <select id="map-filter"><option value="all" '+(state.mapFilter==='all'?'selected':'')+'>Everything</option><option value="offers" '+(state.mapFilter==='offers'?'selected':'')+'>Offers</option></select></label></div><p class="muted map-legend">'+pins.length+' places on the map · pins spread slightly when nearby places overlap'+(missing?' · '+missing+' still need a confirmed pin.':'')+'</p>'+(state.directoryError?'<p role="status">Business listings could not load. Current offers are still shown.</p>':'')+'<div class="mapbox"><div id="perk-map" aria-label="Map of deals and businesses"><p role="status">Loading map…</p></div></div>'+(!xs.length?'<div class="empty">No matches in this area. Clear your search or choose another city.</div>':offers.length?'<section class="map-nearby"><div class="section-head"><div><div class="eyebrow">FROM THE MAP</div><h2>Nearby deals</h2></div><a data-internal href="/near-me">List view</a></div><div class="deal-rail map-deal-rail">'+offers.slice(0,12).map(card).join('')+'</div></section>':'')+'</main>','map');
+    const groupedOffers=venueGroups(offers).slice(0,12);
+    return shell('<main class="page map-page map-discover-page">'+searchBox(state.query)+chips()+'<section class="map-heading"><div><div class="eyebrow">EXPLORE YOUR AREA</div><h1>See what’s nearby</h1></div><div class="view-switch"><a data-internal href="/near-me">List</a><span>⌖ Map</span></div></section><div class="map-toolbar"><button id="map-location" class="btn primary">⌖ Near me</button><label class="map-filter-label">Show <select id="map-filter"><option value="all" '+(state.mapFilter==='all'?'selected':'')+'>Everything</option><option value="offers" '+(state.mapFilter==='offers'?'selected':'')+'>Offers</option></select></label></div><p class="muted map-legend">'+pins.length+' places on the map · pins spread slightly when nearby places overlap'+(missing?' · '+missing+' still need a confirmed pin.':'')+'</p>'+(state.directoryError?'<p role="status">Business listings could not load. Current offers are still shown.</p>':'')+'<div class="mapbox"><div id="perk-map" aria-label="Map of deals and businesses"><p role="status">Loading map…</p></div></div>'+(!xs.length?'<div class="empty">No matches in this area. Clear your search or choose another city.</div>':groupedOffers.length?'<section class="map-nearby"><div class="section-head"><div><div class="eyebrow">FROM THE MAP</div><h2>Nearby places</h2></div><a data-internal href="/near-me">List view</a></div><div class="deal-rail map-deal-rail">'+groupedOffers.map(venueRailCard).join('')+'</div></section>':'')+'</main>','map');
   }
   function venuePage(b) {
     const offers=state.deals.filter(d=>d.merchantId===b.id);
