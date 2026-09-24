@@ -597,21 +597,35 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     const groups=mode==='tonight'?'<h2>Available now ('+now.length+')</h2><div class="grid">'+now.map(card).join('')+'</div><h2>Later tonight ('+later.length+')</h2><div class="grid">'+later.map(card).join('')+'</div>':'<div class="grid">'+items.map(card).join('')+'</div>';
     return shell('<main class="page"><section class="section"><div class="eyebrow">'+esc(CITIES[state.city]?.[0]||state.city)+'</div><h1>Make a plan</h1><p>Checked offer service times in the venue’s local time. Future results follow the currently recorded schedule, not a guarantee of availability. Booking, weather and listed conditions still apply.</p><label class="availability-filter">When? <select id="availability-filter">'+options.map(x=>'<option value="'+x[0]+'" '+(x[0]===mode?'selected':'')+'>'+x[1]+'</option>').join('')+'</select></label>'+(mode==='selected'?'<form id="selected-time-form" class="selected-time"><label>Date <input id="selected-date" type="date" required value="'+esc(date)+'"></label><label>Time <select id="selected-time">'+['17:00','18:00','19:00','20:00'].map(t=>'<option '+(t===time?'selected':'')+'>'+t+'</option>').join('')+'</select></label><button class="btn secondary">Check this time</button></form>':'')+'<p role="status">'+businesses+' distinct businesses · '+items.length+' offers · '+all.filter(d=>!d.availability?.windows?.length).length+' other listings have unconfirmed times.</p>'+groups+(!items.length?'<div class="empty"><h2>No confirmed options for this time</h2><p>We won’t guess service hours. Try another day, or browse food deals and check directly with the venue.</p><a class="btn secondary" data-internal href="/food">Browse food deals</a></div>':'')+'</section></main>');
   }
-  function photoCredit(d){const p=d.imageCredit;if(!p||image(d)===PLACEHOLDER)return '';const link=(url,label)=>/^https:\/\//.test(url||'')?'<a target="_blank" rel="noopener noreferrer" href="'+esc(url)+'">'+esc(label)+'</a>':esc(label);return '<div class="photo-credit">'+esc(p.caption||'')+' '+link(p.source,'Photo source')+(p.licenseUrl?' · '+link(p.licenseUrl,p.license||'Licence'):'')+'</div>';}
-  function hasPhoto(d) {
-    const src = image(d);
-    return Boolean(src) && src !== PLACEHOLDER && !src.endsWith('/images/venue-unavailable.svg');
+  const pilotVenuePhotos={
+    'Art Gallery of South Australia':{src:'/images/pilot/agsa-2026.jpg',alt:'Art Gallery of South Australia entrance',credit:{caption:'Yu Chu Chin (Pangalau), Art Gallery of South Australia entrance, 27 Mar 2026.',source:'https://commons.wikimedia.org/wiki/File:Main_entrance_of_the_Art_Gallery_of_South_Australia_(DSCF3673).jpg',license:'CC BY-SA 4.0',licenseUrl:'https://creativecommons.org/licenses/by-sa/4.0/'}},
+    'South Australian Museum':{src:'/images/pilot/sa-museum-2011.jpg',alt:'South Australian Museum entrance',credit:{caption:'David Hearle, South Australian Museum entrance, 27 Jan 2011.',source:'https://commons.wikimedia.org/wiki/File:South_Australia_museum_1.jpg',license:'CC BY 2.0',licenseUrl:'https://creativecommons.org/licenses/by/2.0/'}}
+  };
+  function rawPhoto(d){const src=image(d);return src&&src!==PLACEHOLDER&&!src.endsWith('/images/venue-unavailable.svg')?{src,alt:d.imageUrl?.includes('perkdrop-union-slideshow')?'Food at Union Hotel, Adelaide':d.imageAlt||d.title,credit:d.imageCredit||null}:null;}
+  function displayPhoto(d){
+    const direct=rawPhoto(d);
+    if(direct)return direct;
+    const pilot=pilotVenuePhotos[d.merchant];
+    if(pilot)return pilot;
+    if(d.merchant==='Adelaide Botanic Garden'){
+      const verified=state.deals.find(x=>x.id!==d.id&&x.merchant==='Adelaide Botanic Garden'&&rawPhoto(x));
+      if(verified){const photo=rawPhoto(verified);return {...photo,alt:d.imageAlt||'Adelaide Botanic Garden'};}
+    }
+    return null;
   }
+  function photoCredit(d,compact=false){const p=displayPhoto(d)?.credit;if(!p)return '';const link=(url,label)=>/^https:\/\//.test(url||'')?'<a target="_blank" rel="noopener noreferrer" href="'+esc(url)+'">'+esc(label)+'</a>':esc(label);if(compact){const byline=String(p.caption||'Photo credit').split(',')[0].trim();return '<div class="photo-credit photo-credit-compact">'+link(p.source,byline)+(p.licenseUrl?' · '+link(p.licenseUrl,p.license||'Licence'):'')+'</div>';}return '<div class="photo-credit">'+esc(p.caption||'')+' '+link(p.source,'Photo source')+(p.licenseUrl?' · '+link(p.licenseUrl,p.license||'Licence'):'')+'</div>';}
+  function hasPhoto(d){return Boolean(displayPhoto(d));}
   function photoFrame(d) {
-    const src = image(d);
-    const unavailable = !hasPhoto(d);
-    const alt = unavailable ? "Venue photo is being verified" : d.imageUrl?.includes("perkdrop-union-slideshow") ? "Food at Union Hotel, Adelaide" : d.imageAlt || d.title;
+    const photo=displayPhoto(d);
+    const unavailable=!photo;
+    const src=photo?.src||PLACEHOLDER;
+    const alt=photo?.alt||'Venue photo is being verified';
     return `<div class="card-image ${unavailable ? "card-image--pending" : ""}"><img loading="lazy" decoding="async" src="${esc(src)}" alt="${esc(alt)}">${unavailable ? '<div class="photo-pending"><span>Real photo being verified</span></div>' : ""}<div class="shade"></div></div>`;
   }
   function card(d) {
     const t = type(d),
       dist = distLabel(d);
-    return `<article class="deal-card ${d.imageFit==='contain'?'poster-card':''}"><a class="card-link" data-internal href="${esc(route(d))}">${photoFrame(d)}<span class="badge">${esc(badge(d))}</span><span class="type-pill type-${t[0]}">${t[1]} ${t[2]}</span><div class="card-body"><div class="merchant-line"><span>${esc(d.merchant)}</span><span class="distance">${esc(dist)}</span></div>${mBadge(d)}<h3>${esc(d.title)}</h3><div class="meta">${esc(scheduleLabel(d))}</div><div class="meta freshness">${esc(freshness(d).label)}</div><div class="card-condition">${esc(d.conditions || "Check conditions with the venue")}</div>${d.capacityRemaining != null ? `<div class="spots ${Number(d.capacityRemaining) <= 5 ? "urgent" : ""}">${Number(d.capacityRemaining) <= 0 ? "SOLD OUT" : `${esc(d.capacityRemaining)} ${unitLabel(d)} LEFT`}</div>` : ""}</div></a>${photoCredit(d)}<button class="save" aria-label="Save ${esc(d.title)}" data-save="${esc(d.id)}">${state.saved.includes(d.id) ? "♥" : "♡"}</button></article>`;
+    return `<article class="deal-card ${d.imageFit==='contain'?'poster-card':''}"><a class="card-link" data-internal href="${esc(route(d))}">${photoFrame(d)}<span class="badge">${esc(badge(d))}</span><span class="type-pill type-${t[0]}">${t[1]} ${t[2]}</span><div class="card-body"><div class="merchant-line"><span>${esc(d.merchant)}</span><span class="distance">${esc(dist)}</span></div>${mBadge(d)}<h3>${esc(d.title)}</h3><div class="meta">${esc(scheduleLabel(d))}</div><div class="meta freshness">${esc(freshness(d).label)}</div><div class="card-condition">${esc(d.conditions || "Check conditions with the venue")}</div>${d.capacityRemaining != null ? `<div class="spots ${Number(d.capacityRemaining) <= 5 ? "urgent" : ""}">${Number(d.capacityRemaining) <= 0 ? "SOLD OUT" : `${esc(d.capacityRemaining)} ${unitLabel(d)} LEFT`}</div>` : ""}</div></a>${photoCredit(d)}${photoCredit(d,true)}<button class="save" aria-label="Save ${esc(d.title)}" data-save="${esc(d.id)}">${state.saved.includes(d.id) ? "♥" : "♡"}</button></article>`;
   }
   function listPage(k, title, eye = "PERKDROP") {
     const xs = list(k),
@@ -718,7 +732,8 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     const t = type(d),
       saved = state.saved.includes(d.id),
       cap = Boolean(d.redemptionAvailable),
-      visual = hasPhoto(d) ? `<img src="${esc(image(d))}" alt="${esc(d.imageAlt||d.title)}">` : '<div class="detail-photo-pending"><span>Real photo being verified</span><small>PerkDrop only shows venue and event imagery that has been cleared for use.</small></div>';
+      photo = displayPhoto(d),
+      visual = photo ? `<img src="${esc(photo.src)}" alt="${esc(photo.alt)}">` : '<div class="detail-photo-pending"><span>Real photo being verified</span><small>PerkDrop only shows venue and event imagery that has been cleared for use.</small></div>';
     document.title = `${d.title} | PerkDrop`;
     return `<div class="app-shell"><main class="detail"><section class="detail-hero ${d.imageFit==='contain'?'poster-hero':''}"><button id="back-btn" class="back" aria-label="Go back">←</button>${visual}<div class="detail-title"><span class="badge static">${esc(badge(d))}</span><span class="detail-type type-${t[0]}">${t[1]} ${t[2]}</span><h1>${esc(d.title)}</h1><div>${esc(d.merchant)}</div></div></section><div class="detail-body">${photoCredit(d)}<div class="detail-tools"><button class="tool-btn" data-save="${esc(d.id)}">${saved ? "♥ Saved" : "♡ Save"}</button><button id="share-drop" class="tool-btn">↗ Share</button></div><div class="facts">📍 ${esc(d.location || "Check venue location")}<br>◷ ${esc(d.timing || "Check availability")}<br>${esc(freshness(d).label)}</div>${d.merchantSlug?'<p><a data-internal href="/venues/'+encodeURIComponent(d.merchantSlug)+'">View '+esc(d.merchant)+' business profile →</a></p>':''}${reportLink(d.id,d.merchantId)}${d.availability?.notes?`<p class="availability-note">${esc(d.availability.notes)}</p>`:""}${cap ? capacity(d) : trust(d)}<p>${esc(d.description)}</p><div class="catch"><b>THE CATCH</b><br>${esc(d.conditions || "Check the official source before travelling, booking or paying.")}</div>${mapped(d) ? '<div id="detail-map" class="detail-map"></div>' : ""}${cap ? "" : `<div class="detail-cta"><a id="official-cta" class="btn primary" target="_blank" rel="noopener" href="${esc(d.goUrl || d.source || d.officialSource)}">${d.offerVerification==='business_approved'?'View approved offer →':'View offer at source →'}</a><a id="nav-cta" class="btn secondary" target="_blank" rel="noopener" href="${esc(navUrl(d))}">⌖ Navigate</a></div>`}</div></main>${footer()}${nav(isFood(d) ? "food" : isFree(d) ? "free" : "home")}</div>`;
   }
@@ -764,7 +779,8 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
   }
   function popup(d) {
     const t = type(d);
-    const visual=hasPhoto(d)?`<img loading="lazy" src="${esc(image(d))}" alt="${esc(d.imageAlt||d.title)}">`:'<div class="popup-photo-pending">Real photo being verified</div>';
+    const photo=displayPhoto(d);
+    const visual=photo?`<img loading="lazy" src="${esc(photo.src)}" alt="${esc(photo.alt)}">`:'<div class="popup-photo-pending">Real photo being verified</div>';
     return `<div class="popup ${d.imageFit==='contain'?'poster-popup':''}">${visual}<span class="type-${t[0]}">${t[1]} ${t[2]}</span><h3>${esc(d.title)}</h3><b>${esc(d.merchant)}</b>${photoCredit(d)}<p>${esc(d.timing || "")}</p><a data-internal href="${esc(route(d))}">View Drop</a> · <a target="_blank" href="${esc(navUrl(d))}">Navigate</a></div>`;
   }
   function pin(d) {
