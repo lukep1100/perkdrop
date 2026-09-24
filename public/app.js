@@ -2,7 +2,7 @@ import { availabilityMatches, freshness, scheduleLabel, selectedAvailability, lo
 import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfilmentLabel, localDate, searchMatches } from '/discovery-rules.mjs?v=v39-venue-rails';
 (() => {
   "use strict";
-  const VERSION = "v42-release-core";
+  const VERSION = "v43-image-led-home";
   const API =
     "https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-catalogue-api?limit=500";
   const SUBMIT =
@@ -731,7 +731,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
   function photoFallback(d) {
     const t = type(d);
     const initial = clean(d.merchant || d.title).charAt(0).toUpperCase() || "P";
-    return `<div class="card-image card-image--no-photo"><div class="card-image-fallback"><span class="fallback-mark">${esc(initial)}</span><span class="fallback-type">${esc(t[2])}</span><span class="fallback-note">Local guide</span></div><div class="shade"></div></div>`;
+    return `<div class="card-image card-image--no-photo"><div class="card-image-fallback"><span class="fallback-orbit" aria-hidden="true"></span><span class="fallback-mark">${esc(initial)}</span><span class="fallback-type">${esc(t[2])}</span><span class="fallback-note">Photo being sourced</span></div><div class="shade"></div></div>`;
   }
   function photoFrame(d) {
     const photo=displayPhoto(d);
@@ -1578,7 +1578,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     const weekendPlaces=new Set(venueGroups(weekendPicks).map(group=>placeKey(group.primary)));
     const eventPicks=events.filter(d=>!primaryPlaces.has(placeKey(d))&&!weekendPlaces.has(placeKey(d)));
     const mapCard=`<a data-internal class="map-shortcut" href="/map"><span class="map-shortcut-icon">⌖</span><span><small>SEE IT ON THE MAP</small><b>Places, events and perks near you</b><em>Open the live map before you decide where to go</em></span><i>→</i></a>`;
-    const planner=`<section class="discover-intro"><div class="discover-kicker"><span class="live-dot" aria-hidden="true"></span><span>${esc(city).toUpperCase()} SHORTLIST</span><span class="kicker-divider" aria-hidden="true"></span><span>LOCAL IDEAS, WITHOUT THE ENDLESS SCROLL</span></div><div class="discover-copy"><div><h1>What’s worth doing<br><strong>near you?</strong></h1><p><strong>Check PerkDrop before you make plans.</strong><br>Food, events, things to do, family plans and genuine local perks — all in one simple local guide.</p></div><div class="plan-pills" aria-label="Quick ways to browse"><a data-internal href="/tonight">Tonight</a><a data-internal href="/weekend">This weekend</a><a data-internal href="/near-me">Near me</a></div></div>${searchBox('',`Search ${city} — food, events, places or ideas`)}<div class="home-actions"><a href="/near-me" id="home-use-location">Use my location</a><a href="/preferences">Tune your local guide</a><a data-internal href="/map">Explore the map <span aria-hidden="true">→</span></a></div>${chips()}</section>`;
+    const planner=`<section class="discover-intro"><div class="discover-kicker"><span class="live-dot" aria-hidden="true"></span><span>${esc(city).toUpperCase()} SHORTLIST</span><span class="kicker-divider" aria-hidden="true"></span><span>NEW IDEAS, CLEAR DETAILS</span></div><div class="discover-copy"><div><h1>Find your next<br><strong>good plan.</strong></h1><p>Food, events, things to do, family plans and genuine local perks — before you decide where to go.</p></div><div class="plan-pills" aria-label="Quick ways to browse"><a data-internal href="/tonight"><span>✦</span>Tonight</a><a data-internal href="/weekend"><span>◷</span>This weekend</a><a data-internal href="/near-me"><span>⌖</span>Near me</a></div></div>${searchBox('',`Search ${city} — food, events, places or ideas`)}<div class="home-actions"><a href="/near-me" id="home-use-location">⌖ Use my location</a><a href="/preferences">Tune my guide</a><a data-internal href="/map">Explore map <span aria-hidden="true">→</span></a></div>${chips()}</section>`;
     const explainer=`<section class="perks-explainer"><div><div class="eyebrow">ONE LOCAL GUIDE</div><h2>One place to check before you go.</h2></div><p>PerkDrop brings together the good local stuff: somewhere to eat, something to do, an event to catch, a family plan or a worthwhile perk — with the key details clear before you make a decision.</p></section>`;
     const businessCta=`<a class="business-cta" data-internal href="/business"><span>FOR LOCAL BUSINESSES</span><b>Own a local business? Add your first perk free</b><i>→</i></a>`;
     const personalRail=hasPreferences()&&personal.length?dealRail('Picked for your local guide',personal,'/preferences','FOR YOU'):'<section class="discover-section"><div class="section-head"><div><div class="eyebrow">MAKE IT YOURS</div><h2>Set the kinds of plans you actually want.</h2></div><a href="/preferences">Personalise <span aria-hidden="true">→</span></a></div></section>';

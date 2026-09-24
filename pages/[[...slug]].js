@@ -160,7 +160,7 @@ export default function Shell({ deal, venue, canonicalPath, expiredDeal = false,
       }),
       h("link", {
         rel: "stylesheet",
-        href: "/styles.css?v=v42-release-core",
+        href: "/styles.css?v=v43-image-led-home",
       }),
     ),
     h(
@@ -177,7 +177,7 @@ export default function Shell({ deal, venue, canonicalPath, expiredDeal = false,
         h("p", {role:"status"}, "Loading live availability…"),
       ),
     ),
-    h("script", { src: "/app.js?v=v42-release-core", type:"module" }),
+    h("script", { src: "/app.js?v=v43-image-led-home", type:"module" }),
   );
 }
 export async function getServerSideProps({ params, resolvedUrl, req, res }) {
