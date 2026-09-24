@@ -2,7 +2,7 @@ import { availabilityMatches, freshness, scheduleLabel, selectedAvailability, lo
 import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfilmentLabel, localDate, searchMatches } from '/discovery-rules.mjs?v=v39-venue-rails';
 (() => {
   "use strict";
-  const VERSION = "v39-venue-rails";
+  const VERSION = "v41-local-guide";
   const API =
     "https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-catalogue-api?limit=200";
   const SUBMIT =
@@ -12,6 +12,11 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
   const REDEEM =
     "https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-redeem";
   const UNION = "/deals/union-hotel-20-off-lunch";
+  // Keep a short-lived, last-known-good catalogue for brief network/API outages.
+  // Availability is time-sensitive, so this is deliberately not an indefinite offline cache.
+  const CATALOGUE_CACHE_KEY = "perkdrop_catalogue_cache_v1";
+  const CATALOGUE_CACHE_MAX_AGE_MS = 6 * 60 * 60 * 1000;
+  const CATALOGUE_CACHE_MAX_ITEMS = 250;
   const CITIES = {
     adelaide: ["Adelaide", "SA", -34.9285, 138.6007],
     sydney: ["Sydney", "NSW", -33.8688, 151.2093],
@@ -96,6 +101,9 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     query: qs.get("q") || "",
     loading: true,
     error: "",
+    catalogueStale: null,
+    catalogueRetrying: false,
+    catalogueRetryError: false,
     map: null,
     party: 1,
     locationOpen: false,
@@ -222,6 +230,38 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
       actionType: x.actionType || x.action_type || "redemption_code",
     }));
   }
+  function catalogueRows(payload) {
+    const rows = Array.isArray(payload) ? payload : payload?.deals;
+    if (!Array.isArray(rows)) throw Error("Invalid catalogue response");
+    return rows;
+  }
+  function applyCatalogue(rows) {
+    state.deals = norm(rows).map(enrich);
+  }
+  function cacheCatalogue(rows) {
+    if (!Array.isArray(rows) || rows.length > CATALOGUE_CACHE_MAX_ITEMS) return;
+    store.set(
+      CATALOGUE_CACHE_KEY,
+      JSON.stringify({ savedAt: Date.now(), deals: rows }),
+    );
+  }
+  function cachedCatalogue() {
+    const cached = store.json(CATALOGUE_CACHE_KEY, null);
+    if (!cached || !Array.isArray(cached.deals) || cached.deals.length > CATALOGUE_CACHE_MAX_ITEMS)
+      return null;
+    const savedAt = Number(cached.savedAt);
+    const age = Date.now() - savedAt;
+    if (!Number.isFinite(savedAt) || age < -60 * 1000 || age > CATALOGUE_CACHE_MAX_AGE_MS)
+      return null;
+    return { savedAt, deals: cached.deals };
+  }
+  function catalogueAge(savedAt) {
+    const minutes = Math.max(0, Math.floor((Date.now() - savedAt) / 60000));
+    if (minutes < 1) return "just now";
+    if (minutes < 60) return `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
+    const hours = Math.floor(minutes / 60);
+    return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+  }
   const UNIT_LABELS = {
     diner: "DINERS",
     person: "PEOPLE",
@@ -288,11 +328,15 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     return `${d.title} ${d.merchant} ${d.description} ${d.location} ${d.category} ${d.kind} ${d.cuisine} ${d.venueType} ${d.timing}`.toLowerCase();
   }
   const isFood = (d) =>
-    /\b(food|restaurant|burgers?|pizzas?|schnitzels?|meals?|caf[eé]|dining|pasta|kitchen|bakery|seafood|eat)\b/.test(
-      text(d),
+    d.vertical === "food" ||
+    /\b(food|restaurant|burgers?|pizzas?|schnitzels?|meals?|caf[eé]|dining|pasta|kitchen|bakery|seafood)\b/.test(
+      `${d.category} ${d.cuisine} ${d.venueType}`.toLowerCase(),
     );
   const isDrink = (d) =>
-    /drink|cocktail|bar|pub|beer|wine|happy hour|hotel pub/.test(text(d));
+    d.vertical === "drinks" ||
+    /drink|cocktail|bar|pub|beer|wine|happy hour|hotel pub/.test(
+      `${d.category} ${d.cuisine} ${d.venueType}`.toLowerCase(),
+    );
   const isEvent = (d) =>
     String(d.kind).toLowerCase() === "event" ||
     /event|festival|exhibition|market|concert|performance|show|cinema/.test(
@@ -430,10 +474,23 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
         ? `${km.toFixed(1)} km`
         : `${Math.round(km)} km`;
   }
+  const cityKey = (value) =>
+    String(value || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
+  const placePart = (value) =>
+    String(value || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
   function cityDeals() {
-    return state.deals.filter(
-      (d) => d.city === state.city || d.city === "australia-wide",
-    );
+    return state.deals.filter((d) => {
+      const city = cityKey(d.city);
+      return city === state.city || city === "australia-wide";
+    });
   }
   function dealFromRoute() {
     if (!state.route.startsWith("/deals/")) return null;
@@ -444,6 +501,12 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
         (d) => d.slug === slug || d.id === slug || route(d) === state.route,
       ) || null
     );
+  }
+  function placeFromRoute() {
+    if (!state.route.startsWith("/places/")) return null;
+    let key;
+    try { key = decodeURIComponent(state.route.split("/").slice(2).join("/")); } catch { return null; }
+    return venueGroups(state.deals).find(group => placeKey(group.primary) === key) || null;
   }
   function ending(d) {
     if (!d.end) return false;
@@ -536,15 +599,14 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
   function nav(active) {
     const xs = [
       ["home", "⌂", "Home", "/"],
-      ["food", "🍴", "Food", "/food"],
+      ["explore", "⌕", "Explore", "/search"],
       ["map", "⌖", "Map", "/map"],
-      ["free", "✦", "Free", "/free"],
       ["saved", "♡", "Saved", "/my-perks?tab=saved"],
     ];
     return `<nav class="bottom-nav">${xs.map((x) => `<a data-internal href="${x[3]}" class="${active === x[0] ? "on" : ""}"><b>${x[1]}</b>${x[2]}</a>`).join("")}</nav>`;
   }
   function footer() {
-    return `<footer class="site-footer"><div class="footer-grid"><div><a class="footer-brand" data-internal href="/">${brand()}</a><p>Deals worth knowing about. Food, drinks, events, experiences and freebies — with the catch explained.</p><div class="socials"><a target="_blank" rel="noopener" href="https://www.instagram.com/perkdropofficial/">Instagram</a><a target="_blank" rel="noopener" href="https://www.tiktok.com/@perkdrop8">TikTok</a><a target="_blank" rel="noopener" href="https://www.facebook.com/perkdrop">Facebook</a></div></div><div><b>Discover</b><a data-internal href="/food">Food</a><a data-internal href="/events">Events</a><a data-internal href="/map">Map</a><a data-internal href="/about">About</a></div><div><b>Business</b><a data-internal href="/business">Create a Drop</a><a href="/claim">Claim your business</a><a href="/merchant-floor">Business sign in</a></div></div><div class="footer-legal"><a data-internal href="/terms">Terms</a> · <a data-internal href="/privacy">Privacy</a> · <a data-internal href="/merchant-terms">Merchant Terms</a> · <a data-internal href="/verification">Verification</a> · <a data-internal href="/affiliate">Affiliate Disclosure</a> · <a data-internal href="/contact">Contact</a></div></footer>`;
+    return `<footer class="site-footer"><div class="footer-grid"><div><a class="footer-brand" data-internal href="/">${brand()}</a><p>Your local shortlist for food, things to do, events, experiences and genuine perks — with the details clear before you go.</p><div class="socials"><a target="_blank" rel="noopener" href="https://www.instagram.com/perkdropofficial/">Instagram</a><a target="_blank" rel="noopener" href="https://www.tiktok.com/@perkdrop8">TikTok</a><a target="_blank" rel="noopener" href="https://www.facebook.com/perkdrop">Facebook</a></div></div><div><b>Discover</b><a data-internal href="/food">Food</a><a data-internal href="/events">Events</a><a data-internal href="/map">Map</a><a data-internal href="/about">About</a></div><div><b>Business</b><a data-internal href="/business">Create a Drop</a><a href="/claim">Claim your business</a><a href="/merchant-floor">Business sign in</a></div></div><div class="footer-legal"><a data-internal href="/terms">Terms</a> · <a data-internal href="/privacy">Privacy</a> · <a data-internal href="/merchant-terms">Merchant Terms</a> · <a data-internal href="/verification">Verification</a> · <a data-internal href="/affiliate">Affiliate Disclosure</a> · <a data-internal href="/contact">Contact</a></div></footer>`;
   }
   function locationMenu() {
     return `<div class="location-menu" id="location-overlay"><div class="location-sheet" role="dialog" aria-modal="true" aria-labelledby="location-title"><button id="close-location" class="tool-btn" aria-label="Close location chooser">Close ✕</button><h3 id="location-title">Choose your area</h3><button id="use-location" class="btn primary">⌖ Use my live location</button><div class="city-grid">${Object.entries(
@@ -556,30 +618,55 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
       )
       .join("")}</div></div></div>`;
   }
-  function shell(content, active = "home") {
-    const savedCount = state.saved.length ? `<span class="saved-count">${state.saved.length > 9 ? "9+" : state.saved.length}</span>` : "";
-    return `<div class="app-shell"><header class="topbar"><div class="topbar-inner"><a class="wordmark" data-internal href="/">${brand()}</a><div class="topbar-actions"><button id="location-pill" class="location-pill"><i></i>${esc(CITIES[state.city]?.[0] || state.city)}⌄</button><a class="saved-top" data-internal href="/my-perks?tab=saved" aria-label="Saved Drops">♡${savedCount}</a></div></div></header>${content}${footer()}${nav(active)}${state.locationOpen ? locationMenu() : ""}</div>`;
+  function catalogueNotice() {
+    if (!state.catalogueStale) return "";
+    const offline = navigator.onLine === false;
+    const heading = offline
+      ? "You’re offline."
+      : "The live catalogue is temporarily unavailable.";
+    const retry = state.catalogueRetrying
+      ? "Refreshing…"
+      : "Retry live catalogue";
+    const retryNote = state.catalogueRetryError
+      ? " The live catalogue is still unavailable."
+      : "";
+    return `<aside class="availability-note catalogue-notice" role="status" aria-live="polite"><strong>${heading}</strong><p>Showing the saved catalogue from ${esc(catalogueAge(state.catalogueStale.savedAt))}. Times, availability and offers may have changed—please confirm with the business before going.${retryNote}</p><button id="retry-catalogue" class="btn secondary"${state.catalogueRetrying ? " disabled" : ""}>${retry}</button></aside>`;
   }
-  function searchBox(v = "") {
-    return `<form role="search" id="search-form" class="searchbar"><span aria-hidden="true">⌕</span><input id="search-input" value="${esc(v)}" placeholder="Search deals, places or events" aria-label="Search PerkDrop"><button aria-label="Search">Search</button>${v?'<button type="button" id="clear-search" aria-label="Clear search">✕</button>':''}</form>`;
+  function shell(content, active = "") {
+    const navActive =
+      active ||
+      (state.route === "/map"
+        ? "map"
+        : state.route === "/search" || state.route === "/near-me"
+          ? "explore"
+          : state.route.startsWith("/my-perks") || state.route === "/saved"
+            ? "saved"
+            : "home");
+    const savedCount = state.saved.length ? `<span class="saved-count">${state.saved.length > 9 ? "9+" : state.saved.length}</span>` : "";
+    return `<div class="app-shell"><header class="topbar"><div class="topbar-inner"><a class="wordmark" data-internal href="/">${brand()}</a><div class="topbar-actions"><button id="location-pill" class="location-pill"><i></i>${esc(CITIES[state.city]?.[0] || state.city)}⌄</button><a class="saved-top" data-internal href="/my-perks?tab=saved" aria-label="Saved Drops">♡${savedCount}</a></div></div></header>${catalogueNotice()}${content}${footer()}${nav(navActive)}${state.locationOpen ? locationMenu() : ""}</div>`;
+  }
+  function searchBox(v = "", placeholder = "Search deals, places or events") {
+    return `<form role="search" id="search-form" class="searchbar"><span aria-hidden="true">⌕</span><input id="search-input" value="${esc(v)}" placeholder="${esc(placeholder)}" aria-label="Search PerkDrop"><button aria-label="Search">Search</button>${v?'<button type="button" id="clear-search" aria-label="Clear search">✕</button>':''}</form>`;
   }
   function chips() {
     const current = state.route;
-    const options=[
-      ['/', '✦', 'For you'],
-      ['/near-me', '⌖', 'Nearby'],
-      ['/food', '🍴', 'Food'],
-      ['/drinks', '🍸', 'Drinks'],
-      ['/tonight', '◷', 'Tonight'],
-      ['/events', '★', 'Events'],
-      ['/family', '☺', 'Family'],
-      ['/free', '$0', 'Free'],
-      ['/beauty', '✂', 'Beauty'],
-      ['/experiences', '✦', 'Things to do'],
-      ['/shopping', '◇', 'Shopping'],
-      ['/stay', '⌂', 'Travel'],
+    const primary=[
+      ['/food', 'food', 'Eat & drink'],
+      ['/experiences', 'do', 'Things to do'],
+      ['/events', 'events', 'Events'],
+      ['/family', 'family', 'Family'],
+      ['/beauty', 'beauty', 'Beauty'],
+      ['/free', 'free', 'Free'],
     ];
-    return '<nav class="category-rail" aria-label="Browse PerkDrop categories">'+options.map(x=>'<a data-internal href="'+x[0]+'" class="'+(current===x[0]?'on':'')+'"><b>'+x[1]+'</b><span>'+x[2]+'</span></a>').join('')+'</nav>';
+    const more=[
+      ['/near-me', 'nearby', 'Nearby'],
+      ['/tonight', 'tonight', 'Tonight'],
+      ['/drinks', 'drinks', 'Drinks'],
+      ['/shopping', 'shopping', 'Shopping'],
+      ['/stay', 'travel', 'Travel'],
+    ];
+    const options = state.route === "/" ? [...primary, ['/search', 'more', 'Explore']] : [...primary, ...more];
+    return `${state.route === "/" ? '<div class="category-label">What are you in the mood for?</div>' : ''}<nav class="category-rail" aria-label="Browse PerkDrop categories">${options.map(x=>'<a data-internal href="'+x[0]+'" class="'+(current===x[0]?'on':'')+'"><i class="category-icon category-icon-'+x[1]+'" aria-hidden="true"></i><span>'+x[2]+'</span></a>').join('')}</nav>`;
   }
   function reportLink(drop,merchant) {
     return '<a class="report-link" href="/report?'+(drop?'drop='+encodeURIComponent(drop):'merchant='+encodeURIComponent(merchant))+'">Report incorrect information</a>';
@@ -593,9 +680,10 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     const stateCode=all[0]?.state||'SA',today=localClock(stateCode)?.date,date=/^\d{4}-\d{2}-\d{2}$/.test(qp.get('date')||'')?qp.get('date'):today,time=/^(17|18|19|20):00$/.test(qp.get('time')||'')?qp.get('time'):'18:00';
     const items=all.filter(d=>mode==='selected'?selectedAvailability(d,{date,time}).eligible:availabilityMatches(d,mode));
     const options=[['tonight','Tonight'],['today','Today'],['now','Right now'],['selected','Choose date & time'],['week','Next 7 days'],['weekend','This weekend'],...['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map((d,i)=>['day-'+(i+1),d])];
-    const businesses=new Set(items.map(d=>d.merchantId||d.merchant.toLowerCase())).size,now=items.filter(d=>availabilityMatches(d,'now')),later=items.filter(d=>!availabilityMatches(d,'now'));
-    const groups=mode==='tonight'?'<h2>Available now ('+now.length+')</h2><div class="grid">'+now.map(card).join('')+'</div><h2>Later tonight ('+later.length+')</h2><div class="grid">'+later.map(card).join('')+'</div>':'<div class="grid">'+items.map(card).join('')+'</div>';
-    return shell('<main class="page"><section class="section"><div class="eyebrow">'+esc(CITIES[state.city]?.[0]||state.city)+'</div><h1>Make a plan</h1><p>Checked offer service times in the venue’s local time. Future results follow the currently recorded schedule, not a guarantee of availability. Booking, weather and listed conditions still apply.</p><label class="availability-filter">When? <select id="availability-filter">'+options.map(x=>'<option value="'+x[0]+'" '+(x[0]===mode?'selected':'')+'>'+x[1]+'</option>').join('')+'</select></label>'+(mode==='selected'?'<form id="selected-time-form" class="selected-time"><label>Date <input id="selected-date" type="date" required value="'+esc(date)+'"></label><label>Time <select id="selected-time">'+['17:00','18:00','19:00','20:00'].map(t=>'<option '+(t===time?'selected':'')+'>'+t+'</option>').join('')+'</select></label><button class="btn secondary">Check this time</button></form>':'')+'<p role="status">'+businesses+' distinct businesses · '+items.length+' offers · '+all.filter(d=>!d.availability?.windows?.length).length+' other listings have unconfirmed times.</p>'+groups+(!items.length?'<div class="empty"><h2>No confirmed options for this time</h2><p>We won’t guess service hours. Try another day, or browse food deals and check directly with the venue.</p><a class="btn secondary" data-internal href="/food">Browse food deals</a></div>':'')+'</section></main>');
+    const businesses=new Set(items.map(d=>placeKey(d))).size,now=items.filter(d=>availabilityMatches(d,'now')),later=items.filter(d=>!availabilityMatches(d,'now'));
+    const nowGroups=venueGroups(now),laterGroups=venueGroups(later),allGroups=venueGroups(items);
+    const groupedCards=mode==='tonight'?'<h2>Available now ('+nowGroups.length+')</h2><div class="grid venue-grid">'+nowGroups.map(venueRailCard).join('')+'</div><h2>Later tonight ('+laterGroups.length+')</h2><div class="grid venue-grid">'+laterGroups.map(venueRailCard).join('')+'</div>':'<div class="grid venue-grid">'+allGroups.map(venueRailCard).join('')+'</div>';
+    return shell('<main class="page"><section class="section"><div class="eyebrow">'+esc(CITIES[state.city]?.[0]||state.city)+'</div><h1>Make a plan</h1><p>Checked offer service times in the venue’s local time. Future results follow the currently recorded schedule, not a guarantee of availability. Booking, weather and listed conditions still apply.</p><label class="availability-filter">When? <select id="availability-filter">'+options.map(x=>'<option value="'+x[0]+'" '+(x[0]===mode?'selected':'')+'>'+x[1]+'</option>').join('')+'</select></label>'+(mode==='selected'?'<form id="selected-time-form" class="selected-time"><label>Date <input id="selected-date" type="date" required value="'+esc(date)+'"></label><label>Time <select id="selected-time">'+['17:00','18:00','19:00','20:00'].map(t=>'<option '+(t===time?'selected':'')+'>'+t+'</option>').join('')+'</select></label><button class="btn secondary">Check this time</button></form>':'')+'<p role="status">'+businesses+' place'+(businesses===1?'':'s')+' · '+items.length+' offer'+(items.length===1?'':'s')+' · '+all.filter(d=>!d.availability?.windows?.length).length+' other listings have unconfirmed times.</p>'+groupedCards+(!items.length?'<div class="empty"><h2>No confirmed options for this time</h2><p>We won’t guess service hours. Try another day, or browse food deals and check directly with the venue.</p><a class="btn secondary" data-internal href="/food">Browse food deals</a></div>':'')+'</section></main>','explore');
   }
   const pilotVenuePhotos={
     'Art Gallery of South Australia':{src:'/images/pilot/agsa-2026.jpg',alt:'Art Gallery of South Australia entrance',credit:{caption:'Yu Chu Chin (Pangalau), Art Gallery of South Australia entrance, 27 Mar 2026.',source:'https://commons.wikimedia.org/wiki/File:Main_entrance_of_the_Art_Gallery_of_South_Australia_(DSCF3673).jpg',license:'CC BY-SA 4.0',licenseUrl:'https://creativecommons.org/licenses/by-sa/4.0/'}},
@@ -615,12 +703,15 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
   }
   function photoCredit(d,compact=false){const p=displayPhoto(d)?.credit;if(!p)return '';const link=(url,label)=>/^https:\/\//.test(url||'')?'<a target="_blank" rel="noopener noreferrer" href="'+esc(url)+'">'+esc(label)+'</a>':esc(label);if(compact){const byline=String(p.caption||'Photo credit').split(',')[0].trim();return '<div class="photo-credit photo-credit-compact">'+link(p.source,byline)+(p.licenseUrl?' · '+link(p.licenseUrl,p.license||'Licence'):'')+'</div>';}return '<div class="photo-credit">'+esc(p.caption||'')+' '+link(p.source,'Photo source')+(p.licenseUrl?' · '+link(p.licenseUrl,p.license||'Licence'):'')+'</div>';}
   function hasPhoto(d){return Boolean(displayPhoto(d));}
+  function photoFallback(d) {
+    const t = type(d);
+    const initial = clean(d.merchant || d.title).charAt(0).toUpperCase() || "P";
+    return `<div class="card-image card-image--no-photo"><div class="card-image-fallback"><span class="fallback-mark">${esc(initial)}</span><span class="fallback-type">${esc(t[2])}</span><span class="fallback-note">Local guide</span></div><div class="shade"></div></div>`;
+  }
   function photoFrame(d) {
     const photo=displayPhoto(d);
-    const unavailable=!photo;
-    const src=photo?.src||PLACEHOLDER;
-    const alt=photo?.alt||'Venue photo is being verified';
-    return `<div class="card-image ${unavailable ? "card-image--pending" : ""}"><img loading="lazy" decoding="async" src="${esc(src)}" alt="${esc(alt)}">${unavailable ? '<div class="photo-pending"><span>Real photo being verified</span></div>' : ""}<div class="shade"></div></div>`;
+    if (!photo) return photoFallback(d);
+    return `<div class="card-image"><img loading="lazy" decoding="async" src="${esc(photo.src)}" alt="${esc(photo.alt)}"><div class="shade"></div></div>`;
   }
   function card(d) {
     const t = type(d),
@@ -629,19 +720,34 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
   }
   function listPage(k, title, eye = "PERKDROP") {
     const xs = list(k),
-      active = ["food", "free", "saved"].includes(k) ? k : "home";
+      groups = venueGroups(xs),
+      active = k === "saved" ? "saved" : "explore";
     return shell(
-      `<main class="page">${searchBox()}${chips()}<section class="section"><div class="section-head"><div><div class="eyebrow">${eye}</div><h2>${esc(title)}</h2></div><span>${xs.length}</span></div>${k === "near-me" && !state.user ? `<div class="empty"><p>Use your location to sort Drops by distance.</p><button id="near-location" class="btn primary">⌖ Use my location</button></div>` : ""}<div class="grid compact">${xs.map(card).join("")}</div>${!xs.length ? '<div class="empty">No matching Drops right now.</div>' : ""}</section></main>`,
+      `<main class="page">${searchBox()}${chips()}<section class="section"><div class="section-head"><div><div class="eyebrow">${eye}</div><h2>${esc(title)}</h2></div><span>${groups.length} place${groups.length === 1 ? "" : "s"} · ${xs.length} offer${xs.length === 1 ? "" : "s"}</span></div>${k === "near-me" && !state.user ? `<div class="empty"><p>Use your location to sort places by distance.</p><button id="near-location" class="btn primary">⌖ Use my location</button></div>` : ""}<div class="grid compact venue-grid">${groups.map(venueRailCard).join("")}</div>${!xs.length ? '<div class="empty">No matching places right now.</div>' : ""}</section></main>`,
       active,
     );
   }
   function discoveryRank(d) {
     return (d.featured ? 40 : 0) + (hasPhoto(d) ? 20 : 0) + (d.capacityRemaining != null ? 8 : 0) + (availabilityMatches(d, 'tonight') ? 6 : 0) + (freshness(d).state === 'recent' ? 4 : 0);
   }
+  function placeKey(d) {
+    const merchant =
+      placePart(d.merchantId) ||
+      placePart(d.merchantSlug) ||
+      placePart(d.merchant) ||
+      placePart(d.title);
+    const coordinates = mapped(d)
+      ? `${Number(d.latitude).toFixed(4)},${Number(d.longitude).toFixed(4)}`
+      : "";
+    const location = placePart(d.location || d.locationName);
+    // A verified coordinate is the strongest place signal. It also keeps one venue
+    // together when the same address is written differently across source listings.
+    return `${merchant}|${coordinates || location || cityKey(d.city)}`;
+  }
   function venueGroups(items) {
     const groups=new Map();
     for(const d of items){
-      const key=[d.merchant,d.city].map(x=>String(x||'').trim().toLowerCase().replace(/[^a-z0-9]+/g,' ')).join('|');
+      const key=placeKey(d);
       if(!groups.has(key))groups.set(key,[]);
       groups.get(key).push(d);
     }
@@ -650,28 +756,44 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
       return {primary:ordered[0],offers:ordered};
     }).sort((a,b)=>discoveryRank(b.primary)-discoveryRank(a.primary));
   }
-  function venueHref(d){
+  function merchantPlaceCount(d) {
+    const sameMerchant = state.deals.filter((candidate) => {
+      if (d.merchantId && candidate.merchantId)
+        return String(candidate.merchantId) === String(d.merchantId);
+      if (d.merchantSlug && candidate.merchantSlug)
+        return placePart(candidate.merchantSlug) === placePart(d.merchantSlug);
+      return placePart(candidate.merchant) === placePart(d.merchant);
+    });
+    return new Set(sameMerchant.map(placeKey)).size;
+  }
+  function venueHref(d, group){
     const business=state.businesses.find(b=>String(b.id)===String(d.merchantId));
     const slug=business?.slug||d.merchantSlug;
-    return slug?'/venues/'+encodeURIComponent(slug):route(d);
+    // A place card must stay scoped to the selected branch. A business profile can
+    // contain several branches, so route multi-offer or multi-location cards to
+    // their exact place page instead.
+    if (group?.offers?.length > 1 || merchantPlaceCount(d) > 1)
+      return '/places/'+encodeURIComponent(placeKey(d));
+    if (slug) return '/venues/'+encodeURIComponent(slug);
+    return route(d);
   }
   function venueRailCard(group){
     const d=group.primary,t=type(d),count=group.offers.length;
-    const titles=group.offers.slice(0,2).map(x=>'<span>'+esc(x.title)+'</span>').join('');
-    const more=count>2?'<span>+'+(count-2)+' more current Drop'+(count-2===1?'':'s')+'</span>':'';
-    const heading=count===1?d.title:count+' current Drops';
-    return `<article class="deal-card venue-rail-card ${d.imageFit==='contain'?'poster-card':''}"><a class="card-link" data-internal href="${esc(venueHref(d))}">${photoFrame(d)}<span class="badge">${count===1?esc(badge(d)):count+' TO EXPLORE'}</span><span class="type-pill type-${t[0]}">${t[1]} ${count===1?t[2]:'Venue'}</span><div class="card-body"><div class="merchant-line"><span>${esc(d.merchant)}</span><span class="distance">${esc(distLabel(d))}</span></div><h3>${esc(heading)}</h3>${count>1?'<div class="venue-offer-lines">'+titles+more+'</div>':'<div class="meta">'+esc(scheduleLabel(d))+'</div>'}</div></a>${photoCredit(d)}${photoCredit(d,true)}<button class="save" aria-label="Save ${esc(d.merchant)}" data-save="${esc(d.id)}">${state.saved.includes(d.id)?'♥':'♡'}</button></article>`;
+    const more=count>1?'<div class="venue-offer-lines"><span>+'+(count-1)+' more offer'+(count===2?'':'s')+' at this place</span></div>':'';
+    return `<article class="deal-card venue-rail-card ${d.imageFit==='contain'?'poster-card':''}"><a class="card-link" data-internal href="${esc(venueHref(d,group))}">${photoFrame(d)}<span class="badge">${esc(badge(d))}</span><span class="type-pill type-${t[0]}">${t[1]} ${t[2]}</span><div class="card-body"><div class="merchant-line"><span>${esc(d.merchant)}</span><span class="distance">${esc(distLabel(d))}</span></div><h3>${esc(d.title)}</h3>${more||'<div class="meta">'+esc(scheduleLabel(d))+'</div>'}</div></a>${photoCredit(d)}${photoCredit(d,true)}<button class="save" aria-label="Save ${esc(d.merchant)}" data-save="${esc(d.id)}">${state.saved.includes(d.id)?'♥':'♡'}</button></article>`;
   }
   function dealRail(title, items, href, eyebrow = "DISCOVER") {
     const picks=venueGroups(items).slice(0,12);
     if (!picks.length) return "";
-    return `<section class="discover-section"><div class="section-head"><div><div class="eyebrow">${esc(eyebrow)}</div><h2>${esc(title)}</h2></div><a data-internal href="${esc(href)}">See all</a></div><div class="deal-rail" role="region" aria-label="${esc(title)}">${picks.map(venueRailCard).join("")}</div></section>`;
+    return `<section class="discover-section ${picks.length === 1 ? "discover-section--solo" : ""}"><div class="section-head"><div><div class="eyebrow">${esc(eyebrow)}</div><h2>${esc(title)}</h2></div><a data-internal href="${esc(href)}">See all <span aria-hidden="true">→</span></a></div><div class="deal-rail ${picks.length === 1 ? "deal-rail--solo" : ""}" role="region" aria-label="${esc(title)}">${picks.map(venueRailCard).join("")}</div></section>`;
   }
   function searchPage() {
     const xs = (state.query?state.deals:cityDeals()).filter(d => searchMatches(text(d) + " " + d.city + " " + d.state, state.query));
+    const groups=venueGroups(xs);
     const businesses=state.query?state.businesses.filter(b=>searchMatches([b.name,b.market,b.state,b.location,b.category,b.cuisine].join(" "),state.query)):[];
     return shell(
-      `<main class="page">${searchBox(state.query)}${chips()}<section class="section"><div class="section-head"><div><div class="eyebrow">SEARCH</div><h2>${state.query ? `Results across Australia for “${esc(state.query)}”` : "Search PerkDrop"}</h2></div><span>${xs.length}</span></div><div class="grid compact">${xs.map(card).join("")}</div>${!xs.length ? '<div class="empty">No offers matched. Try another food, venue or suburb. Business listings are shown below when available.</div>' : ""}${businesses.length?'<h2>Businesses</h2><div class="grid">'+businesses.slice(0,100).map(b=>venueCard({...b,merchant:b.name})).join('')+'</div>':''}${state.directoryLoading?'<p role="status">Searching business listings…</p>':''}</section></main>`,
+      `<main class="page">${searchBox(state.query)}${chips()}<section class="section"><div class="section-head"><div><div class="eyebrow">SEARCH</div><h2>${state.query ? `Results across Australia for “${esc(state.query)}”` : "Explore PerkDrop"}</h2></div><span>${groups.length} place${groups.length === 1 ? "" : "s"} · ${xs.length} offer${xs.length === 1 ? "" : "s"}</span></div><div class="grid compact venue-grid">${groups.map(venueRailCard).join("")}</div>${!xs.length ? '<div class="empty">No offers matched. Try another food, venue or suburb. Business listings are shown below when available.</div>' : ""}${businesses.length?'<h2>Businesses</h2><div class="grid">'+businesses.slice(0,100).map(b=>venueCard({...b,merchant:b.name})).join('')+'</div>':''}${state.directoryLoading?'<p role="status">Searching business listings…</p>':''}</section></main>`,
+      "explore",
     );
   }
   function claimUrl(d) {
@@ -757,9 +879,9 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
       saved = state.saved.includes(d.id),
       cap = Boolean(d.redemptionAvailable),
       photo = displayPhoto(d),
-      visual = photo ? `<img src="${esc(photo.src)}" alt="${esc(photo.alt)}">` : '<div class="detail-photo-pending"><span>Real photo being verified</span><small>PerkDrop only shows venue and event imagery that has been cleared for use.</small></div>';
+      visual = photo ? `<img src="${esc(photo.src)}" alt="${esc(photo.alt)}">` : '<div class="detail-photo-pending"><span>Photo unavailable</span><small>PerkDrop only shows venue and event imagery that has been cleared for use.</small></div>';
     document.title = `${d.title} | PerkDrop`;
-    return `<div class="app-shell"><main class="detail"><section class="detail-hero ${d.imageFit==='contain'?'poster-hero':''}"><button id="back-btn" class="back" aria-label="Go back">←</button>${visual}<div class="detail-title"><span class="badge static">${esc(badge(d))}</span><span class="detail-type type-${t[0]}">${t[1]} ${t[2]}</span><h1>${esc(d.title)}</h1><div>${esc(d.merchant)}</div></div></section><div class="detail-body">${photoCredit(d)}<div class="detail-tools"><button class="tool-btn" data-save="${esc(d.id)}">${saved ? "♥ Saved" : "♡ Save"}</button><button id="share-drop" class="tool-btn">↗ Share</button></div><div class="facts">📍 ${esc(d.location || "Check venue location")}<br>◷ ${esc(d.timing || "Check availability")}<br>${esc(freshness(d).label)}</div>${d.merchantSlug?'<p><a data-internal href="/venues/'+encodeURIComponent(d.merchantSlug)+'">View '+esc(d.merchant)+' business profile →</a></p>':''}${reportLink(d.id,d.merchantId)}${d.availability?.notes?`<p class="availability-note">${esc(d.availability.notes)}</p>`:""}${cap ? capacity(d) : trust(d)}<p>${esc(d.description)}</p><div class="catch"><b>THE CATCH</b><br>${esc(d.conditions || "Check the official source before travelling, booking or paying.")}</div>${mapped(d) ? '<div id="detail-map" class="detail-map"></div>' : ""}${cap ? "" : `<div class="detail-cta"><a id="official-cta" class="btn primary" target="_blank" rel="noopener" href="${esc(d.goUrl || d.source || d.officialSource)}">${d.offerVerification==='business_approved'?'View approved offer →':'View offer at source →'}</a><a id="nav-cta" class="btn secondary" target="_blank" rel="noopener" href="${esc(navUrl(d))}">⌖ Navigate</a></div>`}</div></main>${footer()}${nav(isFood(d) ? "food" : isFree(d) ? "free" : "home")}</div>`;
+    return `<div class="app-shell"><main class="detail"><section class="detail-hero ${d.imageFit==='contain'?'poster-hero':''}"><button id="back-btn" class="back" aria-label="Go back">←</button>${visual}<div class="detail-title"><span class="badge static">${esc(badge(d))}</span><span class="detail-type type-${t[0]}">${t[1]} ${t[2]}</span><h1>${esc(d.title)}</h1><div>${esc(d.merchant)}</div></div></section><div class="detail-body">${photoCredit(d)}<div class="detail-tools"><button class="tool-btn" data-save="${esc(d.id)}">${saved ? "♥ Saved" : "♡ Save"}</button><button id="share-drop" class="tool-btn">↗ Share</button></div><div class="facts">📍 ${esc(d.location || "Check venue location")}<br>◷ ${esc(d.timing || "Check availability")}<br>${esc(freshness(d).label)}</div>${d.merchantSlug?'<p><a data-internal href="/venues/'+encodeURIComponent(d.merchantSlug)+'">View '+esc(d.merchant)+' business profile →</a></p>':''}${reportLink(d.id,d.merchantId)}${d.availability?.notes?`<p class="availability-note">${esc(d.availability.notes)}</p>`:""}${cap ? capacity(d) : trust(d)}<p>${esc(d.description)}</p><div class="catch"><b>THE CATCH</b><br>${esc(d.conditions || "Check the official source before travelling, booking or paying.")}</div>${mapped(d) ? '<div id="detail-map" class="detail-map"></div>' : ""}${cap ? "" : `<div class="detail-cta"><a id="official-cta" class="btn primary" target="_blank" rel="noopener" href="${esc(d.goUrl || d.source || d.officialSource)}">${d.offerVerification==='business_approved'?'View approved offer →':'View offer at source →'}</a><a id="nav-cta" class="btn secondary" target="_blank" rel="noopener" href="${esc(navUrl(d))}">⌖ Navigate</a></div>`}</div></main>${footer()}${nav("explore")}</div>`;
   }
   const legal = {
     terms: [
@@ -804,8 +926,25 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
   function popup(d) {
     const t = type(d);
     const photo=displayPhoto(d);
-    const visual=photo?`<img loading="lazy" src="${esc(photo.src)}" alt="${esc(photo.alt)}">`:'<div class="popup-photo-pending">Real photo being verified</div>';
+    const visual=photo?`<img loading="lazy" src="${esc(photo.src)}" alt="${esc(photo.alt)}">`:'<div class="popup-photo-pending">Photo unavailable</div>';
     return `<div class="popup ${d.imageFit==='contain'?'poster-popup':''}">${visual}<span class="type-${t[0]}">${t[1]} ${t[2]}</span><h3>${esc(d.title)}</h3><b>${esc(d.merchant)}</b>${photoCredit(d)}<p>${esc(d.timing || "")}</p><a data-internal href="${esc(route(d))}">View Drop</a> · <a target="_blank" href="${esc(navUrl(d))}">Navigate</a></div>`;
+  }
+  function mapPopup(entry) {
+    const offers = entry.business ? [] : entry.offers || [entry];
+    const d = offers[0] || entry;
+    const t = type(d);
+    const photo = displayPhoto(d);
+    const count = offers.length;
+    const target = entry.business
+      ? `/venues/${encodeURIComponent(entry.slug)}`
+      : venueHref(d,{offers});
+    const label = entry.business
+      ? "BUSINESS LISTING"
+      : `${count} CURRENT OFFER${count === 1 ? "" : "S"}`;
+    const visual = photo
+      ? `<img loading="lazy" src="${esc(photo.src)}" alt="${esc(photo.alt)}">`
+      : `<div class="popup-fallback"><span>${esc(t[2])}</span><b>${esc(clean(d.merchant).charAt(0).toUpperCase() || "P")}</b></div>`;
+    return `<article class="popup map-popup ${d.imageFit==='contain'?'poster-popup':''}">${visual}<div class="popup-copy"><div class="popup-kicker">${esc(label)}</div><h3>${esc(d.merchant)}</h3><p class="popup-title">${esc(entry.business ? entry.location : d.title)}</p>${count>1?'<p class="popup-more">+'+(count-1)+' more offer'+(count===2?'':'s')+' at this place</p>':''}<div class="popup-actions"><a data-internal href="${esc(target)}">View place</a><a target="_blank" rel="noopener" href="${esc(navUrl(d))}">Directions</a></div></div></article>`;
   }
   function pin(d) {
     const t = d.business ? ["business","•","Business"] : type(d);
@@ -818,17 +957,17 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
   }
   function mapEntries() {
     const near=d=>!state.user||(mapped(d)&&distance(state.user.lat,state.user.lng,d.latitude,d.longitude)<=50);
-    const deals = (state.user?state.deals.filter(near):cityDeals()).filter(d => searchMatches(text(d), state.query));
-    const venues = state.businesses.filter(b => (state.user?near(b):b.market === state.city) && searchMatches([b.name,b.location,b.category,b.cuisine,b.venueType].join(' '),state.query));
+    const deals = (state.user?state.deals.filter(near):cityDeals()).filter(d => mapped(d) && searchMatches(text(d), state.query));
+    const venues = state.businesses.filter(b => (state.user?near(b):cityKey(b.market) === state.city) && searchMatches([b.name,b.location,b.category,b.cuisine,b.venueType].join(' '),state.query));
     const entries = new Map();
-    for (const d of deals) {
-      const key = d.merchantId + ':' + d.latitude + ':' + d.longitude;
-      if (!entries.has(key)) entries.set(key,{...d,offers:[]});
-      entries.get(key).offers.push(d);
+    for (const group of venueGroups(deals)) {
+      const d = group.primary;
+      entries.set(placeKey(d), {...d,offers:group.offers});
     }
     for (const b of venues) {
-      if (deals.some(d => d.merchantId===b.id && mapped(d))) continue;
-      entries.set('business:'+b.id,{id:b.id,merchantId:b.id,merchant:b.name,title:b.name,slug:b.slug,city:b.market,location:b.location,category:b.category,latitude:b.latitude,longitude:b.longitude,imageUrl:b.image,publicState:b.publicState,publicLabel:b.publicLabel,claimable:b.claimable,claimUrl:b.claimUrl,website:b.website,business:true,offers:[]});
+      const entry={id:b.id,merchantId:b.id,merchant:b.name,title:b.name,slug:b.slug,merchantSlug:b.slug,city:b.market,location:b.location,category:b.category,latitude:b.latitude,longitude:b.longitude,imageUrl:b.image,publicState:b.publicState,publicLabel:b.publicLabel,claimable:b.claimable,claimUrl:b.claimUrl,website:b.website,business:true,offers:[]};
+      const key=placeKey(entry);
+      if (!entries.has(key)) entries.set(key,entry);
     }
     return [...entries.values()].filter(d => state.mapFilter !== 'offers' || d.offers.length);
   }
@@ -836,14 +975,20 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     return '<article class="venue-card">'+(d.image?'<img class="venue-thumb" loading="lazy" src="'+esc(safeImage(d.image))+'" alt="'+esc(d.name||d.merchant)+'">':'')+'<h3>'+esc(d.merchant)+'</h3><p>'+esc(d.location)+'</p><p class="muted">Business listing · No active offer listed</p><a class="btn secondary" data-internal href="/venues/'+encodeURIComponent(d.slug)+'">View business</a></article>';
   }
   function mapPage() {
-    const xs = mapEntries(), pins=xs.filter(mapped), missing=xs.length-pins.length;
+    const xs = mapEntries(), pins=xs.filter(mapped);
     const offers=xs.filter(x=>!x.business).flatMap(x=>x.offers||[]);
     const groupedOffers=venueGroups(offers).slice(0,12);
-    return shell('<main class="page map-page map-discover-page">'+searchBox(state.query)+chips()+'<section class="map-heading"><div><div class="eyebrow">EXPLORE YOUR AREA</div><h1>See what’s nearby</h1></div><div class="view-switch"><a data-internal href="/near-me">List</a><span>⌖ Map</span></div></section><div class="map-toolbar"><button id="map-location" class="btn primary">⌖ Near me</button><label class="map-filter-label">Show <select id="map-filter"><option value="all" '+(state.mapFilter==='all'?'selected':'')+'>Everything</option><option value="offers" '+(state.mapFilter==='offers'?'selected':'')+'>Offers</option></select></label></div><p class="muted map-legend">'+pins.length+' places on the map · pins spread slightly when nearby places overlap'+(missing?' · '+missing+' still need a confirmed pin.':'')+'</p>'+(state.directoryError?'<p role="status">Business listings could not load. Current offers are still shown.</p>':'')+'<div class="mapbox"><div id="perk-map" aria-label="Map of deals and businesses"><p role="status">Loading map…</p></div></div>'+(!xs.length?'<div class="empty">No matches in this area. Clear your search or choose another city.</div>':groupedOffers.length?'<section class="map-nearby"><div class="section-head"><div><div class="eyebrow">FROM THE MAP</div><h2>Nearby places</h2></div><a data-internal href="/near-me">List view</a></div><div class="deal-rail map-deal-rail">'+groupedOffers.map(venueRailCard).join('')+'</div></section>':'')+'</main>','map');
+    return shell('<main class="page map-page map-discover-page">'+searchBox(state.query)+chips()+'<section class="map-heading"><div><div class="eyebrow">EXPLORE YOUR AREA</div><h1>See what’s nearby</h1></div><div class="view-switch"><a data-internal href="/near-me">List</a><span>⌖ Map</span></div></section><div class="map-toolbar"><button id="map-location" class="btn primary">⌖ Near me</button><label class="map-filter-label">Show <select id="map-filter"><option value="all" '+(state.mapFilter==='all'?'selected':'')+'>Everything</option><option value="offers" '+(state.mapFilter==='offers'?'selected':'')+'>Offers</option></select></label></div><p class="muted map-legend">'+pins.length+' nearby place'+(pins.length===1?'':'s')+' on the map</p>'+(state.directoryError?'<p role="status">Business listings could not load. Current offers are still shown.</p>':'')+'<div class="mapbox"><div id="perk-map" aria-label="Map of deals and businesses"><p role="status">Loading map…</p></div></div>'+(!xs.length?'<div class="empty">No matches in this area. Clear your search or choose another city.</div>':groupedOffers.length?'<section class="map-nearby"><div class="section-head"><div><div class="eyebrow">FROM THE MAP</div><h2>Nearby places</h2></div><a data-internal href="/near-me">List view</a></div><div class="deal-rail map-deal-rail">'+groupedOffers.map(venueRailCard).join('')+'</div></section>':'')+'</main>','map');
   }
   function venuePage(b) {
     const offers=state.deals.filter(d=>d.merchantId===b.id);
     return shell('<main class="page"><section class="section"><div class="eyebrow">BUSINESS LISTING</div><h1>'+esc(b.name)+'</h1><p>'+esc(b.location)+'</p><p>'+esc(b.publicState==='unclaimed'?'Public listing · not yet business-verified':b.publicLabel)+'</p><p>'+esc(String(b.category||'').replaceAll('_',' '))+'</p>'+(b.image?'<img class="venue-photo" src="'+esc(safeImage(b.image))+'" alt="'+esc(b.name)+'">':'<p class="muted">A verified venue photo is not available yet.</p>')+reportLink(null,b.id)+(b.photoCaption?'<p class="muted">'+esc(b.photoCaption)+(b.photoSource&&/^https:\/\//.test(b.photoSource)?' · <a href="'+esc(b.photoSource)+'" target="_blank" rel="noopener">Photo source / licence</a>':'')+'</p>':'')+'<div class="hero-actions">'+(b.website?'<a class="btn primary" target="_blank" rel="noopener" href="'+esc(b.website)+'">Official website</a>':'')+'<a class="btn secondary" target="_blank" rel="noopener" href="'+esc(navUrl({...b,merchant:b.name}))+'">Directions</a>'+(b.claimable?'<a class="btn secondary" href="/claim?merchant='+encodeURIComponent(b.slug)+'">Claim this business</a>':'')+'</div><h2>Current offers</h2><div class="grid">'+offers.map(card).join('')+'</div>'+(!offers.length?'<p>No active offer is listed. Check the official website for current information.</p>':'')+'</section></main>');
+  }
+  function placePage(group) {
+    const d=group.primary,photo=displayPhoto(d),count=group.offers.length;
+    const visual=photo?`<img class="place-hero-image" src="${esc(photo.src)}" alt="${esc(photo.alt)}">`:`<div class="place-hero-fallback"><span>${esc(type(d)[2])}</span><b>${esc(clean(d.merchant).charAt(0).toUpperCase() || "P")}</b></div>`;
+    const source=d.goUrl||d.source||d.officialSource;
+    return shell(`<main class="page place-page"><section class="place-hero">${visual}<div class="place-hero-copy"><div class="eyebrow">${count} CURRENT OFFER${count===1?'':'S'} AT THIS PLACE</div><h1>${esc(d.merchant)}</h1><p>${esc(d.location||'Check location with the venue')}</p><div class="hero-actions"><a class="btn secondary" target="_blank" rel="noopener" href="${esc(navUrl(d))}">Directions</a>${source?'<a class="btn primary" target="_blank" rel="noopener" href="'+esc(source)+'">Official website</a>':''}</div></div></section>${photoCredit(d)}<section class="section"><div class="section-head"><div><div class="eyebrow">CURRENT OPTIONS</div><h2>What’s on here</h2></div><span>${count} offer${count===1?'':'s'}</span></div><div class="grid venue-grid">${group.offers.map(card).join('')}</div></section></main>`,"explore");
   }
   let leafletReady;
   function ensureLeaflet() {
@@ -892,7 +1037,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
         // Show each place separately instead of hiding several venues under a numbered cluster.
         const count=group.length, angle=(Math.PI*2*index)/Math.max(count,1), ring=Math.floor(index/6)+1, radius=count>1?0.0005*ring:0;
         const lat=d.latitude+Math.sin(angle)*radius, lng=d.longitude+Math.cos(angle)*radius;
-        const body=d.business?'<div class="popup"><h3>'+esc(d.merchant)+'</h3><p>'+esc(d.location)+'</p><p>Business listing · No active offer</p><a data-internal href="/venues/'+encodeURIComponent(d.slug)+'">View business</a> · <a target="_blank" rel="noopener" href="'+esc(navUrl(d))+'">Directions</a></div>':d.offers.map(popup).join('');
+        const body=mapPopup(d);
         L.marker([lat,lng],{icon:pin(d),title:d.merchant})
           .addTo(f).bindPopup(body,{maxWidth:310,closeButton:false})
           .on('popupopen',()=>track('map_marker_open',{merchant_id:d.merchantId,deal_id:d.business?null:d.id,listing_type:d.business?'business':'offer'}));
@@ -1002,6 +1147,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     }
   }
   function bind() {
+    $("#retry-catalogue")?.addEventListener("click", retryCatalogue);
     $('#availability-filter')?.addEventListener('change',e=>go('/tonight?when='+encodeURIComponent(e.target.value)));
     $('#selected-time-form')?.addEventListener('submit',e=>{e.preventDefault();go('/tonight?when=selected&date='+encodeURIComponent($('#selected-date').value)+'&time='+encodeURIComponent($('#selected-time').value))});
     $('#report-form')?.addEventListener('submit',async e=>{
@@ -1087,28 +1233,41 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
   }
   document.addEventListener("error",e=>{
     const img=e.target;
-    if(img.tagName!=="IMG"||img.src.endsWith(PLACEHOLDER))return;
+    if(img.tagName!=="IMG")return;
     const cardImage=img.closest(".card-image");
     if(cardImage){
-      cardImage.classList.add("card-image--pending");
-      if(!cardImage.querySelector(".photo-pending")){
-        const pending=document.createElement("div");
-        pending.className="photo-pending";
-        const label=document.createElement("span");
-        label.textContent="Real photo being verified";
-        pending.append(label);
-        cardImage.append(pending);
+      cardImage.classList.remove("card-image--pending");
+      cardImage.classList.add("card-image--no-photo");
+      if(!cardImage.querySelector(".card-image-fallback")){
+        const fallback=document.createElement("div");
+        fallback.className="card-image-fallback";
+        fallback.innerHTML='<span class="fallback-mark">P</span><span class="fallback-type">PERKDROP</span><span class="fallback-note">Local guide</span>';
+        cardImage.prepend(fallback);
       }
+      img.remove();
     }
     const detailHero=img.closest(".detail-hero");
     if(detailHero&&!detailHero.querySelector(".detail-photo-pending")){
       const pending=document.createElement("div");
       pending.className="detail-photo-pending";
-      pending.innerHTML="<span>Real photo being verified</span><small>PerkDrop only shows venue and event imagery that has been cleared for use.</small>";
+      pending.innerHTML="<span>Photo unavailable</span><small>PerkDrop only shows venue and event imagery that has been cleared for use.</small>";
       detailHero.append(pending);
     }
-    img.src=PLACEHOLDER;
-    img.alt="Photo being verified";
+    const popupNode=img.closest(".map-popup");
+    if(popupNode&&!popupNode.querySelector(".popup-fallback")){
+      const fallback=document.createElement("div");
+      fallback.className="popup-fallback";
+      fallback.innerHTML="<span>PERKDROP</span><b>P</b>";
+      popupNode.prepend(fallback);
+    }
+    const placeHero=img.closest(".place-hero");
+    if(placeHero&&!placeHero.querySelector(".place-hero-fallback")){
+      const fallback=document.createElement("div");
+      fallback.className="place-hero-fallback";
+      fallback.innerHTML="<span>LOCAL GUIDE</span><b>P</b>";
+      placeHero.prepend(fallback);
+    }
+    if(!cardImage) img.remove();
   },true);
   document.addEventListener("keydown",e=>{
     if(!state.locationOpen)return;
@@ -1171,15 +1330,22 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
       return;
     }
     if (state.error) {
-      app.innerHTML = `<main class="boot"><h1>Could not load deals</h1><p>${esc(state.error)}</p><button class="btn primary" onclick="location.reload()">Try again</button></main>`;
+      app.innerHTML = `<main class="boot"><h1>Could not load deals</h1><p>${esc(state.error)}</p><button id="retry-catalogue" class="btn primary">Try again</button></main>`;
+      $("#retry-catalogue")?.addEventListener("click", retryCatalogue);
       return;
     }
     if ((state.route==='/map'||state.route==='/search'||state.route.startsWith('/venues/'))&&!state.directoryLoaded&&!state.directoryLoading&&!state.directoryError) loadDirectory();
-    const d = dealFromRoute();
+    const d = dealFromRoute(), place = placeFromRoute();
     if (d) app.innerHTML = detail(d);
+    else if (place) app.innerHTML = placePage(place);
     else if (state.route.startsWith("/deals/"))
       app.innerHTML = shell(
         `<main class="page"><section class="empty"><h1>${app.dataset.expiredDeal==='true'?'This offer has ended':'Offer not found'}</h1><p>This link does not have an available offer. Explore current deals below.</p><a class="btn primary" data-internal href="/food">Explore current Drops</a></section></main>`,
+      );
+    else if (state.route.startsWith("/places/"))
+      app.innerHTML = shell(
+        '<main class="page"><section class="empty"><h1>Place not found</h1><p>This listing may have ended or moved. Explore current places below.</p><a class="btn primary" data-internal href="/search">Explore current places</a></section></main>',
+        "explore",
       );
     else if (state.route.startsWith("/venues/")) {
       const b=state.businesses.find(b=>"/venues/"+b.slug===state.route);
@@ -1261,19 +1427,61 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     if (!r) throw lastError || Error("Catalogue unavailable");
     if (!r.ok) throw Error(`API ${r.status}`);
     const j = await r.json();
-    state.deals = norm(Array.isArray(j) ? j : j.deals || []).map(enrich);
+    const rows = catalogueRows(j);
+    applyCatalogue(rows);
+    cacheCatalogue(rows);
   }
   async function load() {
     try {
       await loadCatalogue();
       state.loading = false;
+      state.catalogueStale = null;
+      state.catalogueRetryError = false;
       trackPage();
       render();
     } catch (e) {
       console.error(e);
+      const cached = cachedCatalogue();
       state.loading = false;
-      state.error =
-        "PerkDrop could not load the live catalogue. Check your connection and try again.";
+      if (cached) {
+        applyCatalogue(cached.deals);
+        state.catalogueStale = { savedAt: cached.savedAt };
+        state.catalogueRetryError = false;
+        trackPage();
+      } else {
+        state.error =
+          "PerkDrop could not load the live catalogue. Check your connection and try again.";
+      }
+      render();
+    }
+  }
+  async function retryCatalogue() {
+    if (state.catalogueRetrying) return;
+    state.catalogueRetrying = true;
+    state.catalogueRetryError = false;
+    const hasFallback = Boolean(state.catalogueStale);
+    if (!hasFallback) {
+      state.error = "";
+      state.loading = true;
+    }
+    render();
+    try {
+      await loadCatalogue();
+      state.catalogueStale = null;
+      state.catalogueRetryError = false;
+      state.error = "";
+      trackPage();
+    } catch (e) {
+      console.error(e);
+      if (hasFallback) {
+        state.catalogueRetryError = true;
+      } else {
+        state.error =
+          "PerkDrop could not load the live catalogue. Check your connection and try again.";
+      }
+    } finally {
+      state.loading = false;
+      state.catalogueRetrying = false;
       render();
     }
   }
@@ -1304,13 +1512,19 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
   function home() {
     const all=cityDeals().filter(d=>['A','B'].includes(d.qualityGrade)&&freshness(d).state==='recent');
     const tonight=all.filter(d=>availabilityMatches(d,'tonight')),
-      food=all.filter(d=>isFood(d)||isDrink(d)),
-      free=all.filter(d=>isFree(d)||isKids(d)),
       events=all.filter(isEvent),
       weekendDrops=all.filter(weekend),
-      city=esc(CITIES[state.city]?.[0]||state.city);
-    const mapCard=`<a data-internal class="map-shortcut" href="/map"><span class="map-shortcut-icon">⌖</span><span><b>Explore ${city} on the map</b><small>See what is nearby right now</small></span><i>›</i></a>`;
-    return shell(`<main class="page discover-page"><section class="discover-intro"><div class="eyebrow">${city.toUpperCase()} · DEALS WORTH KNOWING ABOUT</div><h1>What are you<br><strong>up for?</strong></h1>${searchBox()}${chips()}<div class="home-actions"><a data-internal href="/near-me">⌖ Use my location</a><a data-internal href="/map">Map view</a></div></section>${dealRail('Popular near you',all,'/near-me','CURATED FOR '+city.toUpperCase())}${tonight.length?dealRail('On tonight',tonight,'/tonight','MAKE A PLAN'):''}${mapCard}${food.length?dealRail('Food & drinks',food,'/food','EAT, DRINK, GO OUT'):''}${free.length?dealRail('Free & family',free,'/family','LOW-KEY DAYS OUT'):''}${events.length?dealRail('What’s on',events,'/events','EVENTS & EXPERIENCES'):''}${weekendDrops.length?dealRail('This weekend',weekendDrops,'/weekend','PLAN AHEAD'):''}${!all.length?'<section class="empty"><h2>No local Drops yet</h2><p>Choose another city, or browse public offers across Australia.</p><a class="btn primary" data-internal href="/search">Explore all offers</a></section>':''}</main>`);
+      city=CITIES[state.city]?.[0]||state.city,
+      primary=tonight.length?tonight:all;
+    const primaryPlaces=new Set(venueGroups(primary).map(group=>placeKey(group.primary)));
+    const weekendPicks=weekendDrops.filter(d=>!primaryPlaces.has(placeKey(d)));
+    const weekendPlaces=new Set(venueGroups(weekendPicks).map(group=>placeKey(group.primary)));
+    const eventPicks=events.filter(d=>!primaryPlaces.has(placeKey(d))&&!weekendPlaces.has(placeKey(d)));
+    const mapCard=`<a data-internal class="map-shortcut" href="/map"><span class="map-shortcut-icon">⌖</span><span><small>SEE IT ON THE MAP</small><b>Places, events and perks near you</b><em>Open the live map before you decide where to go</em></span><i>→</i></a>`;
+    const planner=`<section class="discover-intro"><div class="discover-kicker"><span class="live-dot" aria-hidden="true"></span><span>${esc(city).toUpperCase()} SHORTLIST</span><span class="kicker-divider" aria-hidden="true"></span><span>LOCAL IDEAS, WITHOUT THE ENDLESS SCROLL</span></div><div class="discover-copy"><div><h1>What’s worth doing<br><strong>near you?</strong></h1><p><strong>Check PerkDrop before you make plans.</strong><br>Food, events, things to do, family plans and genuine local perks — all in one simple local guide.</p></div><div class="plan-pills" aria-label="Quick ways to browse"><a data-internal href="/tonight">Tonight</a><a data-internal href="/weekend">This weekend</a><a data-internal href="/near-me">Near me</a></div></div>${searchBox('',`Search ${city} — food, events, places or ideas`)}<div class="home-actions"><a data-internal href="/near-me">Use my location</a><a data-internal href="/map">Explore the map <span aria-hidden="true">→</span></a></div>${chips()}</section>`;
+    const explainer=`<section class="perks-explainer"><div><div class="eyebrow">ONE LOCAL GUIDE</div><h2>One place to check before you go.</h2></div><p>PerkDrop brings together the good local stuff: somewhere to eat, something to do, an event to catch, a family plan or a worthwhile perk — with the key details clear before you make a decision.</p></section>`;
+    const businessCta=`<a class="business-cta" data-internal href="/business"><span>FOR LOCAL BUSINESSES</span><b>Own a local business? Add your first perk free</b><i>→</i></a>`;
+    return shell(`<main class="page discover-page">${planner}${primary.length?dealRail(tonight.length?'Tonight in '+city:'Worth checking out near you',primary,tonight.length?'/tonight':'/near-me',tonight.length?'AVAILABLE TONIGHT':'YOUR LOCAL SHORTLIST'):''}${mapCard}${weekendPicks.length?dealRail('Make a weekend plan',weekendPicks,'/weekend','SAVE THIS FOR LATER'):''}${eventPicks.length?dealRail('Worth seeing this week',eventPicks,'/events','EVENTS & EXPERIENCES'):''}${explainer}${businessCta}${!all.length?'<section class="empty"><h2>No local Drops yet</h2><p>Choose another city, or browse public offers across Australia.</p><a class="btn primary" data-internal href="/search">Explore all offers</a></section>':''}</main>`);
   }
   const MARKET_PAGES = {
     beauty: ["beauty", "Beauty & wellness", "APPOINTMENTS & SELF-CARE"],
@@ -1364,11 +1578,12 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     const key = state.route.slice(1);
     if (MARKET_PAGES[key]) {
       const [kind, title, eye] = MARKET_PAGES[key],
-        items = key === "now" ? nowDrops() : list(kind);
+        items = key === "now" ? nowDrops() : list(kind),
+        groups = venueGroups(items);
       document.title = `${title} | PerkDrop`;
       $("#app").innerHTML = shell(
-        `<main class="page">${searchBox()}${chips()}<section class="section"><div class="section-head"><div><div class="eyebrow">${eye}</div><h2>${title}</h2></div><span>${items.length}</span></div>${key==='now'?'<p>Showing reviewed service windows that are open in the venue’s local time. Booking and listed conditions still apply.</p>':''}<div class="grid compact">${items.map(card).join("")}</div>${!items.length ? '<div class="empty">No confirmed options match this view right now. Check back later or browse current deals and confirm directly with the venue.</div>' : ""}</section></main>`,
-        "home",
+        `<main class="page">${searchBox()}${chips()}<section class="section"><div class="section-head"><div><div class="eyebrow">${eye}</div><h2>${title}</h2></div><span>${groups.length} place${groups.length === 1 ? "" : "s"} · ${items.length} offer${items.length === 1 ? "" : "s"}</span></div>${key==='now'?'<p>Showing reviewed service windows that are open in the venue’s local time. Booking and listed conditions still apply.</p>':''}<div class="grid compact venue-grid">${groups.map(venueRailCard).join("")}</div>${!items.length ? '<div class="empty">No confirmed options match this view right now. Check back later or browse current deals and confirm directly with the venue.</div>' : ""}</section></main>`,
+        "explore",
       );
       bind();
       return;
@@ -1378,7 +1593,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
   };
   function business() {
     return shell(
-      `<main class="page"><section class="business-hero"><div class="eyebrow">FOR LOCAL BUSINESSES & ORGANISERS</div><h1>Put unused capacity to work.</h1><p><strong>Free standard listing.</strong> $0 setup, $0 monthly and no standard redemption fee. Add a genuine perk, choose when it runs and set your own conditions and capacity.</p><div class="business-points"><span>✓ Controlled capacity</span><span>✓ Direct bookings stay yours</span><span>✓ Free standard participation</span><span>✓ Mobile verification</span></div></section><form id="merchant-form" class="merchant-form"><div class="form-grid"><label>Business / organisation *<input name="business_name" required maxlength="160"></label><label>Your name *<input name="contact_name" required maxlength="160"></label><label>Email *<input name="contact_email" type="email" required maxlength="254"></label><label>Phone *<input name="contact_phone" required maxlength="80"></label><label>Category<select name="vertical"><option value="food">Food & drink</option><option value="beauty">Beauty & wellness</option><option value="experiences">Experiences</option><option value="events">Events</option><option value="shopping">Shopping</option><option value="family_kids">Family & kids</option><option value="fitness">Health & fitness</option><option value="travel_stays">Travel & stays</option><option value="freebies">Freebies</option><option value="services">Services</option></select></label><label>How customers use the offer<select name="fulfilment_mode"><option value="external_booking">Customer books directly</option><option value="appointment">Appointment required</option><option value="direct_claim">Walk-in claim</option><option value="ticket">Ticket / session booking</option><option value="merchant_confirmation">Merchant confirmation</option></select></label><label>Availability<select name="drop_type"><option value="capacity">Planned capacity</option><option value="last_minute">Last minute</option><option value="cancellation">Cancellation / spare place</option></select></label><label>Capacity *<input name="capacity_total" required type="number" min="1" max="10000"></label><label>Capacity unit<select name="inventory_unit"><option value="person">Guests / people</option><option value="appointment">Appointments</option><option value="ticket">Tickets</option><option value="class_spot">Class spots</option><option value="room">Rooms</option><option value="item">Items</option></select></label><label>Location *<input name="location" required></label><label>City / town *<input name="city" required maxlength="100"></label><label>State / territory *<select name="state" required><option value="">Select state or territory</option><option value="ACT">ACT</option><option value="NSW">NSW</option><option value="NT">NT</option><option value="QLD">QLD</option><option value="SA">SA</option><option value="TAS">TAS</option><option value="VIC">VIC</option><option value="WA">WA</option></select></label><label class="wide">Offer title *<input name="offer_title" required maxlength="180"></label><label class="wide">Customer benefit *<textarea name="description" required maxlength="2500" rows="4" placeholder="e.g. complimentary treatment add-on or value-add perk"></textarea></label><label>Start *<input name="starts_at" required type="datetime-local"></label><label>End *<input name="ends_at" required type="datetime-local"></label><label>Booking / website link<input name="booking_url" type="url"></label><label>Image URL (licensed / owned)<input name="media_url" type="url"></label><label class="wide">Conditions / minimum spend / booking instructions *<textarea name="conditions" required minlength="12" maxlength="1800" rows="3"></textarea></label><label>Redemption verifier *<input name="redemption_verifier" required maxlength="160"></label><label class="check wide"><input type="checkbox" name="authority_confirmed" required> I’m authorised to submit this offer and imagery.</label><label class="check wide"><input type="checkbox" name="accuracy_confirmed" required> Details and offer conditions are accurate.</label><label class="check wide"><input type="checkbox" name="terms_accepted" required> I accept the PerkDrop merchant terms.</label></div><button class="btn primary submit-btn">Submit for review</button><div id="merchant-status" class="form-status"></div></form></main>`,
+      `<main class="page"><section class="business-hero"><div class="eyebrow">FOR LOCAL BUSINESSES & ORGANISERS</div><h1>Put unused capacity to work.</h1><p><strong>Free standard listing.</strong> $0 setup, $0 monthly and no standard redemption fee. Add a genuine perk, choose when it runs and set your own conditions and capacity.</p><div class="business-points"><span>✓ Controlled capacity</span><span>✓ Direct bookings stay yours</span><span>✓ Free standard participation</span><span>✓ Mobile verification</span></div></section><form id="merchant-form" class="merchant-form"><div class="form-grid"><label>Business / organisation *<input name="business_name" required maxlength="160"></label><label>Your name *<input name="contact_name" required maxlength="160"></label><label>Email *<input name="contact_email" type="email" required maxlength="254"></label><label>Phone *<input name="contact_phone" required maxlength="80"></label><label>Category<select name="vertical"><option value="food">Food & drink</option><option value="beauty">Beauty & wellness</option><option value="experiences">Experiences</option><option value="events">Events</option><option value="shopping">Shopping</option><option value="family_kids">Family & kids</option><option value="fitness">Health & fitness</option><option value="travel_stays">Travel & stays</option><option value="freebies">Freebies</option><option value="services">Services</option></select></label><label>How customers use the offer<select name="fulfilment_mode"><option value="external_booking">Customer books directly</option><option value="appointment">Appointment required</option><option value="direct_claim">Walk-in claim</option><option value="ticket">Ticket / session booking</option><option value="merchant_confirmation">Merchant confirmation</option></select></label><label>Availability<select name="drop_type"><option value="capacity">Planned capacity</option><option value="last_minute">Last minute</option><option value="cancellation">Cancellation / spare place</option></select></label><label>Capacity *<input name="capacity_total" required type="number" min="1" max="10000"></label><label>Capacity unit<select name="inventory_unit"><option value="person">Guests / people</option><option value="appointment">Appointments</option><option value="ticket">Tickets</option><option value="class_spot">Class spots</option><option value="room">Rooms</option><option value="item">Items</option></select></label><label>Location *<input name="location" required></label><label>City / town *<input name="city" required maxlength="100"></label><label>State / territory *<select name="state" required><option value="">Select state or territory</option><option value="ACT">ACT</option><option value="NSW">NSW</option><option value="NT">NT</option><option value="QLD">QLD</option><option value="SA">SA</option><option value="TAS">TAS</option><option value="VIC">VIC</option><option value="WA">WA</option></select></label><label class="wide">Offer title *<input name="offer_title" required maxlength="180"></label><label class="wide">Customer benefit *<textarea name="description" required maxlength="2500" rows="4" placeholder="e.g. complimentary treatment add-on or value-add perk"></textarea></label><label>Start *<input name="starts_at" required type="datetime-local"></label><label>End *<input name="ends_at" required type="datetime-local"></label><label>Booking / website link<input name="booking_url" type="url"></label><label>Photo for review (optional)<input name="media_url" type="url" placeholder="https://"><small>Only submit imagery you own or are authorised/licensed to use. It is not published automatically.</small></label><label class="wide">Conditions / minimum spend / booking instructions *<textarea name="conditions" required minlength="12" maxlength="1800" rows="3"></textarea></label><label>Redemption verifier *<input name="redemption_verifier" required maxlength="160"></label><label class="check wide"><input type="checkbox" name="authority_confirmed" required> I’m authorised to submit this offer. Any imagery supplied is owned, licensed or explicitly authorised for PerkDrop.</label><label class="check wide"><input type="checkbox" name="accuracy_confirmed" required> Details and offer conditions are accurate.</label><label class="check wide"><input type="checkbox" name="terms_accepted" required> I accept the PerkDrop merchant terms.</label></div><button class="btn primary submit-btn">Submit for review</button><div id="merchant-status" class="form-status"></div></form></main>`,
     );
   }
   // Re-evaluate visible time-sensitive views at minute boundaries without fetching the directory.

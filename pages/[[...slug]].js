@@ -21,8 +21,8 @@ async function fetchCatalogue(url, init = {}) {
 const SITE = "https://perkdrop.au";
 const routeMeta = {
   "/": [
-    "PerkDrop — Local deals, free events and things to do",
-    "Find food deals, free events and things to do near you. See the price, location and conditions before you go.",
+    "PerkDrop — What's worth doing near you",
+    "Find food, drinks, events, experiences, family plans and genuine local perks worth knowing about before you decide where to go.",
   ],
   "/food": [
     "Food Drops | PerkDrop",
@@ -160,7 +160,7 @@ export default function Shell({ deal, venue, canonicalPath, expiredDeal = false,
       }),
       h("link", {
         rel: "stylesheet",
-        href: "/styles.css?v=v39-venue-rails",
+        href: "/styles.css?v=v41-local-guide",
       }),
     ),
     h(
@@ -171,13 +171,13 @@ export default function Shell({ deal, venue, canonicalPath, expiredDeal = false,
         { className: "boot" },
         h("img", { src: "/icon.svg", className: "boot-icon", alt: "" }),
         h("div", { className: "boot-logo" }, "Perk", h("span", null, "Drop")),
-        h("h1", null, expiredDeal ? "This offer has ended" : missing ? "Page not found" : unavailable ? "Temporarily unavailable" : deal?.title || venue?.name || "Local deals, free events and things to do"),
-        h("p", null, deal?.description || description),
+        h("h1", null, expiredDeal ? "This offer has ended" : missing ? "Page not found" : unavailable ? "Temporarily unavailable" : deal?.title || venue?.name || "What’s worth doing near you?"),
+        h("p", null, deal?.description || (deal || venue ? description : "Food, events, things to do and genuine local perks — before you make plans.")),
         h("a", {href:"/"}, "Explore current deals"),
         h("p", {role:"status"}, "Loading live availability…"),
       ),
     ),
-    h("script", { src: "/app.js?v=v39-venue-rails", type:"module" }),
+    h("script", { src: "/app.js?v=v41-local-guide", type:"module" }),
   );
 }
 export async function getServerSideProps({ params, resolvedUrl, req, res }) {
@@ -186,7 +186,8 @@ export async function getServerSideProps({ params, resolvedUrl, req, res }) {
   const publicRoutes=new Set([...Object.keys(routeMeta),'/tonight','/report','/search','/weekend','/ending-soon','/near-me','/saved','/terms','/privacy','/merchant-terms','/drop-terms','/verification','/affiliate','/contact','/fitness','/wellness','/travel','/family','/services','/freebies','/today','/now']);
   if (publicRoutes.has(canonicalPath)) return {props:{deal:null,canonicalPath}};
   const entity=Array.isArray(parts)&&parts.length===2?parts[0]:null;
-  if (!['deals','venues'].includes(entity)) {res.statusCode=404;return {props:{deal:null,canonicalPath,missing:true}};}
+  if (!['deals','venues','places'].includes(entity)) {res.statusCode=404;return {props:{deal:null,canonicalPath,missing:true}};}
+  if (entity === 'places') return { props: { deal: null, canonicalPath } };
   const started=Date.now(),requestId=String(req?.headers?.['x-vercel-id']||req?.headers?.['x-request-id']||`page-${started}`).slice(0,180);
   try {
     const endpoint=entity==='venues'?`https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-business-directory?slug=${encodeURIComponent(parts[1])}`:API+'&slug='+encodeURIComponent(parts[1]);
