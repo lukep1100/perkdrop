@@ -1024,6 +1024,7 @@ a {
 .deal-rail .merchant-line{font-size:11px;color:#dcdfe7}
 .deal-rail .deal-card h3{font-size:16px;line-height:1.24;margin:5px 0 6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .deal-rail .meta{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.venue-offer-lines{display:grid;gap:4px;margin-top:7px;color:#e9e2f2;font-size:10px;line-height:1.25}.venue-offer-lines span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.venue-offer-lines span:last-child{color:#d8bcff;font-weight:800}
 .photo-credit-compact{display:none}
 .deal-rail .merchant-status,.deal-rail .freshness,.deal-rail .card-condition,.deal-rail .fulfilment,.deal-rail .photo-credit,.deal-rail .spots{display:none}
 .deal-rail .photo-credit-compact{display:block;position:absolute;z-index:7;top:60px;left:12px;right:58px;padding:0;color:#fff;font-size:9px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 4px rgba(0,0,0,.82)}
