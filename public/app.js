@@ -641,7 +641,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
   function venueGroups(items) {
     const groups=new Map();
     for(const d of items){
-      const key=String(d.merchantId||'')||[d.merchant,d.location,d.city].map(x=>String(x||'').trim().toLowerCase()).join('|');
+      const key=[d.merchant,d.city].map(x=>String(x||'').trim().toLowerCase().replace(/[^a-z0-9]+/g,' ')).join('|');
       if(!groups.has(key))groups.set(key,[]);
       groups.get(key).push(d);
     }
