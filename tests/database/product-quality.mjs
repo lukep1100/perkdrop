@@ -7,15 +7,18 @@ export async function testProductQuality(pool,check) {
   const merchant=async()=> (await pool.query("insert into merchants(name,slug,primary_location,primary_state,listing_status,claimable) values('Isolated quality fixture',$1,$2,'SA','unclaimed',true) returning id",[randomUUID(),'Test '+randomUUID()])).rows[0].id;
   const contact=(m,email,status='research')=>pool.query("insert into outreach_contacts(merchant_id,email,source_url,status) values($1,$2,'https://example.invalid',$3) returning id,status",[m,email,status]);
   const message=(m,email,status='draft',metadata={})=>pool.query("insert into outreach_messages(merchant_id,email,consent_basis,subject,body_text,status,metadata) values($1,$2,'express','Isolated test','Never sent',$3,$4) returning *",[m,email,status,metadata]);
-  await check('unapproved merchant hero image cannot be persisted',async()=>{
+  await check('new merchant hero image requires a reviewed ledger asset',async()=>{
     const m=await merchant();
     await assert.rejects(
       pool.query("update merchants set hero_image_url='https://example.invalid/hero.png',image_rights_status='candidate' where id=$1",[m]),
-      error=>/merchants_hero_image_rights_check/.test(String(error.message))
+      error=>/(merchants_hero_image_rights_check|approved_media_asset_required)/.test(String(error.message))
     );
     assert.equal((await pool.query('select hero_image_url from merchants where id=$1',[m])).rows[0].hero_image_url,null);
-    await pool.query("update merchants set hero_image_url='https://example.invalid/hero.png',image_rights_status='licensed' where id=$1",[m]);
-    assert.equal((await pool.query('select hero_image_url from merchants where id=$1',[m])).rows[0].hero_image_url,'https://example.invalid/hero.png');
+    await assert.rejects(
+      pool.query("update merchants set hero_image_url='https://example.invalid/hero.png',image_rights_status='licensed' where id=$1",[m]),
+      error=>/approved_media_asset_required/.test(String(error.message))
+    );
+    assert.equal((await pool.query('select hero_image_url from merchants where id=$1',[m])).rows[0].hero_image_url,null);
   });
   await check('suppressed email cannot be re-imported with case/space differences',async()=>{
     const m=await merchant(),email=randomUUID()+'@example.invalid';

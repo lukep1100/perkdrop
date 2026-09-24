@@ -17,8 +17,10 @@ for (const name of ['perkdrop-portal', 'perkdrop-booking-page']) {
   });
 }
 
-test('perkdrop-portal: offer photo rights remain explicit on edit and submit', async () => {
+test('perkdrop-portal: offer photos are staged for review rather than sent as public URLs', async () => {
   const source = await readFile(new URL('../supabase/functions/perkdrop-portal/index.ts', import.meta.url), 'utf8');
-  assert.match(source, /originalEditOffer/);
-  assert.match(source, /media_rights_confirmed=\$\('#offer-media-rights'\)\?\.checked===true/);
+  assert.match(source, /uploadImage\(file,'offer',offerId\)/);
+  assert.match(source, /id="offer-media-file"/);
+  assert.doesNotMatch(source, /id="offer-media"/);
+  assert.doesNotMatch(source, /media_url:media/);
 });

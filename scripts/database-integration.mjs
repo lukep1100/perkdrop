@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { chown, cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { randomBytes, randomUUID } from 'node:crypto';
@@ -15,6 +15,30 @@ const data = path.join(root, 'data');
 const password = randomBytes(32).toString('hex');
 const passwordFile = path.join(root, 'password');
 await writeFile(passwordFile, password, { mode: 0o600 });
+// PostgreSQL deliberately refuses to initialise as root. Codex/CI runners can
+// be root, so hand only this throwaway cluster directory to the unprivileged
+// `nobody` account; application tests and cleanup remain in this process.
+const postgresIdentity = process.getuid?.() === 0 ? { uid: 65534, gid: 65534 } : {};
+if (postgresIdentity.uid !== undefined) {
+  await chown(root, postgresIdentity.uid, postgresIdentity.gid);
+  await chown(passwordFile, postgresIdentity.uid, postgresIdentity.gid);
+}
+// `/workspace/scratch` is intentionally private to the current runner, so an
+// unprivileged postgres child cannot execute bundled binaries in-place. Copy
+// the self-contained native distribution below the disposable temp root; the
+// copied files stay read-only to the child while its data directory is owned
+// by that child.
+const nativeRoot = path.dirname(path.dirname(binaries.initdb));
+const runtimeRoot = path.join(root, 'postgres-runtime');
+await cp(nativeRoot, runtimeRoot, { recursive: true, verbatimSymlinks: true });
+const postgresBinaries = {
+  initdb: path.join(runtimeRoot, 'bin', 'initdb'),
+  pg_ctl: path.join(runtimeRoot, 'bin', 'pg_ctl'),
+};
+const postgresRuntimeEnv = {
+  ...process.env,
+  LD_LIBRARY_PATH: `${path.join(runtimeRoot, 'lib')}${process.env.LD_LIBRARY_PATH ? `:${process.env.LD_LIBRARY_PATH}` : ''}`,
+};
 const port = await new Promise(resolve => {
   const probe = net.createServer();
   probe.listen(0, '127.0.0.1', () => {
@@ -24,7 +48,16 @@ const port = await new Promise(resolve => {
 });
 function run(binary, args) {
   return new Promise((resolve, reject) => {
-    const child = spawn(binary, args, { windowsHide: true });
+    // Node sets the secure-exec flag when it switches uid/gid itself, which
+    // makes the dynamic loader ignore LD_LIBRARY_PATH. Let `env` exec the
+    // bundled binary after the privilege drop so its private lib directory is
+    // honoured without changing the host's library configuration.
+    const usePrivilegeWrapper = postgresIdentity.uid !== undefined;
+    const command = usePrivilegeWrapper ? '/usr/bin/env' : binary;
+    const commandArgs = usePrivilegeWrapper
+      ? [`LD_LIBRARY_PATH=${postgresRuntimeEnv.LD_LIBRARY_PATH}`, binary, ...args]
+      : args;
+    const child = spawn(command, commandArgs, { windowsHide: true, env: postgresRuntimeEnv, ...postgresIdentity });
     let output = '';
     child.stdout.on('data', value => { output += value; });
     child.stderr.on('data', value => { output += value; });
@@ -45,12 +78,24 @@ async function check(name, fn) {
   console.log(`REAL DATABASE PASS: ${name}`);
 }
 try {
-  await run(binaries.initdb, ['-D', data, '-U', 'postgres', '--auth=scram-sha-256', `--pwfile=${passwordFile}`, '--encoding=UTF8', '--locale=C']);
+  await run(postgresBinaries.initdb, ['-D', data, '-U', 'postgres', '--auth=scram-sha-256', `--pwfile=${passwordFile}`, '--encoding=UTF8', '--locale=C']);
   await rm(passwordFile);
-  await run(binaries.pg_ctl, ['-D', data, '-l', path.join(root, 'postgres.log'), '-o', `-h 127.0.0.1 -p ${port}`, '-w', 'start']);
+  await run(postgresBinaries.pg_ctl, ['-D', data, '-l', path.join(root, 'postgres.log'), '-o', `-h 127.0.0.1 -p ${port}`, '-w', 'start']);
   started = true;
   pool = new Pool({ host: '127.0.0.1', port, user: 'postgres', password, database: 'postgres', max: 24 });
   await pool.query(await readFile(new URL('../tests/database/production-core.sql', import.meta.url), 'utf8'));
+  // The isolated production-core export deliberately excludes Supabase Storage.
+  // This minimal compatibility fixture is enough to apply and exercise the
+  // rights-review migration's private/public bucket declarations without
+  // pretending to emulate Storage object access control.
+  await pool.query(`create schema if not exists storage;
+    create table if not exists storage.buckets (
+      id text primary key,
+      name text not null,
+      public boolean not null default false,
+      file_size_limit bigint,
+      allowed_mime_types text[]
+    )`);
   await pool.query(await readFile(new URL('../supabase/release/marketplace-safety.sql', import.meta.url), 'utf8'));
   await pool.query(await readFile(new URL('../supabase/release/marketplace-commercial.sql', import.meta.url), 'utf8'));
   await pool.query(await readFile(new URL('../supabase/release/marketplace-consumer.sql', import.meta.url), 'utf8'));
@@ -58,6 +103,7 @@ try {
   await pool.query(await readFile(new URL('../supabase/release/marketplace-operations.sql', import.meta.url), 'utf8'));
   await pool.query(await readFile(new URL('../supabase/migrations/20260909121408_v30_internal_operations.sql', import.meta.url), 'utf8'));
   await pool.query(await readFile(new URL('../supabase/migrations/20260909121859_v30_merchant_team_roles.sql', import.meta.url), 'utf8'));
+  await pool.query(await readFile(new URL('../supabase/migrations/20260924133000_merchant_media_review_ledger.sql', import.meta.url), 'utf8'));
   console.log('Testing exported production RPC baseline, not full Supabase RLS/PostGIS/HTTP stack.');
   const merchant = (await pool.query("insert into merchants(name,slug,primary_state,primary_city) values ('Isolated acceptance fixture',$1,'SA','adelaide') returning id", [`test-${randomUUID()}`])).rows[0].id;
   async function offer(capacity, unit = 'ticket', action = 'redemption_code') {
@@ -65,6 +111,57 @@ try {
       values ($1,'Isolated offer','Test only','Test only','Test location','adelaide','SA','active',$4,$3,$2,$2,120,90,now()-interval '1 hour',now()+interval '2 days') returning id`, [merchant, capacity, unit, action])).rows[0].id;
   }
   const claim = (id, session = randomUUID(), quantity = 1) => pool.query('select claim_merchant_offer($1,null,$2,$3,$4) as result', [id, session, quantity, `PD-${randomBytes(8).toString('hex').toUpperCase()}`]);
+  await check('merchant media ledger keeps pending images private and projects/revokes only approved assets', async () => {
+    const reviewer = randomUUID();
+    const hero = randomUUID();
+    const heroUrl = `https://example.test/merchant-media-approved/approved/${hero}.jpg`;
+    await assert.rejects(
+      pool.query("update merchants set hero_image_url='https://unreviewed.example/image.jpg' where id=$1", [merchant]),
+      /approved_media_asset_required/
+    );
+    await pool.query(`insert into merchant_media_assets
+      (id,merchant_id,asset_kind,staging_path,original_filename,content_type,byte_size,content_sha256,rights_basis,rights_statement,submitted_by)
+      values ($1,$2,'hero',$3,'hero.jpg','image/jpeg',4,$4,'merchant_owned','Taken by the venue team.', $5)`,
+      [hero, merchant, `${merchant}/${hero}/hero.jpg`, 'a'.repeat(64), randomUUID()]);
+    await assert.rejects(
+      pool.query('update merchants set hero_media_asset_id=$1,hero_image_url=$2 where id=$3', [hero, heroUrl, merchant]),
+      /approved_hero_media_asset_required/
+    );
+    await pool.query(`update merchant_media_assets set status='approved',public_bucket='merchant-media-approved',public_path=$2,public_url=$3,reviewed_by=$4,reviewed_at=now(),review_reason='Rights reviewed',review_evidence='case-hero',public_projected_at=now() where id=$1`,
+      [hero, `approved/${hero}.jpg`, heroUrl, reviewer]);
+    assert.deepEqual((await pool.query('select hero_media_asset_id,hero_image_url,image_rights_status from merchants where id=$1', [merchant])).rows[0], { hero_media_asset_id: hero, hero_image_url: heroUrl, image_rights_status: 'merchant_authorised' });
+
+    const offerId = await offer(2);
+    const dropId = `media-${randomUUID()}`;
+    await pool.query('update merchant_offers set published_drop_id=$1 where id=$2', [dropId, offerId]);
+    await pool.query(`insert into catalogue_items(id,merchant,title,description,category,kind,city,source,slug,detail_url,merchant_id,offer_origin,metadata)
+      values($1,'Isolated acceptance fixture','Media fixture','Test only','Experiences','deal','adelaide','https://example.test', $2,'/deals/'||$2,$3,'merchant_submitted',jsonb_build_object('merchant_offer_id',$4::text))`, [dropId, `media-${randomUUID()}`, merchant, offerId]);
+    await assert.rejects(
+      pool.query("update catalogue_items set image_url='https://unreviewed.example/image.jpg' where id=$1", [dropId]),
+      /approved_catalogue_media_asset_required/
+    );
+    const offerAsset = randomUUID();
+    const offerUrl = `https://example.test/merchant-media-approved/approved/${offerAsset}.jpg`;
+    await pool.query(`insert into merchant_media_assets
+      (id,merchant_id,offer_id,asset_kind,staging_path,original_filename,content_type,byte_size,content_sha256,rights_basis,rights_statement,submitted_by)
+      values ($1,$2,$3,'offer',$4,'offer.jpg','image/jpeg',4,$5,'licensed','Licensed for this exact campaign.', $6)`,
+      [offerAsset, merchant, offerId, `${merchant}/${offerAsset}/offer.jpg`, 'b'.repeat(64), randomUUID()]);
+    await assert.rejects(
+      pool.query('update merchant_offers set media_asset_id=$1,media_url=$2 where id=$3', [offerAsset, offerUrl, offerId]),
+      /pending_media_asset_not_public/
+    );
+    await pool.query(`update merchant_media_assets set status='approved',public_bucket='merchant-media-approved',public_path=$2,public_url=$3,reviewed_by=$4,reviewed_at=now(),review_reason='Licence checked',review_evidence='case-offer',public_projected_at=now() where id=$1`,
+      [offerAsset, `approved/${offerAsset}.jpg`, offerUrl, reviewer]);
+    assert.deepEqual((await pool.query('select media_asset_id,media_url from merchant_offers where id=$1', [offerId])).rows[0], { media_asset_id: offerAsset, media_url: offerUrl });
+    assert.deepEqual((await pool.query('select image_url,media_status,metadata->>\'media_review_status\' as review_status from catalogue_items where id=$1', [dropId])).rows[0], { image_url: offerUrl, media_status: 'approved', review_status: 'approved' });
+    await pool.query(`update merchant_media_assets set status='revoked',reviewed_by=$2,reviewed_at=now(),review_reason='Rights withdrawn',review_evidence='case-revoke' where id=$1`, [offerAsset, reviewer]);
+    assert.deepEqual((await pool.query('select media_asset_id,media_url from merchant_offers where id=$1', [offerId])).rows[0], { media_asset_id: null, media_url: null });
+    assert.deepEqual((await pool.query('select image_url,media_status,metadata->>\'media_review_status\' as review_status from catalogue_items where id=$1', [dropId])).rows[0], { image_url: null, media_status: 'permission_required', review_status: 'revoked' });
+    await pool.query('delete from merchant_offers where id=$1', [offerId]);
+    assert.equal((await pool.query('select offer_id from merchant_media_assets where id=$1', [offerAsset])).rows[0].offer_id, null);
+    await pool.query(`update merchant_media_assets set status='revoked',reviewed_by=$2,reviewed_at=now(),review_reason='Rights withdrawn',review_evidence='case-revoke' where id=$1`, [hero, reviewer]);
+    assert.deepEqual((await pool.query('select hero_media_asset_id,hero_image_url,image_rights_status from merchants where id=$1', [merchant])).rows[0], { hero_media_asset_id: null, hero_image_url: null, image_rights_status: 'missing' });
+  });
   for (const [capacity, unit] of [[1, 'appointment'], [2, 'ticket'], [20, 'diner']]) {
     await check(`${capacity} ${unit}: 24 independent concurrent claim requests`, async () => {
       const id = await offer(capacity, unit);
@@ -282,7 +379,7 @@ try {
   console.log(`REAL DATABASE: ${count} checks passed. No production connection or fixture writes.`);
 } finally {
   if (pool) await pool.end();
-  if (started) await run(binaries.pg_ctl, ['-D', data, '-m', 'fast', '-w', 'stop']);
+  if (started) await run(postgresBinaries.pg_ctl, ['-D', data, '-m', 'fast', '-w', 'stop']);
   // Exact mkdtemp child only; never removes a supplied path or existing workspace.
   assert.equal(path.dirname(root), path.resolve(tmpdir()));
   assert.ok(path.basename(root).startsWith('perkdrop-db-test-'));

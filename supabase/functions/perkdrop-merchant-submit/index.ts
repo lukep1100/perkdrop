@@ -48,7 +48,9 @@ Deno.serve(async(req)=>{
     }
 
     let discountPercent:number|null=null;if(normal!==null&&deal!==null&&normal>0&&deal<=normal)discountPercent=Math.round(((normal-deal)/normal)*10000)/100;
-    const {data:offer,error:offerError}=await supabase.from('merchant_offers').insert({merchant_id:merchant.id,title:offer_title,description,category:category||vertical,vertical,drop_type,inventory_unit,fulfilment_mode,discount_type,discount_percent:discountPercent,normal_price:normal,deal_price:deal,promo_code:promo_code||null,conditions,starts_at:starts,ends_at:ends,capacity_total:capacity,capacity_remaining:capacity,location,city:city.toLowerCase().replace(/\s+/g,'-'),state,booking_url:booking_url||null,media_url:media_url||null,exclusive:exclusive_requested,status:'pending',metadata:{submission_source:'public_business_form',redemption_verifier:clean(body.redemption_verifier,160),commercial_model:'free_standard',media_rights_confirmed:false}}).select('id').single();
+    // A public form may retain a submitted URL as review context below, but it
+    // must never become an offer image without a staged binary and owner review.
+    const {data:offer,error:offerError}=await supabase.from('merchant_offers').insert({merchant_id:merchant.id,title:offer_title,description,category:category||vertical,vertical,drop_type,inventory_unit,fulfilment_mode,discount_type,discount_percent:discountPercent,normal_price:normal,deal_price:deal,promo_code:promo_code||null,conditions,starts_at:starts,ends_at:ends,capacity_total:capacity,capacity_remaining:capacity,location,city:city.toLowerCase().replace(/\s+/g,'-'),state,booking_url:booking_url||null,exclusive:exclusive_requested,status:'pending',metadata:{submission_source:'public_business_form',redemption_verifier:clean(body.redemption_verifier,160),commercial_model:'free_standard',media_review_status:media_url?'source_reference_only':'required'}}).select('id').single();
     if(offerError){console.error('offer create',offerError);return json({ok:false,error:'Offer could not be saved. Please try again.'},500)}
 
     const {data,error}=await supabase.from("merchant_submissions").insert({

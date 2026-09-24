@@ -9,6 +9,9 @@ export function approvedImage(value: unknown) {
 }
 export function publicOfferImage(item: {image_url?: string | null; media_status?: string | null; metadata?: any}, merchant?: {hero_image_url?: string | null; image_rights_status?: string | null}) {
   if (item.metadata?.image_unavailable || item.metadata?.image_review_hold) return '';
+  // New merchant assets carry their ledger ID into the public projection. A
+  // pending/rejected/revoked asset must never leak via a stale catalogue row.
+  if (item.metadata?.merchant_media_asset_id && item.metadata?.media_review_status !== 'approved') return '';
   const merchantImage = ['merchant_authorised','licensed'].includes(merchant?.image_rights_status || '') ? merchant?.hero_image_url : '';
   return approvedImage((item.media_status === 'permission_required' ? '' : item.image_url) || merchantImage);
 }
