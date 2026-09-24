@@ -24,3 +24,14 @@ test('perkdrop-portal: offer photos are staged for review rather than sent as pu
   assert.doesNotMatch(source, /id="offer-media"/);
   assert.doesNotMatch(source, /media_url:media/);
 });
+
+test('booking claims never trust a browser booking event as provider confirmation', async () => {
+  const [claim,page] = await Promise.all([
+    readFile(new URL('../supabase/functions/perkdrop-booking-claim/index.ts', import.meta.url), 'utf8'),
+    readFile(new URL('../supabase/functions/perkdrop-booking-page/index.ts', import.meta.url), 'utf8'),
+  ]);
+  assert.match(claim, /provider_confirmation_not_configured/);
+  assert.doesNotMatch(claim, /confirm_booking_hold\s*\(/);
+  assert.doesNotMatch(page, /request\(\{action:'confirm'/);
+  assert.doesNotMatch(page, /confirmBooking|claim_issued|window\.addEventListener\('message'/);
+});

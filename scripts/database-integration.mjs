@@ -372,6 +372,8 @@ try {
   await testProductQuality(pool,check);
   const {testConsumerUtility}=await import('../tests/database/consumer-utility.mjs');
   await testConsumerUtility(pool,check);
+  const {testConsumerReleaseCore}=await import('../tests/database/consumer-release-core.mjs');
+  await testConsumerReleaseCore(pool,check);
   const {testOwnerPolicy}=await import('../tests/database/owner-policy.mjs');
   await testOwnerPolicy(pool,check);
   const {testNotificationReadiness}=await import('../tests/database/notification-readiness.mjs');

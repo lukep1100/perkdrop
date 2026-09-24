@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
     if (nearby.error) { const failure = safe(nearby.error.code || nearby.error.message || "rpc_failed"); console.warn("perkdrop-nearby-api rpc failure", { requestId: id, failure }); await recordFailure(sb, id, failure, ["nearby_rpc"], started); return reply(id, { ok: false, error: "nearby_unavailable", requestId: id }, 503, { "x-perkdrop-query-ms": String(Date.now() - started) }); }
     const ordered = (nearby.data || []).slice(0, limit); const ids = ordered.map((x: { id: string }) => x.id);
     if (!ids.length) return reply(id, { ok: true, mode: "nearby", radiusKm: radius, count: 0, deals: [] });
-    const base = `${Deno.env.get("SUPABASE_URL")}/functions/v1/perkdrop-catalogue-api?limit=200`;
+    const base = `${Deno.env.get("SUPABASE_URL")}/functions/v1/perkdrop-catalogue-api?limit=500`;
     let catalogue: Response;
     try { catalogue = await withRetry(() => fetch(base, { headers: { accept: "application/json", "x-request-id": id } }), (response) => !response.ok && response.status >= 500); }
     catch { await recordFailure(sb, id, "fetch_failed", ["catalogue_fetch"], started); return reply(id, { ok: false, error: "catalogue_unavailable", requestId: id }, 503); }

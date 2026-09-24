@@ -332,7 +332,7 @@ Deno.serve(async (req) => {
   }
   const limit = Math.max(
     1,
-    Math.min(200, Number(url.searchParams.get("limit") || 200) || 200),
+    Math.min(500, Number(url.searchParams.get("limit") || 500) || 500),
   );
   const [
     { data, error },
@@ -354,7 +354,7 @@ Deno.serve(async (req) => {
       .order("featured", { ascending: false })
       .order("hot", { ascending: false })
       .order("end_date", { ascending: true, nullsFirst: false })
-      .limit(200)),
+      .limit(500)),
     () => queryWithRetry(() => supabase
       .from("catalogue_locations")
       .select(

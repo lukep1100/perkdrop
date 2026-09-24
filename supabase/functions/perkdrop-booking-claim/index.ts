@@ -6,7 +6,6 @@ const allowedOrigin=(origin:string)=>{try{const h=new URL(origin).host;return h=
 const cors=(req:Request)=>{const o=req.headers.get('origin')||'';return {'Access-Control-Allow-Origin':allowedOrigin(o)?o:'https://perkdrop.au','Access-Control-Allow-Headers':'content-type','Access-Control-Allow-Methods':'GET, POST, OPTIONS','Vary':'Origin','Cache-Control':'no-store'}};
 const json=(req:Request,b:unknown,s=200)=>new Response(JSON.stringify(b),{status:s,headers:{...cors(req),'Content-Type':'application/json; charset=utf-8','X-Content-Type-Options':'nosniff'}});
 const clean=(v:unknown,max=500)=>String(v??'').trim().slice(0,max);
-const code=()=>`PD-${crypto.randomUUID().replace(/-/g,'').slice(0,8).toUpperCase()}`;
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const DATE=/^\d{4}-\d{2}-\d{2}$/;
 const allowedBookingUrl=(v:string)=>{try{const u=new URL(v);return u.protocol==='https:'&&u.hostname==='bookings.nowbookit.com'?u.toString():''}catch{return ''}};
@@ -74,7 +73,12 @@ Deno.serve(async(req)=>{
     if(req.method!=='POST')return json(req,{ok:false,error:'method_not_allowed'},405);
     const body=await req.json().catch(()=>null) as any;
     if(!body||typeof body!=='object')return json(req,{ok:false,error:'invalid_body'},400);
-    const action=clean(body.action,40),sessionId=clean(body.session_id,120);
+    const action=clean(body.action,40);
+    // A postMessage/browser event is not provider-side proof of a booking.
+    // Do not create a pass until a supported provider integration supplies a
+    // server-verified confirmation or signed webhook.
+    if(action==='confirm')return json(req,{ok:false,error:'provider_confirmation_not_configured'},409);
+    const sessionId=clean(body.session_id,120);
     if(!/^[a-zA-Z0-9:_-]{12,120}$/.test(sessionId))return json(req,{ok:false,error:'missing_session_id'},400);
     const attr=await inferAttribution(service,req,attribution(body));
 
@@ -99,24 +103,6 @@ Deno.serve(async(req)=>{
       if(error)return json(req,{ok:false,error:'release_failed'},400);
       if((data as any)?.released&&hold){const offer=await resolveOffer(service,hold.merchant_offer_id,'');if(offer)await logEvent(service,req,offer,'hold_released',sessionId,{...(hold.metadata?.attribution||attr),service_date:hold.metadata?.service_date||null,party_size:hold.party_size,hold_token:token})}
       return json(req,{ok:true,...(data||{})});
-    }
-
-    if(action==='confirm'){
-      const token=clean(body.hold_token,80),event=body.event&&typeof body.event==='object'?body.event:{};
-      if(!UUID.test(token))return json(req,{ok:false,error:'invalid_hold_token'},400);
-      const conversionText=[event.event_action,event.eventAction,event.event,event.page_title,event.event_category,event.eventCategory].map(x=>clean(x,160)).join(' ').toLowerCase();
-      if(!/booking confirmed|thank you|booking paid/.test(conversionText))return json(req,{ok:false,error:'booking_confirmation_required'},400);
-      const safeEvent={event:clean(event.event,120),event_action:clean(event.event_action||event.eventAction,120),event_category:clean(event.event_category||event.eventCategory,120),event_label:clean(event.event_label||event.eventLabel,220),page_title:clean(event.page_title,160),page_url:clean(event.page_url,500)};
-      const reference=clean(body.booking_reference||safeEvent.event_label,160);
-      const {data:hold}=await service.from('booking_claim_holds').select('merchant_offer_id,metadata,party_size').eq('hold_token',token).eq('session_id',sessionId).maybeSingle();
-      const holdAttr=hold?.metadata?.attribution||attr;
-      const {data,error}=await service.rpc('confirm_booking_hold',{p_hold_token:token,p_session_id:sessionId,p_redemption_code:code(),p_booking_reference:reference||null,p_event_metadata:{nowbookit_event:safeEvent,attribution:holdAttr}});
-      if(error){const m=String(error.message||'');const known=['hold_not_found','hold_not_active','booking_claim_not_available'];const name=known.find(x=>m.includes(x))||'confirm_failed';return json(req,{ok:false,error:name},400)}
-      if((data as any)?.ok===false){const name=(data as any)?.error||'confirm_failed';if(name==='hold_expired'&&hold){const offer=await resolveOffer(service,hold.merchant_offer_id,'');if(offer)await logEvent(service,req,offer,'hold_expired',sessionId,{...holdAttr,party_size:hold.party_size,hold_token:token})}return json(req,{ok:false,error:name,capacity_remaining:(data as any)?.capacity_remaining},name==='hold_expired'?409:400)}
-      const r=(data as any)?.redemption||{};
-      const offer=hold?await resolveOffer(service,hold.merchant_offer_id,''):null;
-      if(offer&&!Boolean((data as any)?.reused))await logEvent(service,req,offer,'booking_claim_confirmed',sessionId,{...holdAttr,redemption_id:r.id,party_size:r.party_size,service_date:r.metadata?.service_date,booking_provider:'nowbookit'});
-      return json(req,{ok:true,reused:Boolean((data as any)?.reused),redemption:{id:r.id,code:r.redemption_code,status:r.status,party_size:r.party_size,expires_at:r.expires_at,service_date:r.metadata?.service_date,service_start:r.metadata?.service_start,service_end:r.metadata?.service_end,timezone:r.metadata?.timezone||'Australia/Adelaide'},capacity_remaining:(data as any)?.capacity_remaining},201);
     }
 
     return json(req,{ok:false,error:'unknown_action'},400);

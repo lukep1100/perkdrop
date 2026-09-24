@@ -1,7 +1,10 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 import {resolveSavedListings} from '../_shared/saved-listings.mjs';
+import {dealPath} from '../_shared/deal-path.mjs';
 const VERTICALS=['food','drinks','events','beauty','wellness','hair','experiences','activities','fitness','golf','tourism','stay','shopping','free','services','other'];
+const MARKETS=['adelaide','sydney','melbourne','brisbane','perth','darwin','canberra','hobart','gold-coast'];
+const PLAN_ITEM_LIMIT=12;
 
 const headers={'Content-Type':'application/json','Cache-Control':'no-store','Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'content-type, authorization, x-perkdrop-identity','Access-Control-Allow-Methods':'POST, OPTIONS','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer'};
 const reply=(data:unknown,status=200)=>new Response(JSON.stringify(data),{status,headers});
@@ -10,6 +13,16 @@ const hash=async(s:string)=>Array.from(new Uint8Array(await crypto.subtle.digest
 const secret=()=>Array.from(crypto.getRandomValues(new Uint8Array(32))).map(b=>b.toString(16).padStart(2,'0')).join('');
 const clean=(s:unknown,n=200)=>String(s??'').trim().slice(0,n);
 const publicPass=(r:any,m:any,o:any)=>({reference:r.pass_reference,code:r.redemption_code,title:r.metadata?.offer_title||o?.title,merchant:m?.name,merchant_id:r.merchant_id,quantity:r.party_size,unit:r.metadata?.inventory_unit||o?.inventory_unit||'person',state:r.status==='created'?(r.expires_at&&new Date(r.expires_at)<=new Date()?'expired':'active'):r.status,expires_at:r.expires_at,redeemed_at:r.redeemed_at,service_start:r.metadata?.valid_from,service_end:r.metadata?.valid_until,timezone:r.metadata?.timezone||'Australia/Adelaide',booking_reference:r.metadata?.booking_reference||r.merchant_reference,terms:r.metadata?.terms||o?.conditions,location:o?.location||m?.primary_location});
+const unique=(value:unknown,n=20)=>Array.isArray(value)?[...new Set(value.map(x=>clean(x,100)).filter(Boolean))].slice(0,n):[];
+const validDate=(value:unknown)=>{const date=clean(value,10);return !date||/^\d{4}-\d{2}-\d{2}$/.test(date)?date:null;};
+function preferences(input:any={}){
+  const city=clean(input.city,80).toLowerCase();
+  const verticals=unique(input.verticals).filter(x=>VERTICALS.includes(x));
+  const radius=Number(input.radius_km);
+  const intent=['any','tonight','weekend'].includes(clean(input.intent,20))?clean(input.intent,20):'any';
+  return {city:MARKETS.includes(city)?city:'',verticals,radius_km:Number.isFinite(radius)&&radius>=1&&radius<=100?radius:null,intent};
+}
+const planHref=(item:any)=>dealPath(item?.slug);
 
 Deno.serve(async req=>{
   if(req.method==='OPTIONS')return new Response(null,{status:204,headers});
@@ -21,6 +34,24 @@ Deno.serve(async req=>{
     const db=createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,{auth:{persistSession:false,autoRefreshToken:false}});
     async function rpc(name:string,args:any){const {data,error}=await db.rpc(name,args);if(error)throw new Error(error.message);return data}
     async function rows(query:any){const {data,error}=await query;if(error)throw new Error('storage_operation_failed');return data}
+    async function count(query:any){const {count,error}=await query;if(error)throw new Error('storage_operation_failed');return Number(count)||0}
+    async function publicCatalogueItems(itemIds:string[]){
+      if(!itemIds.length)return [];
+      const items=await rpc('marketplace_public_catalogue_items',{p_ids:itemIds});
+      return Array.isArray(items)?items:[];
+    }
+    async function plansWithItems(plans:any[]){
+      if(!plans.length)return [];
+      const ids=plans.map(plan=>plan.id);
+      const links=await rows(db.from('marketplace_plan_items').select('plan_id,catalogue_item_id,position').in('plan_id',ids).order('position',{ascending:true}));
+      const itemIds=[...new Set((links||[]).map((item:any)=>item.catalogue_item_id))];
+      const items=await publicCatalogueItems(itemIds);
+      const itemMap=new Map((items||[]).map((item:any)=>[item.id,item]));
+      return plans.map(plan=>({...plan,items:(links||[]).filter((link:any)=>link.plan_id===plan.id).map((link:any)=>{
+        const item=itemMap.get(link.catalogue_item_id);
+        return item?{id:item.id,merchant:item.merchant,title:item.title,location:item.location,timing:item.timing,href:planHref(item),available:true}:{id:link.catalogue_item_id,merchant:'',title:'Listing unavailable',location:'',timing:'',href:null,available:false};
+      })}));
+    }
     const incoming=req.headers.get('x-perkdrop-identity')||'';
     // Gateway-provided address is used only for abuse throttling, never authorization.
     const address=req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()||'unknown';
@@ -41,19 +72,32 @@ Deno.serve(async req=>{
     if(action==='recovery_email'){
       const email=clean(body.email,254).toLowerCase();
       if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return reply({error:'invalid_email'},400);
-      if(!await rpc('marketplace_rate_limit',{p_bucket:'recovery:'+await hash(email),p_max:3,p_seconds:3600}))return reply({ok:true,delivery:'pending_provider'});
-      // Only verified addresses qualify. Never reveal whether an address exists.
-      const consumers=await rows(db.from('marketplace_consumers').select('id').eq('email',email).not('email_verified_at','is',null).limit(10));
-      for(const consumer of consumers||[]){
-        const token=secret(),tokenHash=await hash(token);
-        await rows(db.from('marketplace_recovery').insert({consumer_id:consumer.id,token_hash:tokenHash,expires_at:new Date(Date.now()+15*60000).toISOString()}));
-        await rows(db.from('marketplace_outbox').insert({consumer_id:consumer.id,recipient:email,event:'identity_recovery',dedupe_key:'recovery:'+tokenHash,payload:{url:'https://perkdrop.au/recover#'+token}}));
-      }
-      return reply({ok:true,delivery:'pending_provider'});
+      // There is no verified consumer email transport in this release. Do not
+      // queue a secret or imply that a recovery message will be sent.
+      await rpc('marketplace_rate_limit',{p_bucket:'recovery:'+await hash(email),p_max:3,p_seconds:3600});
+      return reply({ok:true,delivery:'not_available'});
+    }
+    if(action==='plan_public'){
+      if(!validToken(body.token))return reply({error:'plan_not_found'},404);
+      const tokenHash=await hash(body.token);
+      if(!await rpc('marketplace_rate_limit',{p_bucket:'plan-view:'+tokenHash,p_max:60,p_seconds:60}))return reply({error:'rate_limited'},429);
+      const plan=await rows(db.from('marketplace_plans').select('id,name,planned_for,note,created_at,updated_at').eq('share_token_hash',tokenHash).is('share_revoked_at',null).maybeSingle());
+      if(!plan)return reply({error:'plan_not_found'},404);
+      const [publicPlan]=await plansWithItems([plan]);
+      return reply({plan:publicPlan});
     }
     if(!validToken(incoming))return reply({error:'identity_required'},401);
     const credentialHash=await hash(incoming),cid=await rpc('marketplace_identity',{p_hash:credentialHash});
     if(action==='claim')return reply(await rpc('marketplace_claim',{p_hash:credentialHash,p_offer:body.offer_id,p_quantity:Number(body.quantity)}));
+    if(action==='preferences'){
+      const profile=await rows(db.from('marketplace_consumers').select('preferences').eq('id',cid).single());
+      return reply({preferences:preferences(profile?.preferences)});
+    }
+    if(action==='preferences_save'){
+      const next=preferences(body.preferences||{});
+      await rows(db.from('marketplace_consumers').update({preferences:next}).eq('id',cid));
+      return reply({ok:true,preferences:next});
+    }
     if(action==='watches')return reply({watches:await rows(db.from('marketplace_watches').select('id,name,active,rule').eq('consumer_id',cid).order('created_at',{ascending:false}))});
     if(action==='watch_save'){
       const input=body.rule||{},name=clean(body.name,120);
@@ -78,18 +122,88 @@ Deno.serve(async req=>{
     if(action==='my_perks'){
       const pending=await rows(db.from('redemptions').select('merchant_offer_id').eq('consumer_id',cid).eq('status','pending'));
       for(const id of new Set((pending||[]).map((r:any)=>r.merchant_offer_id)))await rpc('marketplace_expire_pending',{p_offer:id});
-      const [redemptions,saves,profile]=await Promise.all([
+      const [redemptions,saves,profile,updatesUnread]=await Promise.all([
         rows(db.from('redemptions').select('id,pass_reference,status,party_size,expires_at,created_at,metadata,merchant_id,merchant_offer_id').eq('consumer_id',cid).order('created_at',{ascending:false}).limit(200)),
         rows(db.from('marketplace_saves').select('kind,target,created_at').eq('consumer_id',cid)),
-        rows(db.from('marketplace_consumers').select('preferences,email,email_verified_at').eq('id',cid).single())
+        rows(db.from('marketplace_consumers').select('preferences,email,email_verified_at').eq('id',cid).single()),
+        count(db.from('marketplace_consumer_updates').select('id',{count:'exact',head:true}).eq('consumer_id',cid).is('read_at',null))
       ]);
       const dropIds=saves.filter((s:any)=>s.kind==='drop').map((s:any)=>s.target);
       const merchantIds=saves.filter((s:any)=>s.kind==='merchant').map((s:any)=>s.target);
       const [savedDrops,savedMerchants]=await Promise.all([
-        dropIds.length?rows(db.from('catalogue_items').select('id,merchant,title,slug').in('id',dropIds)):[],
+        publicCatalogueItems(dropIds),
         merchantIds.length?rows(db.from('merchants').select('id,name,slug,permanent_listing,directory_status').in('id',merchantIds)):[]
       ]);
-      return reply({redemptions,saves:resolveSavedListings(saves,savedDrops,savedMerchants),profile});
+      return reply({redemptions,saves:resolveSavedListings(saves,savedDrops,savedMerchants),profile,updates_unread:updatesUnread});
+    }
+    if(action==='updates'){
+      const limit=Math.max(1,Math.min(50,Number(body.limit)||30));
+      const [storedUpdates,unread]=await Promise.all([
+        rows(db.from('marketplace_consumer_updates').select('id,kind,title,body,href,read_at,created_at,metadata').eq('consumer_id',cid).order('created_at',{ascending:false}).limit(limit)),
+        count(db.from('marketplace_consumer_updates').select('id',{count:'exact',head:true}).eq('consumer_id',cid).is('read_at',null))
+      ]);
+      const publicDropIds=new Set((await publicCatalogueItems((storedUpdates||[]).filter((update:any)=>update.kind==='watch_match').map((update:any)=>clean(update.metadata?.drop_id,100)).filter(Boolean))).map((item:any)=>item.id));
+      const updates=(storedUpdates||[]).map((update:any)=>{
+        if(update.kind==='watch_match'&&!publicDropIds.has(clean(update.metadata?.drop_id,100)))return {...update,title:'A past Drop is no longer available',body:'A Drop that matched your alert is no longer available.',href:null,metadata:undefined};
+        const {metadata,...safeUpdate}=update;
+        return safeUpdate;
+      });
+      return reply({updates,unread});
+    }
+    if(action==='updates_read'){
+      const now=new Date().toISOString();
+      if(body.all===true)await rows(db.from('marketplace_consumer_updates').update({read_at:now}).eq('consumer_id',cid).is('read_at',null));
+      else{
+        const id=clean(body.id,64);
+        if(!/^[a-f0-9-]{36}$/i.test(id))return reply({error:'invalid_update'},400);
+        await rows(db.from('marketplace_consumer_updates').update({read_at:now}).eq('consumer_id',cid).eq('id',id).is('read_at',null));
+      }
+      return reply({ok:true});
+    }
+    if(action==='plans'){
+      const plans=await rows(db.from('marketplace_plans').select('id,name,planned_for,note,share_created_at,share_revoked_at,created_at,updated_at').eq('consumer_id',cid).order('updated_at',{ascending:false}).limit(20));
+      return reply({plans:await plansWithItems(plans||[])});
+    }
+    if(action==='plan_save'){
+      const name=clean(body.name,100),note=clean(body.note,600),plannedFor=validDate(body.planned_for);
+      const itemIds=unique(body.item_ids,PLAN_ITEM_LIMIT);
+      if(!name)return reply({error:'plan_name_required'},400);
+      if(plannedFor===null)return reply({error:'invalid_plan_date'},400);
+      if(!itemIds.length)return reply({error:'plan_items_required'},400);
+      const catalogue=await publicCatalogueItems(itemIds);
+      if((catalogue||[]).length!==itemIds.length)return reply({error:'plan_item_not_found'},404);
+      const existingId=clean(body.id,64);
+      let plan:any;
+      if(existingId){
+        plan=await rows(db.from('marketplace_plans').update({name,note,planned_for:plannedFor||null,updated_at:new Date().toISOString()}).eq('id',existingId).eq('consumer_id',cid).select('id,name,planned_for,note,share_created_at,share_revoked_at,created_at,updated_at').maybeSingle());
+        if(!plan)return reply({error:'plan_not_found'},404);
+        await rows(db.from('marketplace_plan_items').delete().eq('plan_id',plan.id));
+      }else{
+        const planCount=await count(db.from('marketplace_plans').select('id',{count:'exact',head:true}).eq('consumer_id',cid));
+        if(planCount>=20)return reply({error:'plan_limit_reached'},409);
+        plan=await rows(db.from('marketplace_plans').insert({consumer_id:cid,name,note,planned_for:plannedFor||null}).select('id,name,planned_for,note,share_created_at,share_revoked_at,created_at,updated_at').single());
+      }
+      await rows(db.from('marketplace_plan_items').insert(itemIds.map((catalogue_item_id,position)=>({plan_id:plan.id,catalogue_item_id,position}))));
+      const [result]=await plansWithItems([plan]);
+      return reply({ok:true,plan:result});
+    }
+    if(action==='plan_delete'){
+      const id=clean(body.id,64);
+      const plan=await rows(db.from('marketplace_plans').delete().eq('id',id).eq('consumer_id',cid).select('id').maybeSingle());
+      if(!plan)return reply({error:'plan_not_found'},404);
+      return reply({ok:true});
+    }
+    if(action==='plan_share'){
+      const id=clean(body.id,64);
+      const plan=await rows(db.from('marketplace_plans').select('id').eq('id',id).eq('consumer_id',cid).maybeSingle());
+      if(!plan)return reply({error:'plan_not_found'},404);
+      if(body.revoke===true){
+        await rows(db.from('marketplace_plans').update({share_revoked_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',plan.id));
+        return reply({ok:true,shared:false});
+      }
+      const token=secret();
+      await rows(db.from('marketplace_plans').update({share_token_hash:await hash(token),share_created_at:new Date().toISOString(),share_revoked_at:null,updated_at:new Date().toISOString()}).eq('id',plan.id));
+      return reply({ok:true,shared:true,share_url:'https://perkdrop.au/plan/'+token});
     }
     if(action==='save'){
       if(!['drop','merchant'].includes(body.kind))return reply({error:'invalid_save'},400);
@@ -105,7 +219,7 @@ Deno.serve(async req=>{
       const token=secret(),tokenHash=await hash(token),expires=new Date(Date.now()+15*60000).toISOString();
       await rows(db.from('marketplace_recovery').insert({consumer_id:cid,token_hash:tokenHash,expires_at:expires}));
       await rows(db.from('marketplace_outbox').insert({consumer_id:cid,event:'identity_recovery',dedupe_key:'recovery:'+tokenHash,payload:{url:'https://perkdrop.au/recover#'+token}}));
-      return reply({url:'https://perkdrop.au/recover#'+token,expires_at:expires,delivery:'pending_provider'});
+      return reply({url:'https://perkdrop.au/recover#'+token,expires_at:expires,delivery:'private_link'});
     }
     return reply({error:'unknown_action'},400);
   }catch(e){

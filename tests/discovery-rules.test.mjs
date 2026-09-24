@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
 import {validCoordinates,safeImage,isUnconditionallyFree,fulfilmentLabel,localDate,searchMatches,PLACEHOLDER} from '../public/discovery-rules.mjs';
 import {visibleMerchant} from '../supabase/functions/_shared/merchant-visibility.ts';
 import {VERTICALS} from '../supabase/functions/_shared/marketplace-rules.mjs';
@@ -15,3 +16,13 @@ test('Only approved, licensed or placeholder card images render; held and unknow
 test('Search handles accents, punctuation and multiple terms',()=>{assert.equal(searchMatches('Café — North Adelaide, SA','cafe adelaide'),true);assert.equal(searchMatches('Union Hotel Adelaide','perth'),false);});
 test('Multi-vertical taxonomy keeps discovery and watch contracts aligned',()=>{for(const vertical of ['food','drinks','events','beauty','wellness','hair','fitness','experiences','activities','golf','tourism','stay','shopping','free','services','other'])assert.equal(VERTICALS.includes(vertical),true,vertical);assert.equal(categoryVertical('Freebies'),'free');assert.equal(categoryVertical('food_drink'),'food');assert.equal(categoryVertical('travel_accommodation'),'stay');assert.equal(categoryVertical('services_other'),'services');assert.equal(categoryVertical('Golf'),'golf');assert.equal(categoryVertical('Hair'),'hair');});
 test('Merchant response projection separates operations, finance and team administration',()=>{const source={members:[{email:'synthetic@example.invalid'}],invites:[{}],ownership_requests:[{}],profile_change_requests:[{}],commercial_terms:[{}],ledger:[{}],stats_30d:{claims:3,fees_accrued:9},redemptions:[{redemption_code:'SYNTHETIC',commission_value:3}]};const floor=visibleMerchant(source,'floor');assert.deepEqual(floor.members,[]);assert.deepEqual(floor.commercial_terms,[]);assert.equal(floor.stats_30d.fees_accrued,undefined);assert.equal(floor.redemptions[0].commission_value,undefined);assert.deepEqual(visibleMerchant(source,'viewer').redemptions,[]);assert.equal(visibleMerchant(source,'owner').members.length,1);assert.equal(source.members.length,1);});
+test('Catalogue discovery retains the 500-item ceiling across internal consumers',async()=>{
+ const root=new URL('..',import.meta.url);
+ const [catalogue,...callers]=await Promise.all([
+  readFile(new URL('supabase/functions/perkdrop-catalogue-api/index.ts',root),'utf8'),
+  ...['pages/[[...slug]].js','pages/api/health.js','pages/sitemap.xml.js','supabase/functions/perkdrop-nearby-api/index.ts','scripts/audit-public-product.mjs'].map(path=>readFile(new URL(path,root),'utf8'))
+ ]);
+ assert.match(catalogue,/Math\.min\(\s*500,\s*Number\(url\.searchParams\.get\("limit"\) \|\| 500\) \|\| 500\),\s*\)/);
+ assert.match(catalogue,/\.limit\(500\)\),/);
+ for(const source of callers)assert.match(source,/perkdrop-catalogue-api\?limit=500/);
+});

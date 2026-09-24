@@ -2,9 +2,9 @@ import { availabilityMatches, freshness, scheduleLabel, selectedAvailability, lo
 import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfilmentLabel, localDate, searchMatches } from '/discovery-rules.mjs?v=v39-venue-rails';
 (() => {
   "use strict";
-  const VERSION = "v41-local-guide";
+  const VERSION = "v42-release-core";
   const API =
-    "https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-catalogue-api?limit=200";
+    "https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-catalogue-api?limit=500";
   const SUBMIT =
     "https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-merchant-submit";
   const TRACK =
@@ -16,7 +16,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
   // Availability is time-sensitive, so this is deliberately not an indefinite offline cache.
   const CATALOGUE_CACHE_KEY = "perkdrop_catalogue_cache_v1";
   const CATALOGUE_CACHE_MAX_AGE_MS = 6 * 60 * 60 * 1000;
-  const CATALOGUE_CACHE_MAX_ITEMS = 250;
+  const CATALOGUE_CACHE_MAX_ITEMS = 500;
   const CITIES = {
     adelaide: ["Adelaide", "SA", -34.9285, 138.6007],
     sydney: ["Sydney", "NSW", -33.8688, 151.2093],
@@ -96,6 +96,8 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     city: CITIES[store.get("perkdrop_city")] ? store.get("perkdrop_city") : "adelaide",
     user: null,
     saved: store.json("perkdrop_saved", []),
+    followed: store.json("perkdrop_followed_merchants", []),
+    preferences: store.json("perkdrop_preferences_v1", {}),
     redemptions: store.json("perkdrop_redemptions", {}),
     route: location.pathname,
     query: qs.get("q") || "",
@@ -487,10 +489,33 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
       .replace(/[^a-z0-9]+/g, " ")
       .trim();
   function cityDeals() {
+    const market=CITIES[state.city],metroRadius=state.city==='gold-coast'?80:65;
     return state.deals.filter((d) => {
       const city = cityKey(d.city);
-      return city === state.city || city === "australia-wide";
+      if(city === state.city || city === "australia-wide")return true;
+      // Catalogue sources often use a suburb for city while a visitor chooses
+      // the broader metro. Coordinates are the strongest available match.
+      return Boolean(market&&mapped(d)&&distance(market[2],market[3],d.latitude,d.longitude)<=metroRadius);
     });
+  }
+  function hasPreferences(){
+    const p=state.preferences||{};
+    return Boolean(p.city||p.intent&&p.intent!=='any'||Array.isArray(p.verticals)&&p.verticals.length||p.radius_km);
+  }
+  function personalisedDeals(items){
+    const p=state.preferences||{},verticals=new Set(Array.isArray(p.verticals)?p.verticals:[]),market=CITIES[p.city||state.city],radius=Number(p.radius_km)||0;
+    return [...items].map(d=>{
+      let score=discoveryRank(d);
+      if(verticals.has(d.vertical))score+=80;
+      if(p.intent==='tonight'&&availabilityMatches(d,'tonight'))score+=45;
+      if(p.intent==='weekend'&&weekend(d))score+=45;
+      if(market&&radius&&mapped(d)){
+        const km=distance(market[2],market[3],d.latitude,d.longitude);
+        score+=km<=radius?35:-Math.min(30,Math.round(km-radius));
+      }
+      if(state.user&&mapped(d))score+=Math.max(0,30-Math.round(distance(state.user.lat,state.user.lng,d.latitude,d.longitude)));
+      return {d,score};
+    }).sort((a,b)=>b.score-a.score).map(x=>x.d);
   }
   function dealFromRoute() {
     if (!state.route.startsWith("/deals/")) return null;
@@ -982,13 +1007,15 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
   }
   function venuePage(b) {
     const offers=state.deals.filter(d=>d.merchantId===b.id);
-    return shell('<main class="page"><section class="section"><div class="eyebrow">BUSINESS LISTING</div><h1>'+esc(b.name)+'</h1><p>'+esc(b.location)+'</p><p>'+esc(b.publicState==='unclaimed'?'Public listing · not yet business-verified':b.publicLabel)+'</p><p>'+esc(String(b.category||'').replaceAll('_',' '))+'</p>'+(b.image?'<img class="venue-photo" src="'+esc(safeImage(b.image))+'" alt="'+esc(b.name)+'">':'<p class="muted">A verified venue photo is not available yet.</p>')+reportLink(null,b.id)+(b.photoCaption?'<p class="muted">'+esc(b.photoCaption)+(b.photoSource&&/^https:\/\//.test(b.photoSource)?' · <a href="'+esc(b.photoSource)+'" target="_blank" rel="noopener">Photo source / licence</a>':'')+'</p>':'')+'<div class="hero-actions">'+(b.website?'<a class="btn primary" target="_blank" rel="noopener" href="'+esc(b.website)+'">Official website</a>':'')+'<a class="btn secondary" target="_blank" rel="noopener" href="'+esc(navUrl({...b,merchant:b.name}))+'">Directions</a>'+(b.claimable?'<a class="btn secondary" href="/claim?merchant='+encodeURIComponent(b.slug)+'">Claim this business</a>':'')+'</div><h2>Current offers</h2><div class="grid">'+offers.map(card).join('')+'</div>'+(!offers.length?'<p>No active offer is listed. Check the official website for current information.</p>':'')+'</section></main>');
+    const followed=state.followed.includes(b.id);
+    return shell('<main class="page"><section class="section"><div class="eyebrow">BUSINESS LISTING</div><h1>'+esc(b.name)+'</h1><p>'+esc(b.location)+'</p><p>'+esc(b.publicState==='unclaimed'?'Public listing · not yet business-verified':b.publicLabel)+'</p><p>'+esc(String(b.category||'').replaceAll('_',' '))+'</p>'+(b.image?'<img class="venue-photo" src="'+esc(safeImage(b.image))+'" alt="'+esc(b.name)+'">':'<p class="muted">A verified venue photo is not available yet.</p>')+reportLink(null,b.id)+(b.photoCaption?'<p class="muted">'+esc(b.photoCaption)+(b.photoSource&&/^https:\/\//.test(b.photoSource)?' · <a href="'+esc(b.photoSource)+'" target="_blank" rel="noopener">Photo source / licence</a>':'')+'</p>':'')+'<div class="hero-actions">'+(b.website?'<a class="btn primary" target="_blank" rel="noopener" href="'+esc(b.website)+'">Official website</a>':'')+'<a class="btn secondary" target="_blank" rel="noopener" href="'+esc(navUrl({...b,merchant:b.name}))+'">Directions</a><button class="btn secondary" data-save-kind="merchant" data-save="'+esc(b.id)+'">'+(followed?'Following business':'Follow business')+'</button>'+(b.claimable?'<a class="btn secondary" href="/claim?merchant='+encodeURIComponent(b.slug)+'">Claim this business</a>':'')+'</div><h2>Current offers</h2><div class="grid">'+offers.map(card).join('')+'</div>'+(!offers.length?'<p>No active offer is listed. Check the official website for current information.</p>':'')+'</section></main>');
   }
   function placePage(group) {
     const d=group.primary,photo=displayPhoto(d),count=group.offers.length;
     const visual=photo?`<img class="place-hero-image" src="${esc(photo.src)}" alt="${esc(photo.alt)}">`:`<div class="place-hero-fallback"><span>${esc(type(d)[2])}</span><b>${esc(clean(d.merchant).charAt(0).toUpperCase() || "P")}</b></div>`;
     const source=d.goUrl||d.source||d.officialSource;
-    return shell(`<main class="page place-page"><section class="place-hero">${visual}<div class="place-hero-copy"><div class="eyebrow">${count} CURRENT OFFER${count===1?'':'S'} AT THIS PLACE</div><h1>${esc(d.merchant)}</h1><p>${esc(d.location||'Check location with the venue')}</p><div class="hero-actions"><a class="btn secondary" target="_blank" rel="noopener" href="${esc(navUrl(d))}">Directions</a>${source?'<a class="btn primary" target="_blank" rel="noopener" href="'+esc(source)+'">Official website</a>':''}</div></div></section>${photoCredit(d)}<section class="section"><div class="section-head"><div><div class="eyebrow">CURRENT OPTIONS</div><h2>What’s on here</h2></div><span>${count} offer${count===1?'':'s'}</span></div><div class="grid venue-grid">${group.offers.map(card).join('')}</div></section></main>`,"explore");
+    const followed=d.merchantId&&state.followed.includes(d.merchantId);
+    return shell(`<main class="page place-page"><section class="place-hero">${visual}<div class="place-hero-copy"><div class="eyebrow">${count} CURRENT OFFER${count===1?'':'S'} AT THIS PLACE</div><h1>${esc(d.merchant)}</h1><p>${esc(d.location||'Check location with the venue')}</p><div class="hero-actions"><a class="btn secondary" target="_blank" rel="noopener" href="${esc(navUrl(d))}">Directions</a>${source?'<a class="btn primary" target="_blank" rel="noopener" href="'+esc(source)+'">Official website</a>':''}${d.merchantId?'<button class="btn secondary" data-save-kind="merchant" data-save="'+esc(d.merchantId)+'">'+(followed?'Following business':'Follow business')+'</button>':''}</div></div></section>${photoCredit(d)}<section class="section"><div class="section-head"><div><div class="eyebrow">CURRENT OPTIONS</div><h2>What’s on here</h2></div><span>${count} offer${count===1?'':'s'}</span></div><div class="grid venue-grid">${group.offers.map(card).join('')}</div></section></main>`,"explore");
   }
   let leafletReady;
   function ensureLeaflet() {
@@ -1186,6 +1213,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     $("#use-location")?.addEventListener("click", requestLocation);
     $("#near-location")?.addEventListener("click", requestLocation);
     $("#map-location")?.addEventListener("click", requestLocation);
+    $("#home-use-location")?.addEventListener("click",(e)=>{e.preventDefault();requestLocation();});
     $("#back-btn")?.addEventListener("click", () =>
       history.length > 1 ? history.back() : go("/"),
     );
@@ -1291,26 +1319,32 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
       e.preventDefault();
       e.stopPropagation();
       const id = s.dataset.save;
+      const kind=s.dataset.saveKind==='merchant'?'merchant':'drop';
+      const saved=kind==='merchant'?state.followed:state.saved;
       try {
         const { marketplace } = await import("/marketplace-client.js");
         await marketplace("save", {
-          kind: "drop",
+          kind,
           target: id,
-          remove: state.saved.includes(id),
+          remove: saved.includes(id),
         });
       } catch (error) {
         toast(error.message);
         return;
       }
-      state.saved = state.saved.includes(id)
-        ? state.saved.filter((x) => x !== id)
-        : [...state.saved, id];
-      store.set("perkdrop_saved", JSON.stringify(state.saved));
+      const next=saved.includes(id)?saved.filter((x)=>x!==id):[...saved,id];
+      if(kind==='merchant'){
+        state.followed=next;
+        store.set("perkdrop_followed_merchants",JSON.stringify(next));
+      }else{
+        state.saved=next;
+        store.set("perkdrop_saved",JSON.stringify(next));
+      }
       const d = state.deals.find((x) => x.id === id);
       if (d)
         track(
           "save_toggle",
-          props(d, { saved_state: state.saved.includes(id) }),
+          props(d, { saved_state: next.includes(id), save_kind:kind }),
         );
       render();
       return;
@@ -1431,9 +1465,31 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     applyCatalogue(rows);
     cacheCatalogue(rows);
   }
+  async function loadConsumerState(){
+    const credential=store.get('perkdrop_consumer_credential_v1');
+    if(!/^[a-f0-9]{64}$/.test(credential))return;
+    try{
+      const {marketplace}=await import('/marketplace-client.js');
+      const data=await marketplace('my_perks');
+      const saves=Array.isArray(data.saves)?data.saves:[];
+      state.saved=saves.filter(item=>item.kind==='drop').map(item=>item.target);
+      state.followed=saves.filter(item=>item.kind==='merchant').map(item=>item.target);
+      if(data.profile?.preferences&&typeof data.profile.preferences==='object'){
+        state.preferences=data.profile.preferences;
+        store.set('perkdrop_preferences_v1',JSON.stringify(state.preferences));
+        if(CITIES[state.preferences.city]){
+          state.city=state.preferences.city;
+          store.set('perkdrop_city',state.city);
+        }
+      }
+      store.set('perkdrop_saved',JSON.stringify(state.saved));
+      store.set('perkdrop_followed_merchants',JSON.stringify(state.followed));
+    }catch{}
+  }
   async function load() {
     try {
       await loadCatalogue();
+      await loadConsumerState();
       state.loading = false;
       state.catalogueStale = null;
       state.catalogueRetryError = false;
@@ -1516,15 +1572,17 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
       weekendDrops=all.filter(weekend),
       city=CITIES[state.city]?.[0]||state.city,
       primary=tonight.length?tonight:all;
+    const personal=personalisedDeals(all);
     const primaryPlaces=new Set(venueGroups(primary).map(group=>placeKey(group.primary)));
     const weekendPicks=weekendDrops.filter(d=>!primaryPlaces.has(placeKey(d)));
     const weekendPlaces=new Set(venueGroups(weekendPicks).map(group=>placeKey(group.primary)));
     const eventPicks=events.filter(d=>!primaryPlaces.has(placeKey(d))&&!weekendPlaces.has(placeKey(d)));
     const mapCard=`<a data-internal class="map-shortcut" href="/map"><span class="map-shortcut-icon">⌖</span><span><small>SEE IT ON THE MAP</small><b>Places, events and perks near you</b><em>Open the live map before you decide where to go</em></span><i>→</i></a>`;
-    const planner=`<section class="discover-intro"><div class="discover-kicker"><span class="live-dot" aria-hidden="true"></span><span>${esc(city).toUpperCase()} SHORTLIST</span><span class="kicker-divider" aria-hidden="true"></span><span>LOCAL IDEAS, WITHOUT THE ENDLESS SCROLL</span></div><div class="discover-copy"><div><h1>What’s worth doing<br><strong>near you?</strong></h1><p><strong>Check PerkDrop before you make plans.</strong><br>Food, events, things to do, family plans and genuine local perks — all in one simple local guide.</p></div><div class="plan-pills" aria-label="Quick ways to browse"><a data-internal href="/tonight">Tonight</a><a data-internal href="/weekend">This weekend</a><a data-internal href="/near-me">Near me</a></div></div>${searchBox('',`Search ${city} — food, events, places or ideas`)}<div class="home-actions"><a data-internal href="/near-me">Use my location</a><a data-internal href="/map">Explore the map <span aria-hidden="true">→</span></a></div>${chips()}</section>`;
+    const planner=`<section class="discover-intro"><div class="discover-kicker"><span class="live-dot" aria-hidden="true"></span><span>${esc(city).toUpperCase()} SHORTLIST</span><span class="kicker-divider" aria-hidden="true"></span><span>LOCAL IDEAS, WITHOUT THE ENDLESS SCROLL</span></div><div class="discover-copy"><div><h1>What’s worth doing<br><strong>near you?</strong></h1><p><strong>Check PerkDrop before you make plans.</strong><br>Food, events, things to do, family plans and genuine local perks — all in one simple local guide.</p></div><div class="plan-pills" aria-label="Quick ways to browse"><a data-internal href="/tonight">Tonight</a><a data-internal href="/weekend">This weekend</a><a data-internal href="/near-me">Near me</a></div></div>${searchBox('',`Search ${city} — food, events, places or ideas`)}<div class="home-actions"><a href="/near-me" id="home-use-location">Use my location</a><a href="/preferences">Tune your local guide</a><a data-internal href="/map">Explore the map <span aria-hidden="true">→</span></a></div>${chips()}</section>`;
     const explainer=`<section class="perks-explainer"><div><div class="eyebrow">ONE LOCAL GUIDE</div><h2>One place to check before you go.</h2></div><p>PerkDrop brings together the good local stuff: somewhere to eat, something to do, an event to catch, a family plan or a worthwhile perk — with the key details clear before you make a decision.</p></section>`;
     const businessCta=`<a class="business-cta" data-internal href="/business"><span>FOR LOCAL BUSINESSES</span><b>Own a local business? Add your first perk free</b><i>→</i></a>`;
-    return shell(`<main class="page discover-page">${planner}${primary.length?dealRail(tonight.length?'Tonight in '+city:'Worth checking out near you',primary,tonight.length?'/tonight':'/near-me',tonight.length?'AVAILABLE TONIGHT':'YOUR LOCAL SHORTLIST'):''}${mapCard}${weekendPicks.length?dealRail('Make a weekend plan',weekendPicks,'/weekend','SAVE THIS FOR LATER'):''}${eventPicks.length?dealRail('Worth seeing this week',eventPicks,'/events','EVENTS & EXPERIENCES'):''}${explainer}${businessCta}${!all.length?'<section class="empty"><h2>No local Drops yet</h2><p>Choose another city, or browse public offers across Australia.</p><a class="btn primary" data-internal href="/search">Explore all offers</a></section>':''}</main>`);
+    const personalRail=hasPreferences()&&personal.length?dealRail('Picked for your local guide',personal,'/preferences','FOR YOU'):'<section class="discover-section"><div class="section-head"><div><div class="eyebrow">MAKE IT YOURS</div><h2>Set the kinds of plans you actually want.</h2></div><a href="/preferences">Personalise <span aria-hidden="true">→</span></a></div></section>';
+    return shell(`<main class="page discover-page">${planner}${personalRail}${primary.length?dealRail(tonight.length?'Tonight in '+city:'Worth checking out near you',primary,tonight.length?'/tonight':'/near-me',tonight.length?'AVAILABLE TONIGHT':'YOUR LOCAL SHORTLIST'):''}${mapCard}${weekendPicks.length?dealRail('Make a weekend plan',weekendPicks,'/weekend','SAVE THIS FOR LATER'):''}${eventPicks.length?dealRail('Worth seeing this week',eventPicks,'/events','EVENTS & EXPERIENCES'):''}${explainer}${businessCta}${!all.length?'<section class="empty"><h2>No local Drops yet</h2><p>Choose another city, or browse public offers across Australia.</p><a class="btn primary" data-internal href="/search">Explore all offers</a></section>':''}</main>`);
   }
   const MARKET_PAGES = {
     beauty: ["beauty", "Beauty & wellness", "APPOINTMENTS & SELF-CARE"],

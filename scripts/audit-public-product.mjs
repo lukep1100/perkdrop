@@ -5,7 +5,7 @@ const BASE='https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/';
 const output=new URL('../.audit/product-baseline/',import.meta.url);await mkdir(output,{recursive:true});
 const start=new Date().toISOString();
 const read=async url=>{const t=performance.now(),r=await fetch(url,{signal:AbortSignal.timeout(30000)});return {status:r.status,ms:Math.round(performance.now()-t),data:await r.json()}};
-const catalogue=await read(BASE+'perkdrop-catalogue-api?limit=200');
+const catalogue=await read(BASE+'perkdrop-catalogue-api?limit=500');
 const directory=await read(BASE+'perkdrop-business-directory?limit=100');
 await writeFile(new URL('public-catalogue.json',output),JSON.stringify(catalogue,null,2));
 await writeFile(new URL('public-directory.json',output),JSON.stringify(directory,null,2));
