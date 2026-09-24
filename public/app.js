@@ -1044,7 +1044,31 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
       ),
     );
   }
-  document.addEventListener("error",e=>{const img=e.target;if(img.tagName==="IMG" && !img.src.endsWith(PLACEHOLDER)){img.src=PLACEHOLDER;img.alt="Photo unavailable";}},true);
+  document.addEventListener("error",e=>{
+    const img=e.target;
+    if(img.tagName!=="IMG"||img.src.endsWith(PLACEHOLDER))return;
+    const cardImage=img.closest(".card-image");
+    if(cardImage){
+      cardImage.classList.add("card-image--pending");
+      if(!cardImage.querySelector(".photo-pending")){
+        const pending=document.createElement("div");
+        pending.className="photo-pending";
+        const label=document.createElement("span");
+        label.textContent="Real photo being verified";
+        pending.append(label);
+        cardImage.append(pending);
+      }
+    }
+    const detailHero=img.closest(".detail-hero");
+    if(detailHero&&!detailHero.querySelector(".detail-photo-pending")){
+      const pending=document.createElement("div");
+      pending.className="detail-photo-pending";
+      pending.innerHTML="<span>Real photo being verified</span><small>PerkDrop only shows venue and event imagery that has been cleared for use.</small>";
+      detailHero.append(pending);
+    }
+    img.src=PLACEHOLDER;
+    img.alt="Photo being verified";
+  },true);
   document.addEventListener("keydown",e=>{
     if(!state.locationOpen)return;
     if(e.key==="Escape"){state.locationOpen=false;render();$("#location-pill")?.focus();}
