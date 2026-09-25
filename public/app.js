@@ -1002,15 +1002,19 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
   function venuePage(b) {
     const offers=state.deals.filter(d=>d.merchantId===b.id);
     const followed=state.followed.includes(b.id);
+    const seenPhotos=new Set();
     const choices=offers.map(d=>{
       const photo=displayPhoto(d);
-      const visual=photo?`<img loading="lazy" src="${esc(photo.src)}" alt="${esc(photo.alt)}">`:'<div class="offer-choice-fallback">Photo unavailable</div>';
+      const showPhoto=photo&&!seenPhotos.has(photo.src);
+      if(photo)seenPhotos.add(photo.src);
+      const visual=showPhoto?`<img loading="lazy" src="${esc(photo.src)}" alt="${esc(photo.alt)}">`:!photo?'<div class="offer-choice-fallback">Photo unavailable</div>':'';
       // A direct claim needs its conditions and capacity screen. External
       // offers can take the visitor straight to the reviewed booking link.
       const direct=d.fulfilmentMode==='external_booking'&&d.goUrl;
       const destination=direct?d.goUrl:route(d);
       const cta=direct?'Book with venue':d.redemptionAvailable?'View offer & claim':'View offer details';
-      return `<article class="offer-choice">${visual}<div class="offer-choice-copy"><span class="offer-choice-price">${esc(d.price||badge(d))}</span><h3>${esc(d.title)}</h3><p>${esc(scheduleLabel(d))}</p>${d.capacityRemaining!=null?`<p class="offer-choice-capacity">${esc(d.capacityRemaining)} ${esc(unitLabel(d))} left</p>`:''}<div class="offer-choice-actions"><a class="btn primary" ${direct?'target="_blank" rel="noopener"':'data-internal'} href="${esc(destination)}">${cta} →</a><a data-internal href="${esc(route(d))}">${direct?'Check conditions':'See conditions'}</a></div></div></article>`;
+      const price=d.price||badge(d);
+      return `<article class="offer-choice ${visual?'':'offer-choice--plain'}">${visual}<div class="offer-choice-copy">${d.title.toLowerCase().includes(price.toLowerCase())?'':`<span class="offer-choice-price">${esc(price)}</span>`}<h3>${esc(d.title)}</h3><p>${esc(scheduleLabel(d))}</p>${d.redemptionAvailable&&d.capacityRemaining!=null?`<p class="offer-choice-capacity">${esc(d.capacityRemaining)} ${esc(unitLabel(d))} left</p>`:''}<div class="offer-choice-actions"><a class="btn primary" ${direct?'target="_blank" rel="noopener"':'data-internal'} href="${esc(destination)}">${cta} →</a>${direct?`<a data-internal href="${esc(route(d))}">Check conditions</a>`:''}</div></div></article>`;
     }).join('');
     const visit='<a class="btn secondary" target="_blank" rel="noopener" href="'+esc(navUrl({...b,merchant:b.name}))+'">Directions</a>'+(b.website?'<a class="btn secondary" target="_blank" rel="noopener" href="'+esc(b.website)+'">Venue website</a>':'');
     return shell(`<main class="page venue-listing"><section class="section"><div class="eyebrow">${offers.length?'OFFERS AT THIS PLACE':'BUSINESS LISTING'}</div><h1>${esc(b.name)}</h1><p class="venue-listing-location">${esc(b.location)}</p>${offers.length?`<h2>Choose an offer</h2><div class="offer-choice-list">${choices}</div>`:`${b.image?'<img class="venue-photo" src="'+esc(safeImage(b.image))+'" alt="'+esc(b.name)+'">':'<p class="muted">A verified venue photo is not available yet.</p>'}<p>No active offer is listed. Check the official website for current information.</p>`}<div class="venue-secondary-actions">${visit}<button class="btn secondary" data-save-kind="merchant" data-save="${esc(b.id)}">${followed?'Following business':'Follow business'}</button></div><div class="venue-listing-foot">${reportLink(null,b.id)}${b.claimable?'<a href="/claim?merchant='+encodeURIComponent(b.slug)+'">Own this business? Claim the profile</a>':''}</div></section></main>`);
@@ -1508,6 +1512,9 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     }catch{}
   }
   async function load() {
+    // Venue directory and catalogue are independent requests. A direct venue
+    // link should not make visitors wait for one before starting the other.
+    if(state.route.startsWith('/venues/'))loadDirectory();
     const cached=cachedCatalogue();
     if(cached){
       applyCatalogue(cached.deals);

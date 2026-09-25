@@ -208,7 +208,7 @@ export async function getServerSideProps({ params, resolvedUrl, req, res }) {
   const started=Date.now(),requestId=String(req?.headers?.['x-vercel-id']||req?.headers?.['x-request-id']||`page-${started}`).slice(0,180);
   try {
     const endpoint=entity==='venues'?`https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-business-directory?slug=${encodeURIComponent(parts[1])}`:API+'&slug='+encodeURIComponent(parts[1]);
-    const r = await fetchCatalogue(endpoint, { headers: { accept: "application/json" } });
+    const r = await fetchCatalogue(endpoint, { headers: { accept: "application/json" }, ...(entity==='venues'?{signal:AbortSignal.timeout(2000)}:{}) });
     if(r.status===410){res.statusCode=410;return{props:{deal:null,canonicalPath,expiredDeal:true}};}
     if(r.status===404){res.statusCode=404;return{props:{deal:null,canonicalPath,missing:true}};}
     if (!r.ok) { console.warn(JSON.stringify({msg:'catalogue_dependency_failed',route:canonicalPath,requestId,upstreamStatus:r.status,upstreamRequestId:r.headers.get('x-perkdrop-request-id')||null,upstreamFailure:r.headers.get('x-perkdrop-query-failure')||null,upstreamQueryMs:r.headers.get('x-perkdrop-query-ms')||null,ms:Date.now()-started})); throw Error('catalogue_unavailable'); }
@@ -233,6 +233,9 @@ export async function getServerSideProps({ params, resolvedUrl, req, res }) {
       },
     };
   } catch (error) {
+    // The browser can load venue data with the catalogue and directory in parallel.
+    // Return its shell quickly when the metadata lookup exceeds the budget.
+    if(entity==='venues'&&error?.name==='TimeoutError')return {props:{deal:null,canonicalPath}};
     if(error?.message!=='catalogue_unavailable') console.warn(JSON.stringify({msg:'catalogue_dependency_error',route:canonicalPath,requestId,errorName:error?.name||'unknown',ms:Date.now()-started}));
     res.statusCode=503;res.setHeader('Retry-After','30');
     res.setHeader('X-PerkDrop-Request-Id',requestId);

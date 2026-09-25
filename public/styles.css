@@ -1196,3 +1196,6 @@ body{background:radial-gradient(900px 520px at 50% -220px,rgba(126,70,255,.19),t
 .venue-listing-foot{display:flex;flex-wrap:wrap;gap:16px;font-size:13px}
 .venue-listing-foot a{color:#d7c9ed}
 @media(max-width:600px){.offer-choice{grid-template-columns:1fr}.offer-choice>img,.offer-choice-fallback{height:180px;min-height:180px}.offer-choice-copy{padding:15px}.offer-choice-actions{width:100%}.offer-choice-actions .btn{flex:1 1 100%}.venue-listing h1{font-size:29px}}
+.offer-choice--plain{grid-template-columns:1fr}
+.offer-choice--plain .offer-choice-copy{padding:17px 20px}
+.offer-choice--plain .offer-choice-actions{padding-top:7px}
