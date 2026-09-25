@@ -1,8 +1,11 @@
 import { availabilityMatches, freshness, scheduleLabel, selectedAvailability, localClock } from '/availability.mjs?v=v39-venue-rails';
+import { venueKey, legacyVenueKey } from '/venue-identity.mjs';
+import { matchesOuting, suggestedDate } from '/outing-rules.mjs';
+import { analyticsContext } from '/analytics.mjs';
 import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfilmentLabel, localDate, searchMatches } from '/discovery-rules.mjs?v=v39-venue-rails';
 (() => {
   "use strict";
-  const VERSION = "v43-image-led-home";
+  const VERSION = "v44-useful-discovery";
   const API =
     "https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-catalogue-api?limit=500";
   const SUBMIT =
@@ -73,28 +76,18 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
               : "direct";
   }
   try {sessionStorage.setItem("perkdrop_attribution",JSON.stringify(traffic));}catch{}
-  const sid = (() => {
-    let v = store.get("perkdrop_analytics_session");
-    if (!v) {
-      v =
-        crypto.randomUUID?.() ||
-        Date.now() + "-" + Math.random().toString(36).slice(2);
-      store.set("perkdrop_analytics_session", v);
-    }
-    return v;
-  })();
   const state = {
     deals: [],
     businesses: [],
     directoryLoaded: false,
     directoryLoading: false,
     directoryError: "",
-    mapFilter: "all",
+    mapFilter: "offers",
     detailMap: null,
     viewedDeal: "",
     viewedMap: "",
     city: CITIES[store.get("perkdrop_city")] ? store.get("perkdrop_city") : "adelaide",
-    user: null,
+    user: validCoordinates(qs.get("lat"),qs.get("lng"))?{lat:Number(qs.get("lat")),lng:Number(qs.get("lng")),radius:25,label:qs.get("area")||"Selected area"}:store.json("perkdrop_area_v1", null),
     saved: store.json("perkdrop_saved", []),
     followed: store.json("perkdrop_followed_merchants", []),
     preferences: store.json("perkdrop_preferences_v1", {}),
@@ -109,6 +102,9 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     map: null,
     party: 1,
     locationOpen: false,
+    areaResults: [],
+    searchAreas: [],
+    areaTerm:"",areaRadius:25,areaMessage:"",
     pageKey: "",
   };
   const $ = (s) => document.querySelector(s),
@@ -149,6 +145,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
       return false;
     }
   }
+  function safePagePath(){const u=new URL(location.href);u.searchParams.delete('_vercel_share');u.searchParams.delete('token');return u.pathname+u.search;}
   function track(event_type, metadata = {}) {
     try {
       fetch(TRACK, {
@@ -157,17 +154,20 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
         keepalive: true,
         body: JSON.stringify({
           event_type,
-          session_id: sid,
+          session_id: analyticsContext().sessionId,
           city: state.city,
-          source_page: location.pathname + location.search,
+          source_page: safePagePath(),
           referrer: document.referrer,
           metadata: {
             ...metadata,
+            visitor_id: analyticsContext().visitorId,
+            traffic_type: analyticsContext().internal ? "internal" : "public",
+            platform: "web",
             utm_source: traffic.source || null,
             utm_medium: traffic.medium || null,
             utm_campaign: traffic.campaign || null,
             fbclid: traffic.fbclid || null,
-            path: location.pathname + location.search,
+            path: safePagePath(),
           },
         }),
       }).catch(() => {});
@@ -439,7 +439,10 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
       const url = new URL(value, location.origin);
       if (url.hostname === "khzpdyyywiucfhubxkev.supabase.co" &&
           url.pathname === `/functions/v1/${functionName}`) {
-        url.searchParams.set("sid", sid);
+        const context=analyticsContext();
+        url.searchParams.set("sid", context.sessionId);
+        url.searchParams.set("vid", context.visitorId);
+        if(context.internal)url.searchParams.set("internal","1");
         return url.toString();
       }
     } catch {}
@@ -489,6 +492,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
       .replace(/[^a-z0-9]+/g, " ")
       .trim();
   function cityDeals() {
+    if(state.user)return state.deals.filter(d=>mapped(d)&&distance(state.user.lat,state.user.lng,d.latitude,d.longitude)<=(state.user.radius||25));
     const market=CITIES[state.city],metroRadius=state.city==='gold-coast'?80:65;
     return state.deals.filter((d) => {
       const city = cityKey(d.city);
@@ -531,7 +535,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     if (!state.route.startsWith("/places/")) return null;
     let key;
     try { key = decodeURIComponent(state.route.split("/").slice(2).join("/")); } catch { return null; }
-    return venueGroups(state.deals).find(group => placeKey(group.primary) === key) || null;
+    return venueGroups(state.deals).find(group => placeKey(group.primary) === key || group.offers.some(d=>legacyVenueKey(d)===key||(d.legacyPlaceKeys||[]).includes(key))) || null;
   }
   function ending(d) {
     if (!d.end) return false;
@@ -541,7 +545,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
   }
   const weekend=d=>availabilityMatches(d,"weekend");
   function list(kind) {
-    let x = kind==="near-me"&&state.user?state.deals.filter(d=>mapped(d)&&distance(state.user.lat,state.user.lng,d.latitude,d.longitude)<=50):cityDeals();
+    let x = kind==="near-me"&&state.user?state.deals.filter(d=>mapped(d)&&distance(state.user.lat,state.user.lng,d.latitude,d.longitude)<=(state.user.radius||25)):cityDeals();
     const verticals = {
       beauty: "beauty",
       wellness: "wellness",
@@ -588,7 +592,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
             distance(state.user.lat, state.user.lng, b.latitude, b.longitude),
         );
     }
-    return x;
+    return x.filter(d=>matchesOuting(d,outingFilters()));
   }
   function toast(t) {
     $(".toast")?.remove();
@@ -600,7 +604,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     setTimeout(() => n.remove(), 2200);
   }
   function go(href) {
-    if (/^\/(my-perks|perk|recover|radar|standby)(\/|#|\?|$)/.test(href)) {
+    if (/^\/(my-perks|perk|recover|radar|standby|plans|plan|preferences|updates|account|connect-device)(\/|#|\?|$)/.test(href)) {
       location.href = href;
       return;
     }
@@ -634,7 +638,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     return `<footer class="site-footer"><div class="footer-grid"><div><a class="footer-brand" data-internal href="/">${brand()}</a><p>Your local shortlist for food, things to do, events, experiences and genuine perks — with the details clear before you go.</p><div class="socials"><a target="_blank" rel="noopener" href="https://www.instagram.com/perkdropofficial/">Instagram</a><a target="_blank" rel="noopener" href="https://www.tiktok.com/@perkdrop8">TikTok</a><a target="_blank" rel="noopener" href="https://www.facebook.com/perkdrop">Facebook</a></div></div><div><b>Discover</b><a data-internal href="/food">Food</a><a data-internal href="/events">Events</a><a data-internal href="/map">Map</a><a data-internal href="/about">About</a></div><div><b>Business</b><a data-internal href="/business">Create a Drop</a><a href="/claim">Claim your business</a><a href="/merchant-floor">Business sign in</a></div></div><div class="footer-legal"><a data-internal href="/terms">Terms</a> · <a data-internal href="/privacy">Privacy</a> · <a data-internal href="/merchant-terms">Merchant Terms</a> · <a data-internal href="/verification">Verification</a> · <a data-internal href="/affiliate">Affiliate Disclosure</a> · <a data-internal href="/contact">Contact</a></div></footer>`;
   }
   function locationMenu() {
-    return `<div class="location-menu" id="location-overlay"><div class="location-sheet" role="dialog" aria-modal="true" aria-labelledby="location-title"><button id="close-location" class="tool-btn" aria-label="Close location chooser">Close ✕</button><h3 id="location-title">Choose your area</h3><button id="use-location" class="btn primary">⌖ Use my live location</button><div class="city-grid">${Object.entries(
+    return `<div class="location-menu" id="location-overlay"><div class="location-sheet" role="dialog" aria-modal="true" aria-labelledby="location-title"><button id="close-location" class="tool-btn" aria-label="Close location chooser">Close ✕</button><h3 id="location-title">Choose your area</h3><button id="use-location" class="btn primary">⌖ Use my live location</button><form id="area-form" class="area-form"><label for="area-input">Suburb or postcode</label><input id="area-input" value="${esc(state.areaTerm)}" placeholder="e.g. Elizabeth or 5112" required maxlength="80"><label for="area-radius">Distance from selected area</label><select id="area-radius"><option value="10" ${state.areaRadius===10?"selected":""}>10 km</option><option value="25" ${state.areaRadius===25?"selected":""}>25 km</option><option value="50" ${state.areaRadius===50?"selected":""}>50 km</option></select><button class="btn secondary">Use area</button><small>Choose a suburb to search around its approximate centre. Distances are straight-line estimates.</small><div id="area-status" role="status">${esc(state.areaMessage)}</div></form><div class="area-results">${state.areaResults.map((a,i)=>`<button class="btn secondary" data-area="${i}">${esc(a.name)} ${esc(a.state)} ${esc(a.postcode)}</button>`).join("")}</div><div class="city-grid">${Object.entries(
       CITIES,
     )
       .map(
@@ -668,7 +672,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
             ? "saved"
             : "home");
     const savedCount = state.saved.length ? `<span class="saved-count">${state.saved.length > 9 ? "9+" : state.saved.length}</span>` : "";
-    return `<div class="app-shell"><header class="topbar"><div class="topbar-inner"><a class="wordmark" data-internal href="/">${brand()}</a><div class="topbar-actions"><button id="location-pill" class="location-pill"><i></i>${esc(CITIES[state.city]?.[0] || state.city)}⌄</button><a class="saved-top" data-internal href="/my-perks?tab=saved" aria-label="Saved Drops">♡${savedCount}</a></div></div></header>${catalogueNotice()}${content}${footer()}${nav(navActive)}${state.locationOpen ? locationMenu() : ""}</div>`;
+    return `<div class="app-shell"><header class="topbar"><div class="topbar-inner"><a class="wordmark" data-internal href="/">${brand()}</a><div class="topbar-actions"><button id="location-pill" class="location-pill"><i></i>${esc(state.user?.label||CITIES[state.city]?.[0]||state.city)}⌄</button><a class="saved-top" data-internal href="/my-perks?tab=saved" aria-label="Saved Drops">♡${savedCount}</a></div></div></header>${catalogueNotice()}${content}${footer()}${nav(navActive)}${state.locationOpen ? locationMenu() : ""}</div>`;
   }
   function searchBox(v = "", placeholder = "Search deals, places or events") {
     return `<form role="search" id="search-form" class="searchbar"><span aria-hidden="true">⌕</span><input id="search-input" value="${esc(v)}" placeholder="${esc(placeholder)}" aria-label="Search PerkDrop"><button aria-label="Search">Search</button>${v?'<button type="button" id="clear-search" aria-label="Clear search">✕</button>':''}</form>`;
@@ -748,27 +752,14 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
       groups = venueGroups(xs),
       active = k === "saved" ? "saved" : "explore";
     return shell(
-      `<main class="page">${searchBox()}${chips()}<section class="section"><div class="section-head"><div><div class="eyebrow">${eye}</div><h2>${esc(title)}</h2></div><span>${groups.length} place${groups.length === 1 ? "" : "s"} · ${xs.length} offer${xs.length === 1 ? "" : "s"}</span></div>${k === "near-me" && !state.user ? `<div class="empty"><p>Use your location to sort places by distance.</p><button id="near-location" class="btn primary">⌖ Use my location</button></div>` : ""}<div class="grid compact venue-grid">${groups.map(venueRailCard).join("")}</div>${!xs.length ? '<div class="empty">No matching places right now.</div>' : ""}</section></main>`,
+      `<main class="page">${searchBox()}${outingControls()}${chips()}<section class="section"><div class="section-head"><div><div class="eyebrow">${eye}</div><h2>${esc(title)}</h2></div><span>${groups.length} place${groups.length === 1 ? "" : "s"} · ${xs.length} offer${xs.length === 1 ? "" : "s"}</span></div>${k === "near-me" && !state.user ? `<div class="empty"><p>Use your location to sort places by distance.</p><button id="near-location" class="btn primary">⌖ Use my location</button></div>` : ""}<div class="grid compact venue-grid">${groups.map(venueRailCard).join("")}</div>${!xs.length ? '<div class="empty">No confirmed choices match this area and filters yet. <a href="/radar">Watch for new local Drops</a> or <a href="/search">change your search</a>.</div>' : ""}</section></main>`,
       active,
     );
   }
   function discoveryRank(d) {
     return (d.featured ? 40 : 0) + (hasPhoto(d) ? 20 : 0) + (d.capacityRemaining != null ? 8 : 0) + (availabilityMatches(d, 'tonight') ? 6 : 0) + (freshness(d).state === 'recent' ? 4 : 0);
   }
-  function placeKey(d) {
-    const merchant =
-      placePart(d.merchantId) ||
-      placePart(d.merchantSlug) ||
-      placePart(d.merchant) ||
-      placePart(d.title);
-    const coordinates = mapped(d)
-      ? `${Number(d.latitude).toFixed(4)},${Number(d.longitude).toFixed(4)}`
-      : "";
-    const location = placePart(d.location || d.locationName);
-    // A verified coordinate is the strongest place signal. It also keeps one venue
-    // together when the same address is written differently across source listings.
-    return `${merchant}|${coordinates || location || cityKey(d.city)}`;
-  }
+  const placeKey=venueKey;
   function venueGroups(items) {
     const groups=new Map();
     for(const d of items){
@@ -779,7 +770,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     return [...groups.values()].map(offers=>{
       const ordered=[...offers].sort((a,b)=>discoveryRank(b)-discoveryRank(a));
       return {primary:ordered[0],offers:ordered};
-    }).sort((a,b)=>discoveryRank(b.primary)-discoveryRank(a.primary));
+    }).sort((a,b)=>(state.user&&mapped(a.primary)&&mapped(b.primary)?distance(state.user.lat,state.user.lng,a.primary.latitude,a.primary.longitude)-distance(state.user.lat,state.user.lng,b.primary.latitude,b.primary.longitude):discoveryRank(b.primary)-discoveryRank(a.primary)));
   }
   function merchantPlaceCount(d) {
     const sameMerchant = state.deals.filter((candidate) => {
@@ -805,19 +796,22 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
   function venueRailCard(group){
     const d=group.primary,t=type(d),count=group.offers.length;
     const more=count>1?'<div class="venue-offer-lines"><span>+'+(count-1)+' more offer'+(count===2?'':'s')+' at this place</span></div>':'';
-    return `<article class="deal-card venue-rail-card ${d.imageFit==='contain'?'poster-card':''}"><a class="card-link" data-internal href="${esc(venueHref(d,group))}">${photoFrame(d)}<span class="badge">${esc(badge(d))}</span><span class="type-pill type-${t[0]}">${t[1]} ${t[2]}</span><div class="card-body"><div class="merchant-line"><span>${esc(d.merchant)}</span><span class="distance">${esc(distLabel(d))}</span></div><h3>${esc(d.title)}</h3>${more||'<div class="meta">'+esc(scheduleLabel(d))+'</div>'}</div></a>${photoCredit(d)}${photoCredit(d,true)}<button class="save" aria-label="Save ${esc(d.merchant)}" data-save="${esc(d.id)}">${state.saved.includes(d.id)?'♥':'♡'}</button></article>`;
+    return `<article class="deal-card venue-rail-card ${d.imageFit==='contain'?'poster-card':''}"><a class="card-link" data-internal href="${esc(venueHref(d,group))}">${photoFrame(d)}<span class="badge">${esc(badge(d))}</span><span class="type-pill type-${t[0]}">${t[1]} ${t[2]}</span><div class="card-body"><div class="merchant-line"><span>${esc(d.merchant)}</span><span class="distance">${esc(distLabel(d))}</span></div><h3>${esc(d.title)}</h3><div class="meta">${esc(scheduleLabel(d))}</div><div class="meta">${esc(d.price||"Price to confirm")} · ${esc(d.location||d.city)}</div>${more}</div></a>${photoCredit(d)}${photoCredit(d,true)}<button class="save" aria-label="Save ${esc(d.title)}" aria-pressed="${state.saved.includes(d.id)}" data-save="${esc(d.id)}">${state.saved.includes(d.id)?'♥':'♡'}</button></article>`;
   }
   function dealRail(title, items, href, eyebrow = "DISCOVER") {
     const picks=venueGroups(items).slice(0,12);
     if (!picks.length) return "";
     return `<section class="discover-section ${picks.length === 1 ? "discover-section--solo" : ""}"><div class="section-head"><div><div class="eyebrow">${esc(eyebrow)}</div><h2>${esc(title)}</h2></div><a data-internal href="${esc(href)}">See all <span aria-hidden="true">→</span></a></div><div class="deal-rail ${picks.length === 1 ? "deal-rail--solo" : ""}" role="region" aria-label="${esc(title)}">${picks.map(venueRailCard).join("")}</div></section>`;
   }
+  function outingFilters(){const p=new URLSearchParams(location.search);return {date:p.get('date')||'',budget:p.get('budget')??'',adults:Number(p.get('adults')||1),ages:(p.get('ages')||'').split(',').filter(v=>v.trim()!=='').map(Number).filter(n=>Number.isInteger(n)&&n>=0&&n<=17),setting:p.get('setting')||'',accessible:p.get('accessible')==='1'};}
+  function outingControls(){const f=outingFilters();return `<details class="outing-controls" ${f.date||f.budget!==''||f.ages.length||f.setting?'open':''}><summary>Choose date, budget & family needs</summary><form id="outing-filters"><label>Date<input name="date" type="date" value="${esc(f.date)}"></label><label>Adults<input name="adults" type="number" min="1" max="20" value="${f.adults}"></label><label>Children’s ages<input name="ages" placeholder="e.g. 5, 8" value="${esc(f.ages.join(', '))}" pattern="[0-9, ]*"></label><label>Group budget (AUD)<input name="budget" type="number" min="0" step="1" value="${esc(f.budget)}" placeholder="Any"></label><label>Setting<select name="setting"><option value="">Any</option><option value="indoor" ${f.setting==='indoor'?'selected':''}>Indoor</option><option value="outdoor" ${f.setting==='outdoor'?'selected':''}>Outdoor</option></select></label><label>Access<select name="accessible"><option value="">Any</option><option value="1" ${f.accessible?'selected':''}>Verified wheelchair access</option></select></label><button class="btn primary">Apply filters</button></form><p>Age, setting and access filters include only confirmed details. Budget covers listed admission for your group; food, travel and extras may cost more. Unknown prices are excluded when you set a budget.</p></details>`;}
   function searchPage() {
-    const xs = (state.query?state.deals:cityDeals()).filter(d => searchMatches(text(d) + " " + d.city + " " + d.state, state.query));
+    const nationwide=new URLSearchParams(location.search).get("scope")==="australia";
+    const xs = (nationwide?state.deals:cityDeals()).filter(d => searchMatches(text(d) + " " + d.city + " " + d.state, state.query)).filter(d=>matchesOuting(d,outingFilters()));
     const groups=venueGroups(xs);
-    const businesses=state.query?state.businesses.filter(b=>searchMatches([b.name,b.market,b.state,b.location,b.category,b.cuisine].join(" "),state.query)):[];
+    const businesses=state.query?state.businesses.filter(b=>(nationwide||cityKey(b.market)===state.city)&&searchMatches([b.name,b.market,b.state,b.location,b.category,b.cuisine].join(" "),state.query)):[];
     return shell(
-      `<main class="page">${searchBox(state.query)}${chips()}<section class="section"><div class="section-head"><div><div class="eyebrow">SEARCH</div><h2>${state.query ? `Results across Australia for “${esc(state.query)}”` : "Explore PerkDrop"}</h2></div><span>${groups.length} place${groups.length === 1 ? "" : "s"} · ${xs.length} offer${xs.length === 1 ? "" : "s"}</span></div><div class="grid compact venue-grid">${groups.map(venueRailCard).join("")}</div>${!xs.length ? '<div class="empty">No offers matched. Try another food, venue or suburb. Business listings are shown below when available.</div>' : ""}${businesses.length?'<h2>Businesses</h2><div class="grid">'+businesses.slice(0,100).map(b=>venueCard({...b,merchant:b.name})).join('')+'</div>':''}${state.directoryLoading?'<p role="status">Searching business listings…</p>':''}</section></main>`,
+      `<main class="page">${searchBox(state.query)}<label class="scope-control">Search area <select id="search-scope"><option value="local" ${nationwide?"":"selected"}>My area</option><option value="australia" ${nationwide?"selected":""}>All Australia</option></select></label>${outingControls()}${state.searchAreas.length?`<aside class="search-areas"><b>Looking near a suburb?</b><p>Choose an area to see nearby options.</p>${state.searchAreas.map((a,i)=>`<button class="btn secondary" data-search-area="${i}">${esc(a.name)} ${esc(a.state)} ${esc(a.postcode)}</button>`).join('')}</aside>`:''}${chips()}<section class="section"><div class="section-head"><div><div class="eyebrow">SEARCH</div><h2>${state.query ? `Results ${nationwide?"across Australia":"near "+esc(state.user?.label||CITIES[state.city][0])} for “${esc(state.query)}”` : "Explore PerkDrop"}</h2></div><span>${groups.length} place${groups.length === 1 ? "" : "s"} · ${xs.length} offer${xs.length === 1 ? "" : "s"}</span></div><div class="grid compact venue-grid">${groups.map(venueRailCard).join("")}</div>${!xs.length ? '<div class="empty">No matching offers in this area yet. Try another date, widen your distance in the location chooser, or select All Australia. <a href="/radar">Watch for new local Drops</a>. Business listings appear below when available.</div>' : ""}${businesses.length?'<h2>Businesses</h2><div class="grid">'+businesses.slice(0,100).map(b=>venueCard({...b,merchant:b.name})).join('')+'</div>':''}${state.directoryLoading?'<p role="status">Searching business listings…</p>':''}</section></main>`,
       "explore",
     );
   }
@@ -906,7 +900,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
       photo = displayPhoto(d),
       visual = photo ? `<img src="${esc(photo.src)}" alt="${esc(photo.alt)}">` : '<div class="detail-photo-pending"><span>Photo unavailable</span><small>PerkDrop only shows venue and event imagery that has been cleared for use.</small></div>';
     document.title = `${d.title} | PerkDrop`;
-    return `<div class="app-shell"><main class="detail"><section class="detail-hero ${d.imageFit==='contain'?'poster-hero':''}"><button id="back-btn" class="back" aria-label="Go back">←</button>${visual}<div class="detail-title"><span class="badge static">${esc(badge(d))}</span><span class="detail-type type-${t[0]}">${t[1]} ${t[2]}</span><h1>${esc(d.title)}</h1><div>${esc(d.merchant)}</div></div></section><div class="detail-body">${photoCredit(d)}<div class="detail-tools"><button class="tool-btn" data-save="${esc(d.id)}">${saved ? "♥ Saved" : "♡ Save"}</button><button id="share-drop" class="tool-btn">↗ Share</button></div><div class="facts">📍 ${esc(d.location || "Check venue location")}<br>◷ ${esc(d.timing || "Check availability")}<br>${esc(freshness(d).label)}</div>${d.merchantSlug?'<p><a data-internal href="/venues/'+encodeURIComponent(d.merchantSlug)+'">View '+esc(d.merchant)+' business profile →</a></p>':''}${reportLink(d.id,d.merchantId)}${d.availability?.notes?`<p class="availability-note">${esc(d.availability.notes)}</p>`:""}${cap ? capacity(d) : trust(d)}<p>${esc(d.description)}</p><div class="catch"><b>THE CATCH</b><br>${esc(d.conditions || "Check the official source before travelling, booking or paying.")}</div>${mapped(d) ? '<div id="detail-map" class="detail-map"></div>' : ""}${cap ? "" : `<div class="detail-cta"><a id="official-cta" class="btn primary" target="_blank" rel="noopener" href="${esc(d.goUrl || d.source || d.officialSource)}">${d.offerVerification==='business_approved'?'View approved offer →':'View offer at source →'}</a><a id="nav-cta" class="btn secondary" target="_blank" rel="noopener" href="${esc(navUrl(d))}">⌖ Navigate</a></div>`}</div></main>${footer()}${nav("explore")}</div>`;
+    return `<div class="app-shell"><main class="detail"><section class="detail-hero ${d.imageFit==='contain'?'poster-hero':''}"><button id="back-btn" class="back" aria-label="Go back">←</button>${visual}<div class="detail-title"><span class="badge static">${esc(badge(d))}</span><span class="detail-type type-${t[0]}">${t[1]} ${t[2]}</span><h1>${esc(d.title)}</h1><div>${esc(d.merchant)}</div></div></section><div class="detail-body">${photoCredit(d)}<div class="detail-tools"><button class="tool-btn" data-save="${esc(d.id)}">${saved ? "♥ Saved" : "♡ Save"}</button><a class="tool-btn" href="/plans?add=${encodeURIComponent(d.id)}&date=${suggestedDate(d)}${d.locationId?'&branch='+encodeURIComponent(d.locationId):''}">＋ Add to plan</a><button id="share-drop" class="tool-btn">↗ Share</button></div><div class="facts">📍 ${esc(d.location || "Check venue location")}<br>◷ ${esc(scheduleLabel(d))}<br>${esc(freshness(d).label)}</div>${d.merchantSlug?'<p><a data-internal href="/venues/'+encodeURIComponent(d.merchantSlug)+'">View '+esc(d.merchant)+' business profile →</a></p>':''}${reportLink(d.id,d.merchantId)}${d.availability?.notes?`<p class="availability-note">${esc(d.availability.notes)}</p>`:""}${cap ? capacity(d) : trust(d)}<p>${esc(d.description)}</p><div class="catch"><b>THE CATCH</b><br>${esc(d.conditions || "Check the official source before travelling, booking or paying.")}</div>${mapped(d) ? '<div id="detail-map" class="detail-map"></div>' : ""}${cap ? "" : `<div class="detail-cta"><a id="official-cta" class="btn primary" target="_blank" rel="noopener" href="${esc(d.goUrl || d.source || d.officialSource)}">${d.offerVerification==='business_approved'?'View approved offer →':'View offer at source →'}</a><a id="nav-cta" class="btn secondary" target="_blank" rel="noopener" href="${esc(navUrl(d))}">⌖ Navigate</a></div>`}</div></main>${footer()}${nav("explore")}</div>`;
   }
   const legal = {
     terms: [
@@ -975,13 +969,13 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     const t = d.business ? ["business","•","Business"] : type(d);
     return L.divIcon({
       className: "",
-      html: `<div class="map-pin pin-${t[0]}">${t[1]}</div>`,
+      html: `<div class="map-pin pin-${t[0]}" aria-label="${esc(d.merchant)} — ${esc(d.business?"Business":d.title)}"><span aria-hidden="true">${t[1]}</span></div>`,
       iconSize: [38, 38],
       iconAnchor: [19, 36],
     });
   }
   function mapEntries() {
-    const near=d=>!state.user||(mapped(d)&&distance(state.user.lat,state.user.lng,d.latitude,d.longitude)<=50);
+    const near=d=>!state.user||(mapped(d)&&distance(state.user.lat,state.user.lng,d.latitude,d.longitude)<=(state.user.radius||25));
     const deals = (state.user?state.deals.filter(near):cityDeals()).filter(d => mapped(d) && searchMatches(text(d), state.query));
     const venues = state.businesses.filter(b => (state.user?near(b):cityKey(b.market) === state.city) && searchMatches([b.name,b.location,b.category,b.cuisine,b.venueType].join(' '),state.query));
     const entries = new Map();
@@ -1003,7 +997,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     const xs = mapEntries(), pins=xs.filter(mapped);
     const offers=xs.filter(x=>!x.business).flatMap(x=>x.offers||[]);
     const groupedOffers=venueGroups(offers).slice(0,12);
-    return shell('<main class="page map-page map-discover-page">'+searchBox(state.query)+chips()+'<section class="map-heading"><div><div class="eyebrow">EXPLORE YOUR AREA</div><h1>See what’s nearby</h1></div><div class="view-switch"><a data-internal href="/near-me">List</a><span>⌖ Map</span></div></section><div class="map-toolbar"><button id="map-location" class="btn primary">⌖ Near me</button><label class="map-filter-label">Show <select id="map-filter"><option value="all" '+(state.mapFilter==='all'?'selected':'')+'>Everything</option><option value="offers" '+(state.mapFilter==='offers'?'selected':'')+'>Offers</option></select></label></div><p class="muted map-legend">'+pins.length+' nearby place'+(pins.length===1?'':'s')+' on the map</p>'+(state.directoryError?'<p role="status">Business listings could not load. Current offers are still shown.</p>':'')+'<div class="mapbox"><div id="perk-map" aria-label="Map of deals and businesses"><p role="status">Loading map…</p></div></div>'+(!xs.length?'<div class="empty">No matches in this area. Clear your search or choose another city.</div>':groupedOffers.length?'<section class="map-nearby"><div class="section-head"><div><div class="eyebrow">FROM THE MAP</div><h2>Nearby places</h2></div><a data-internal href="/near-me">List view</a></div><div class="deal-rail map-deal-rail">'+groupedOffers.map(venueRailCard).join('')+'</div></section>':'')+'</main>','map');
+    return shell('<main class="page map-page map-discover-page">'+searchBox(state.query)+chips()+'<section class="map-heading"><div><div class="eyebrow">EXPLORE YOUR AREA</div><h1>See what’s nearby</h1></div><div class="view-switch"><a data-internal href="/near-me">List</a><span>⌖ Map</span></div></section><div class="map-toolbar"><button id="map-location" class="btn primary">⌖ Near me</button><label class="map-filter-label">Show <select id="map-filter"><option value="all" '+(state.mapFilter==='all'?'selected':'')+'>Everything</option><option value="offers" '+(state.mapFilter==='offers'?'selected':'')+'>Offers</option></select></label></div><p class="muted map-legend">'+pins.length+' nearby place'+(pins.length===1?'':'s')+' on the map. Overlapping pins are spread; lines show their locations.</p>'+(state.directoryError?'<p role="status">Business listings could not load. Current offers are still shown.</p>':'')+'<div class="mapbox"><div id="perk-map" aria-label="Map of deals and businesses"><p role="status">Loading map…</p></div></div>'+(!xs.length?'<div class="empty">No matches in this area. Clear your search or choose another city.</div>':groupedOffers.length?'<section class="map-nearby"><div class="section-head"><div><div class="eyebrow">FROM THE MAP</div><h2>Nearby places</h2></div><a data-internal href="/near-me">List view</a></div><div class="deal-rail map-deal-rail">'+groupedOffers.map(venueRailCard).join('')+'</div></section>':'')+'</main>','map');
   }
   function venuePage(b) {
     const offers=state.deals.filter(d=>d.merchantId===b.id);
@@ -1051,24 +1045,21 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
       attribution: "&copy; OpenStreetMap contributors",
     }).addTo(m);
     const f = L.featureGroup().addTo(m);
-    const overlapping=new Map();
+    const markers=[];
     for(const d of mapEntries().filter(mapped)) {
-      // A city-centre postcode can put several separately valid venues within a few metres.
-      // Spread their display pins while preserving each listing's real coordinate for directions.
-      const key=Math.round(d.latitude*1000)+':'+Math.round(d.longitude*1000);
-      if(!overlapping.has(key)) overlapping.set(key,[]);
-      overlapping.get(key).push(d);
+      const point=L.latLng(d.latitude,d.longitude);
+      const marker=L.marker(point,{icon:pin(d),title:d.merchant,alt:d.merchant+" — "+(d.business?"Business":d.title),keyboard:true}).addTo(f).bindPopup(mapPopup(d),{maxWidth:310,closeButton:true}).on('popupopen',()=>track('map_marker_open',{merchant_id:d.merchantId,deal_id:d.business?null:d.id,listing_type:d.business?'business':'offer'}));
+      markers.push({point,marker});
     }
-    for(const group of overlapping.values()) {
-      group.forEach((d,index)=>{
-        // Show each place separately instead of hiding several venues under a numbered cluster.
-        const count=group.length, angle=(Math.PI*2*index)/Math.max(count,1), ring=Math.floor(index/6)+1, radius=count>1?0.0005*ring:0;
-        const lat=d.latitude+Math.sin(angle)*radius, lng=d.longitude+Math.cos(angle)*radius;
-        const body=mapPopup(d);
-        L.marker([lat,lng],{icon:pin(d),title:d.merchant})
-          .addTo(f).bindPopup(body,{maxWidth:310,closeButton:false})
-          .on('popupopen',()=>track('map_marker_open',{merchant_id:d.merchantId,deal_id:d.business?null:d.id,listing_type:d.business?'business':'offer'}));
-      });
+    const stems=L.layerGroup().addTo(m);
+    function spreadPins(){
+      stems.clearLayers();const occupied=[];
+      for(const {point,marker} of markers){
+        const original=m.latLngToLayerPoint(point);let placed=original;
+        for(let n=0;n<160;n++){const radius=n?18*Math.sqrt(n):0,angle=n*2.3999632297,candidate=L.point(original.x+Math.cos(angle)*radius,original.y+Math.sin(angle)*radius);if(occupied.every(p=>p.distanceTo(candidate)>=36)){placed=candidate;break;}}
+        occupied.push(placed);const display=m.layerPointToLatLng(placed);marker.setLatLng(display);
+        if(placed.distanceTo(original)>2)L.polyline([point,display],{color:'#bba7ee',weight:1.2,opacity:.8,interactive:false}).addTo(stems);
+      }
     }
     if (state.user)
       L.circleMarker([state.user.lat, state.user.lng], {
@@ -1080,6 +1071,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
         .bindTooltip("You are here");
     if (f.getLayers().length > 0)
       m.fitBounds(f.getBounds().pad(0.12), { maxZoom: 15, animate:false });
+    spreadPins();m.on('zoomend',spreadPins);
     if(state.viewedMap!==state.pageKey){track("map_open", {});state.viewedMap=state.pageKey;}
   }
   async function initDetailMap(d) {
@@ -1101,12 +1093,18 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
       .bindPopup(popup(d))
       .openPopup();
   }
+  function selectArea(area,radius){
+    state.user={lat:area.lat,lng:area.lng,label:`${area.name} ${area.state} ${area.postcode}`,radius};
+    const markets=Object.entries(CITIES).filter(([,v])=>v[1]===area.state).sort(([,a],[,b])=>distance(area.lat,area.lng,a[2],a[3])-distance(area.lat,area.lng,b[2],b[3]));
+    if(markets.length)state.city=markets[0][0];
+    store.set('perkdrop_area_v1',JSON.stringify(state.user));store.set('perkdrop_city',state.city);document.cookie=`perkdrop_city=${state.city}; Path=/; Max-Age=31536000; SameSite=Lax; Secure`;state.locationOpen=false;state.areaResults=[];go('/search');
+  }
   function requestLocation() {
     if (!navigator.geolocation) return toast("Location is not available.");
     navigator.geolocation.getCurrentPosition(
       (p) => {
         if(!validCoordinates(p.coords.latitude,p.coords.longitude)){state.locationOpen=true;render();toast("PerkDrop covers Australia. Choose an Australian city.");return;}
-        state.user = { lat: p.coords.latitude, lng: p.coords.longitude };
+        state.user = { lat: p.coords.latitude, lng: p.coords.longitude, radius:25, label:"Your location" };
         let best = state.city,
           bd = Infinity;
         for (const [k, v] of Object.entries(CITIES)) {
@@ -1205,7 +1203,9 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
         (b.onclick = () => {
           state.city = b.dataset.city;
           state.user = null;
+          store.set("perkdrop_area_v1","null");
           store.set("perkdrop_city", state.city);
+          document.cookie=`perkdrop_city=${state.city}; Path=/; Max-Age=31536000; SameSite=Lax; Secure`;
           state.locationOpen = false;
           render();
         }),
@@ -1217,13 +1217,23 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     $("#back-btn")?.addEventListener("click", () =>
       history.length > 1 ? history.back() : go("/"),
     );
-    $("#search-form")?.addEventListener("submit", (e) => {
+    $('#search-scope')?.addEventListener('change',e=>{const p=new URLSearchParams(location.search);p.set('scope',e.target.value);go('/search?'+p);});
+    $('#outing-filters')?.addEventListener('submit',e=>{e.preventDefault();const p=new URLSearchParams(location.search);for(const [k,v] of new FormData(e.currentTarget)){if(v)p.set(k,v);else p.delete(k);}go(state.route+'?'+p);});
+    $$('[data-search-area]').forEach(b=>b.addEventListener('click',()=>{const area=state.searchAreas[Number(b.dataset.searchArea)];state.searchAreas=[];selectArea(area,state.user?.radius||25);}));
+    $$('[data-area]').forEach(b=>b.addEventListener('click',()=>selectArea(state.areaResults[Number(b.dataset.area)],Number($('#area-radius')?.value)||25)));
+    $('#area-form')?.addEventListener('submit',async e=>{e.preventDefault();const term=clean($('#area-input').value),status=$('#area-status'),radius=Number($('#area-radius').value);status.textContent='Finding areas…';try{const r=await fetch('/api/areas?q='+encodeURIComponent(term)+'&state='+CITIES[state.city][1]);if(!r.ok)throw Error();const data=await r.json();if(data.areas.length===1){selectArea(data.areas[0],radius);return;}state.areaResults=data.areas;state.areaTerm=term;state.areaRadius=radius;state.areaMessage=data.areas.length?'Choose your suburb below.':'No matching suburb found. Try a nearby suburb or postcode.';render();}catch{status.textContent='Area search is unavailable. Choose a city below or try again.'}});
+    $("#search-form")?.addEventListener("submit", async (e) => {
       e.preventDefault();
       const q = clean($("#search-input")?.value);
       if(/^near\s+me$/i.test(q)){go('/near-me');return;}
+
+      state.searchAreas=[];
       if (q) track("search", { search_term: q.slice(0, 80) });
-      go(`${state.route==="/map"?"/map":"/search"}?q=${encodeURIComponent(q)}`);
+      if(q.length>=2&&new URLSearchParams(location.search).get('scope')!=='australia')try{const response=await fetch('/api/areas?q='+encodeURIComponent(q)+'&state='+CITIES[state.city][1],{signal:AbortSignal.timeout(3000)});if(response.ok){const data=await response.json();state.searchAreas=data.areas.filter(a=>a.name.toLowerCase()===q.toLowerCase()||a.postcode===q).slice(0,5);}}catch{}
+      go(`${state.route==="/map"?"/map":"/search"}?q=${encodeURIComponent(q)}&scope=${new URLSearchParams(location.search).get("scope")==="australia"?"australia":"local"}`);
     });
+    $('#listing-type')?.addEventListener('change',e=>{const claim=e.target.value==='claim',form=$('#merchant-form');$$('[data-claim-field]').forEach(x=>x.hidden=!claim);form.elements.capacity_total.required=claim;form.elements.redemption_verifier.required=claim;form.elements.fulfilment_mode.value=claim?'direct_claim':e.target.value==='event'?'information_only':'external_booking';});
+    $('#preview-business')?.addEventListener('click',()=>{const f=$('#merchant-form'),v=Object.fromEntries(new FormData(f)),p=$('#business-preview');p.hidden=false;p.innerHTML=`<h2>${esc(v.offer_title||'Your offer title')}</h2><p>${esc(v.business_name||'Your business')} · ${esc(v.location)}</p><p>${esc(v.description)}</p><p>${esc(v.starts_at)} to ${esc(v.ends_at)} · venue local time</p><p>${esc(v.conditions)}</p><small>Preview only. PerkDrop reviews accuracy, authority and imagery before publication.</small>`;});
     $("#merchant-form")?.addEventListener("submit", submitMerchant);
     const d = dealFromRoute();
     $("#share-drop")?.addEventListener("click", async () => {
@@ -1568,21 +1578,21 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
   function home() {
     const all=cityDeals().filter(d=>['A','B'].includes(d.qualityGrade)&&freshness(d).state==='recent');
     const tonight=all.filter(d=>availabilityMatches(d,'tonight')),
-      events=all.filter(isEvent),
+      events=all.filter(d=>isEvent(d)&&availabilityMatches(d,"week")),
       weekendDrops=all.filter(weekend),
       city=CITIES[state.city]?.[0]||state.city,
-      primary=tonight.length?tonight:all;
+      primary=tonight.length?tonight:venueGroups(all).slice(0,8).flatMap(g=>g.offers);
     const personal=personalisedDeals(all);
     const primaryPlaces=new Set(venueGroups(primary).map(group=>placeKey(group.primary)));
     const weekendPicks=weekendDrops.filter(d=>!primaryPlaces.has(placeKey(d)));
     const weekendPlaces=new Set(venueGroups(weekendPicks).map(group=>placeKey(group.primary)));
     const eventPicks=events.filter(d=>!primaryPlaces.has(placeKey(d))&&!weekendPlaces.has(placeKey(d)));
     const mapCard=`<a data-internal class="map-shortcut" href="/map"><span class="map-shortcut-icon">⌖</span><span><small>SEE IT ON THE MAP</small><b>Places, events and perks near you</b><em>Open the live map before you decide where to go</em></span><i>→</i></a>`;
-    const planner=`<section class="discover-intro"><div class="discover-kicker"><span class="live-dot" aria-hidden="true"></span><span>${esc(city).toUpperCase()} SHORTLIST</span><span class="kicker-divider" aria-hidden="true"></span><span>NEW IDEAS, CLEAR DETAILS</span></div><div class="discover-copy"><div><h1>Don’t miss<br><strong>what’s on.</strong></h1><p>Live local deals, events and places worth checking before you lock in your plans.</p></div><div class="plan-pills" aria-label="Quick ways to browse"><a data-internal href="/tonight"><span>✦</span>Tonight</a><a data-internal href="/weekend"><span>◷</span>This weekend</a><a data-internal href="/near-me"><span>⌖</span>Near me</a></div></div>${searchBox('',`Search ${city} — food, events, places or ideas`)}<div class="home-actions"><a href="/near-me" id="home-use-location">⌖ Use my location</a><a href="/preferences">Tune my guide</a><a data-internal href="/map">Explore map <span aria-hidden="true">→</span></a></div>${chips()}</section>`;
+    const planner=`<section class="discover-intro"><div class="discover-kicker"><span class="live-dot" aria-hidden="true"></span><span>${esc(city).toUpperCase()} SHORTLIST</span><span class="kicker-divider" aria-hidden="true"></span><span>NEW IDEAS, CLEAR DETAILS</span></div><div class="discover-copy"><div><h1>Find your next <strong>good plan.</strong></h1><p>Live local deals, events and places worth checking before you lock in your plans.</p></div><div class="plan-pills" aria-label="Quick ways to browse"><a data-internal href="/tonight"><span>✦</span>Tonight</a><a data-internal href="/weekend"><span>◷</span>This weekend</a><a data-internal href="/near-me"><span>⌖</span>Near me</a></div></div>${searchBox('',`Search ${city} — food, events, places or ideas`)}<div class="home-actions"><a href="/near-me" id="home-use-location">⌖ Use my location</a><a href="/preferences">Tune my guide</a><a data-internal href="/map">Explore map <span aria-hidden="true">→</span></a></div>${chips()}</section>`;
     const explainer=`<section class="perks-explainer"><div><div class="eyebrow">ONE LOCAL GUIDE</div><h2>One place to check before you go.</h2></div><p>PerkDrop brings together the good local stuff: somewhere to eat, something to do, an event to catch, a family plan or a worthwhile perk — with the key details clear before you make a decision.</p></section>`;
     const businessCta=`<a class="business-cta" data-internal href="/business"><span>FOR LOCAL BUSINESSES</span><b>Own a local business? Add your first perk free</b><i>→</i></a>`;
-    const personalRail=hasPreferences()&&personal.length?dealRail('Picked for your local guide',personal,'/preferences','FOR YOU'):'<section class="discover-section"><div class="section-head"><div><div class="eyebrow">MAKE IT YOURS</div><h2>Set the kinds of plans you actually want.</h2></div><a href="/preferences">Personalise <span aria-hidden="true">→</span></a></div></section>';
-    return shell(`<main class="page discover-page">${planner}${personalRail}${primary.length?dealRail(tonight.length?'Tonight in '+city:'Worth checking out near you',primary,tonight.length?'/tonight':'/near-me',tonight.length?'AVAILABLE TONIGHT':'YOUR LOCAL SHORTLIST'):''}${mapCard}${weekendPicks.length?dealRail('Make a weekend plan',weekendPicks,'/weekend','SAVE THIS FOR LATER'):''}${eventPicks.length?dealRail('Worth seeing this week',eventPicks,'/events','EVENTS & EXPERIENCES'):''}${explainer}${businessCta}${!all.length?'<section class="empty"><h2>No local Drops yet</h2><p>Choose another city, or browse public offers across Australia.</p><a class="btn primary" data-internal href="/search">Explore all offers</a></section>':''}</main>`);
+    const personalRail=hasPreferences()&&personal.length?dealRail('Picked for your local guide',personal,'/preferences','FOR YOU'):'<p class="personalise-link"><a href="/preferences">Personalise your local guide →</a></p>';
+    return shell(`<main class="page discover-page">${planner}${primary.length?dealRail(tonight.length?'Tonight in '+city:'Worth checking out near you',primary,tonight.length?'/tonight':'/near-me',tonight.length?'AVAILABLE TONIGHT':'YOUR LOCAL SHORTLIST'):''}${personalRail}${mapCard}${weekendPicks.length?dealRail('Make a weekend plan',weekendPicks,'/weekend','SAVE THIS FOR LATER'):''}${eventPicks.length?dealRail('Worth seeing this week',eventPicks,'/events','EVENTS & EXPERIENCES'):''}${explainer}${businessCta}${!all.length?'<section class="empty"><h2>No local Drops yet</h2><p>Choose another city, or browse public offers across Australia.</p><a class="btn primary" data-internal href="/search">Explore all offers</a></section>':''}</main>`);
   }
   const MARKET_PAGES = {
     beauty: ["beauty", "Beauty & wellness", "APPOINTMENTS & SELF-CARE"],
@@ -1640,7 +1650,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
         groups = venueGroups(items);
       document.title = `${title} | PerkDrop`;
       $("#app").innerHTML = shell(
-        `<main class="page">${searchBox()}${chips()}<section class="section"><div class="section-head"><div><div class="eyebrow">${eye}</div><h2>${title}</h2></div><span>${groups.length} place${groups.length === 1 ? "" : "s"} · ${items.length} offer${items.length === 1 ? "" : "s"}</span></div>${key==='now'?'<p>Showing reviewed service windows that are open in the venue’s local time. Booking and listed conditions still apply.</p>':''}<div class="grid compact venue-grid">${groups.map(venueRailCard).join("")}</div>${!items.length ? '<div class="empty">No confirmed options match this view right now. Check back later or browse current deals and confirm directly with the venue.</div>' : ""}</section></main>`,
+        `<main class="page">${searchBox()}${outingControls()}${chips()}<section class="section"><div class="section-head"><div><div class="eyebrow">${eye}</div><h2>${title}</h2></div><span>${groups.length} place${groups.length === 1 ? "" : "s"} · ${items.length} offer${items.length === 1 ? "" : "s"}</span></div>${key==='now'?'<p>Showing reviewed service windows that are open in the venue’s local time. Booking and listed conditions still apply.</p>':''}<div class="grid compact venue-grid">${groups.map(venueRailCard).join("")}</div>${!items.length ? '<div class="empty">No confirmed options match this view right now. Check back later or browse current deals and confirm directly with the venue.</div>' : ""}</section></main>`,
         "explore",
       );
       bind();
@@ -1651,7 +1661,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
   };
   function business() {
     return shell(
-      `<main class="page"><section class="business-hero"><div class="eyebrow">FOR LOCAL BUSINESSES & ORGANISERS</div><h1>Put unused capacity to work.</h1><p><strong>Free standard listing.</strong> $0 setup, $0 monthly and no standard redemption fee. Add a genuine perk, choose when it runs and set your own conditions and capacity.</p><div class="business-points"><span>✓ Controlled capacity</span><span>✓ Direct bookings stay yours</span><span>✓ Free standard participation</span><span>✓ Mobile verification</span></div></section><form id="merchant-form" class="merchant-form"><div class="form-grid"><label>Business / organisation *<input name="business_name" required maxlength="160"></label><label>Your name *<input name="contact_name" required maxlength="160"></label><label>Email *<input name="contact_email" type="email" required maxlength="254"></label><label>Phone *<input name="contact_phone" required maxlength="80"></label><label>Category<select name="vertical"><option value="food">Food & drink</option><option value="beauty">Beauty & wellness</option><option value="experiences">Experiences</option><option value="events">Events</option><option value="shopping">Shopping</option><option value="family_kids">Family & kids</option><option value="fitness">Health & fitness</option><option value="travel_stays">Travel & stays</option><option value="freebies">Freebies</option><option value="services">Services</option></select></label><label>How customers use the offer<select name="fulfilment_mode"><option value="external_booking">Customer books directly</option><option value="appointment">Appointment required</option><option value="direct_claim">Walk-in claim</option><option value="ticket">Ticket / session booking</option><option value="merchant_confirmation">Merchant confirmation</option></select></label><label>Availability<select name="drop_type"><option value="capacity">Planned capacity</option><option value="last_minute">Last minute</option><option value="cancellation">Cancellation / spare place</option></select></label><label>Capacity *<input name="capacity_total" required type="number" min="1" max="10000"></label><label>Capacity unit<select name="inventory_unit"><option value="person">Guests / people</option><option value="appointment">Appointments</option><option value="ticket">Tickets</option><option value="class_spot">Class spots</option><option value="room">Rooms</option><option value="item">Items</option></select></label><label>Location *<input name="location" required></label><label>City / town *<input name="city" required maxlength="100"></label><label>State / territory *<select name="state" required><option value="">Select state or territory</option><option value="ACT">ACT</option><option value="NSW">NSW</option><option value="NT">NT</option><option value="QLD">QLD</option><option value="SA">SA</option><option value="TAS">TAS</option><option value="VIC">VIC</option><option value="WA">WA</option></select></label><label class="wide">Offer title *<input name="offer_title" required maxlength="180"></label><label class="wide">Customer benefit *<textarea name="description" required maxlength="2500" rows="4" placeholder="e.g. complimentary treatment add-on or value-add perk"></textarea></label><label>Start *<input name="starts_at" required type="datetime-local"></label><label>End *<input name="ends_at" required type="datetime-local"></label><label>Booking / website link<input name="booking_url" type="url"></label><label>Photo for review (optional)<input name="media_url" type="url" placeholder="https://"><small>Only submit imagery you own or are authorised/licensed to use. It is not published automatically.</small></label><label class="wide">Conditions / minimum spend / booking instructions *<textarea name="conditions" required minlength="12" maxlength="1800" rows="3"></textarea></label><label>Redemption verifier *<input name="redemption_verifier" required maxlength="160"></label><label class="check wide"><input type="checkbox" name="authority_confirmed" required> I’m authorised to submit this offer. Any imagery supplied is owned, licensed or explicitly authorised for PerkDrop.</label><label class="check wide"><input type="checkbox" name="accuracy_confirmed" required> Details and offer conditions are accurate.</label><label class="check wide"><input type="checkbox" name="terms_accepted" required> I accept the PerkDrop merchant terms.</label></div><button class="btn primary submit-btn">Submit for review</button><div id="merchant-status" class="form-status"></div></form></main>`,
+      `<main class="page"><section class="business-hero"><div class="eyebrow">FOR LOCAL BUSINESSES & ORGANISERS</div><h1>Put unused capacity to work.</h1><p><strong>Free standard listing.</strong> $0 setup, $0 monthly and no standard redemption fee. Add a genuine perk, choose when it runs and set your own conditions and capacity.</p><div class="business-points"><span>✓ Controlled capacity</span><span>✓ Direct bookings stay yours</span><span>✓ Free standard participation</span><span>✓ Mobile verification</span></div></section><form id="merchant-form" class="merchant-form"><label>What would you like to list?<select name="listing_type" id="listing-type"><option value="external">A perk customers book directly</option><option value="event">A public event or activity</option><option value="claim">A limited PerkDrop claim</option></select></label><div class="form-grid"><label>Business / organisation *<input name="business_name" required maxlength="160"></label><label>Your name *<input name="contact_name" required maxlength="160"></label><label>Email *<input name="contact_email" type="email" required maxlength="254"></label><label>Phone (optional)<input name="contact_phone" maxlength="80"></label><label>Category<select name="vertical"><option value="food">Food & drink</option><option value="beauty">Beauty & wellness</option><option value="experiences">Experiences</option><option value="events">Events</option><option value="shopping">Shopping</option><option value="family_kids">Family & kids</option><option value="fitness">Health & fitness</option><option value="travel_stays">Travel & stays</option><option value="freebies">Freebies</option><option value="services">Services</option></select></label><label>How customers use the offer<select name="fulfilment_mode"><option value="external_booking">Customer books directly</option><option value="information_only">Public event / information</option><option value="appointment">Appointment required</option><option value="direct_claim">Walk-in claim</option><option value="ticket">Ticket / session booking</option><option value="merchant_confirmation">Merchant confirmation</option></select></label><label>Availability<select name="drop_type"><option value="capacity">Planned capacity</option><option value="last_minute">Last minute</option><option value="cancellation">Cancellation / spare place</option></select></label><label data-claim-field hidden>Capacity *<input name="capacity_total" type="number" min="1" max="10000"></label><label data-claim-field hidden>Capacity unit<select name="inventory_unit"><option value="person">Guests / people</option><option value="appointment">Appointments</option><option value="ticket">Tickets</option><option value="class_spot">Class spots</option><option value="room">Rooms</option><option value="item">Items</option></select></label><label>Location *<input name="location" required></label><label>City / town *<input name="city" required maxlength="100"></label><label>State / territory *<select name="state" required><option value="">Select state or territory</option><option value="ACT">ACT</option><option value="NSW">NSW</option><option value="NT">NT</option><option value="QLD">QLD</option><option value="SA">SA</option><option value="TAS">TAS</option><option value="VIC">VIC</option><option value="WA">WA</option></select></label><label class="wide">Offer title *<input name="offer_title" required maxlength="180"></label><label class="wide">Customer benefit *<textarea name="description" required maxlength="2500" rows="4" placeholder="e.g. complimentary treatment add-on or value-add perk"></textarea></label><label>Starts (venue local time) *<input name="starts_at" required type="datetime-local"></label><label>Ends (venue local time) *<input name="ends_at" required type="datetime-local"></label><label>Booking / website link<input name="booking_url" type="url"></label><label>Photo for review (optional)<input name="media_url" type="url" placeholder="https://"><small>Only submit imagery you own or are authorised/licensed to use. It is not published automatically.</small></label><label class="wide">Conditions / minimum spend / booking instructions *<textarea name="conditions" required minlength="12" maxlength="1800" rows="3"></textarea></label><label data-claim-field hidden>Redemption verifier *<input name="redemption_verifier" maxlength="160"></label><label class="check wide"><input type="checkbox" name="authority_confirmed" required> I’m authorised to submit this offer. Any imagery supplied is owned, licensed or explicitly authorised for PerkDrop.</label><label class="check wide"><input type="checkbox" name="accuracy_confirmed" required> Details and offer conditions are accurate.</label><label class="check wide"><input type="checkbox" name="terms_accepted" required> I accept the PerkDrop merchant terms.</label></div><button type="button" class="btn secondary" id="preview-business">Preview listing</button><button class="btn primary submit-btn">Submit for review</button><section id="business-preview" hidden aria-live="polite"></section><div id="merchant-status" class="form-status"></div></form></main>`,
     );
   }
   // Re-evaluate visible time-sensitive views at minute boundaries without fetching the directory.

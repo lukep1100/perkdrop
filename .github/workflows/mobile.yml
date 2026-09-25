@@ -4,11 +4,19 @@ on:
   pull_request:
     paths:
       - 'mobile/**'
+      - 'public/availability.mjs'
+      - 'public/outing-rules.mjs'
+      - 'public/venue-identity.mjs'
+      - 'public/discovery-rules.mjs'
       - '.github/workflows/mobile.yml'
   push:
     branches: [main]
     paths:
       - 'mobile/**'
+      - 'public/availability.mjs'
+      - 'public/outing-rules.mjs'
+      - 'public/venue-identity.mjs'
+      - 'public/discovery-rules.mjs'
       - '.github/workflows/mobile.yml'
 
 jobs:

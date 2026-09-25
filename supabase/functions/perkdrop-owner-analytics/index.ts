@@ -209,7 +209,7 @@ Deno.serve(async (req) => {
   const queryError = [eventsResult, redemptionResult, claimsResult, dropsResult, offersResult, contactsResult].find((x) => x.error)?.error;
   if (queryError) return json({ error: "analytics_unavailable" }, 500, origin);
 
-  const events = eventsResult.data || [];
+  const events = (eventsResult.data || []).filter(x=>x.metadata?.traffic_type!=='internal');
   const redemptions = redemptionResult.data || [];
   const claims = claimsResult.data || [];
   const drops = dropsResult.data || [];
@@ -304,7 +304,11 @@ Deno.serve(async (req) => {
     days,
     generatedAt: new Date().toISOString(),
     overview: {
-      visitors: new Set(events.map((x) => x.session_id).filter(Boolean)).size,
+      visitors: new Set(events.map((x) => x.metadata?.visitor_id || x.session_id).filter(Boolean)).size,
+      sessions: new Set(events.map(x=>x.session_id).filter(Boolean)).size,
+      internalEventsExcluded: (eventsResult.data||[]).length-events.length,
+      visitorDefinition: "Anonymous browser/install IDs; legacy rows use their old tracking ID. Not people.",
+      plansCreated: eventCount("plan_created"), planShares:eventCount("plan_shared"), calendarExports:eventCount("calendar_export"),
       pageViews: eventCount("page_view"),
       dealOpens: eventCount("deal_open", "deal_view"),
       redemptions: filledRedemptions.length,

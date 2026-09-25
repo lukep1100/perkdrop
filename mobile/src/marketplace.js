@@ -23,3 +23,10 @@ export async function marketplace(action, body = {}) {
   if (!response.ok) throw new Error(String(result.error || 'Request failed').replaceAll('_', ' '));
   return result;
 }
+
+export async function connectDevice(token){
+ const value=Array.from(Crypto.getRandomBytes(32),byte=>byte.toString(16).padStart(2,'0')).join('');
+ const response=await fetch(API,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'device_connect',token,new_credential:value,label:'PerkDrop app'})});
+ if(!response.ok)throw Error('Device link unavailable');
+ await SecureStore.setItemAsync(KEY,value);credentialPromise=Promise.resolve(value);
+}

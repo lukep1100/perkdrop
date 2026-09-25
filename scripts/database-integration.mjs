@@ -374,6 +374,8 @@ try {
   await testConsumerUtility(pool,check);
   const {testConsumerReleaseCore}=await import('../tests/database/consumer-release-core.mjs');
   await testConsumerReleaseCore(pool,check);
+  const {testAuditUtility}=await import('../tests/database/audit-utility.mjs');
+  await testAuditUtility(pool,check);
   const {testOwnerPolicy}=await import('../tests/database/owner-policy.mjs');
   await testOwnerPolicy(pool,check);
   const {testNotificationReadiness}=await import('../tests/database/notification-readiness.mjs');

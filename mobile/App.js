@@ -1,8 +1,14 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {analyticsContext,track} from './src/analytics';
+import * as SecureStore from 'expo-secure-store';
 import * as Location from 'expo-location';
-import { marketplace } from './src/marketplace';
+import { marketplace, connectDevice } from './src/marketplace';
+import {availabilityMatches,scheduleLabel} from '../public/availability.mjs';
+import {venueKey} from '../public/venue-identity.mjs';
+import {matchesOuting,suggestedDate} from '../public/outing-rules.mjs';
+import {isUnconditionallyFree} from '../public/discovery-rules.mjs';
 import { WebView } from 'react-native-webview';
-import { ActivityIndicator, Alert, FlatList, Image, Linking, Modal, Pressable, RefreshControl, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Image, Linking, Modal, Pressable, RefreshControl, SafeAreaView, ScrollView, Share, StatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
 
 const API = 'https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-catalogue-api?limit=500';
 const SITE = 'https://perkdrop.au';
@@ -23,6 +29,7 @@ const safeUrl = value => {
 const creditText = credit => credit ? [credit.caption || credit.source, credit.license].filter(Boolean).join(' · ') : '';
 function normalize(item) {
   return {
+    ...item,
     id: clean(item.id || item.slug), merchantId: clean(item.merchantId || item.merchant_id), merchant: clean(item.merchant),
     title: clean(item.title), category: clean(item.category),
     description: clean(item.description), location: clean(item.location),
@@ -36,13 +43,13 @@ function normalize(item) {
     detail: safeUrl(item.detailUrl || item.detail_url || (item.slug && '/deals/' + encodeURIComponent(item.slug))),
     official: safeUrl(item.goUrl || item.go_url || item.officialSource || item.official_source),
     directions: safeUrl(item.navigationUrl || item.navigation_url),
-    latitude: Number(item.latitude), longitude: Number(item.longitude)
+    latitude: item.latitude==null?null:Number(item.latitude), longitude: item.longitude==null?null:Number(item.longitude)
   };
 }
 function groupListings(items) {
   const groups = new Map();
   for (const item of items) {
-    const key = [item.merchant || item.id, item.location, item.city].map(x => x.toLowerCase()).join('|');
+    const key = venueKey(item);
     if (!groups.has(key)) groups.set(key, { key, name: item.merchant || 'Local listing', location: item.location || item.city, offers: [] });
     groups.get(key).offers.push(item);
   }
@@ -50,6 +57,7 @@ function groupListings(items) {
 }
 function categoryMatch(item, category) {
   if (category === 'All') return true;
+  if (category === 'Free') return isUnconditionallyFree(item);
   const text = (item.category + ' ' + item.title).toLowerCase();
   const terms = { Food: ['food', 'dining', 'restaurant', 'cafe'], Drinks: ['drink', 'bar'], Events: ['event', 'festival'], Beauty: ['beauty', 'hair', 'wellness'], Experiences: ['experience', 'activity', 'tour'], Family: ['family', 'kids'], Free: ['free'] };
   return terms[category].some(term => text.includes(term));
@@ -63,6 +71,7 @@ function OfferImage({ uri, title, detail = false, thumbnail = false }) {
 }
 export default function App() {
   const [items, setItems] = useState([]);
+  const handledConnect=useRef('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
@@ -71,7 +80,9 @@ export default function App() {
   const [selected, setSelected] = useState(null);
   const [tab, setTab] = useState('Explore');
   const [saved, setSaved] = useState(new Set());
-  const [point, setPoint] = useState(null);
+  const [point, setPoint] = useState({latitude:-34.9285,longitude:138.6007,label:'Adelaide',radius:50});
+  const [when,setWhen]=useState('any'),[budget,setBudget]=useState(''),[adults,setAdults]=useState('1'),[childAges,setChildAges]=useState('');
+  const [areaQuery,setAreaQuery]=useState(''),[areas,setAreas]=useState([]),[areaLoaded,setAreaLoaded]=useState(false),[showArea,setShowArea]=useState(false);
   const [nearBusy, setNearBusy] = useState(false);
   const [saving, setSaving] = useState(false);
   const [passes, setPasses] = useState([]);
@@ -100,7 +111,14 @@ export default function App() {
       setPasses(data.redemptions || []);
     } catch { setError('Saved offers could not be loaded. Pull down to retry.'); }
   }, []);
-  useEffect(() => { load(); loadSaved(); }, [load, loadSaved]);
+  useEffect(() => { load(); loadSaved();SecureStore.getItemAsync('perkdrop_area_v1').then(v=>{if(v){const a=JSON.parse(v);if(a===null||Number.isFinite(a.latitude)&&Number.isFinite(a.longitude))setPoint(a);}}).catch(()=>{}).finally(()=>setAreaLoaded(true)); }, [load, loadSaved]);
+  useEffect(()=>{if(areaLoaded)SecureStore.setItemAsync('perkdrop_area_v1',JSON.stringify(point)).catch(()=>{});},[point,areaLoaded]);
+  useEffect(()=>{track('page_view',{path:'app/'+tab});},[tab]);
+  useEffect(()=>{const handle=({url})=>{try{const u=new URL(url);if(u.protocol==='perkdrop:'&&u.hostname==='connect'&&/^[a-f0-9]{64}$/.test(u.hash.slice(1))){const token=u.hash.slice(1);if(handledConnect.current===token)return;handledConnect.current=token;Alert.alert('Connect this app?', 'Only continue if you created this private link. It replaces this app’s current access; the original device stays connected.',[{text:'Cancel',style:'cancel'},{text:'Connect',onPress:()=>connectDevice(token).then(loadSaved).catch(()=>setError('This device link has expired or was already used.'))}]);return;}const path=u.protocol==='perkdrop:'?'/'+u.hostname+u.pathname:u.hostname==='perkdrop.au'?u.pathname:'';if(path.startsWith('/deals/')){const item=items.find(d=>new URL(d.detail||SITE).pathname===path);if(item)setSelected(item);}}catch{}};Linking.getInitialURL().then(url=>url&&handle({url}));const listener=Linking.addEventListener('url',handle);return()=>listener.remove();},[items,loadSaved]);
+  async function findArea(){try{const r=await fetch(SITE+'/api/areas?q='+encodeURIComponent(areaQuery));if(!r.ok)throw Error();const d=await r.json();setAreas(d.areas);if(!d.areas.length)setError('No suburb found. Try another suburb or postcode.');}catch{setError('Area search unavailable. Try again or use Near me.');}}
+  async function openPlan(item){try{const link=await marketplace('device_link');const u=new URL(link.url);u.searchParams.set('next','/plans?add='+encodeURIComponent(item.id)+'&date='+suggestedDate(item)+(item.locationId?'&branch='+encodeURIComponent(item.locationId):''));open(u.toString());}catch{setError('Could not connect your plan. Please try again.');}}
+  async function shareDevice(){try{const link=await marketplace('device_link');await Share.share({message:'Private PerkDrop device link. Keep it secret. Expires in 10 minutes. '+link.url});}catch{setError('Could not create a device link.');}}
+
   useEffect(() => {
     if (tab !== 'Updates') return;
     marketplace('updates').then(data => setUpdates(data.updates || [])).catch(() => setError('Updates could not be loaded.'));
@@ -133,9 +151,10 @@ export default function App() {
     setNearBusy(true);
     try {
       const permission = await Location.requestForegroundPermissionsAsync();
-      if (!permission.granted) { setError('Location permission is off. You can still search all places.'); return; }
+      if (!permission.granted) { setError('Location permission is off. Choose a suburb or postcode instead.'); return; }
       const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      setPoint(position.coords);
+      if(position.coords.latitude < -44||position.coords.latitude > -10||position.coords.longitude < 112||position.coords.longitude > 154){setError('PerkDrop covers Australia. Choose a suburb or postcode.');return;}
+      setPoint({latitude:Number(position.coords.latitude.toFixed(3)),longitude:Number(position.coords.longitude.toFixed(3)),label:'Your area',radius:25});
       setError('');
     } catch { setError('Could not find your location. Try again or search by place.'); }
     finally { setNearBusy(false); }
@@ -146,27 +165,35 @@ export default function App() {
     const remove = saved.has(item.id);
     try {
       await marketplace('save', { kind: 'drop', target: item.id, remove });
+      track('save_toggle',{deal_id:item.id,saved_state:!remove});
       setSaved(previous => { const next = new Set(previous); if (remove) next.delete(item.id); else next.add(item.id); return next; });
     } catch { setError('Could not update saved offers. Please try again.'); }
     finally { setSaving(false); }
   }
   const groups = useMemo(() => groupListings(items.filter(item => {
-    if (tab === 'Saved' && !saved.has(item.id)) return false;
-    if (point && distance(point.latitude, point.longitude, item.latitude, item.longitude) > 50) return false;
+    if (tab === 'Saved') return saved.has(item.id);
+    if (when!=='any'&&!availabilityMatches(item,when))return false;
+    if(!matchesOuting(item,{budget,adults:Number(adults)||1,ages:childAges.split(',').filter(a=>a.trim()!=='').map(Number)}))return false;
+    if (point && distance(point.latitude, point.longitude, item.latitude, item.longitude) > (point.radius||25)) return false;
     const search = [item.title, item.merchant, item.location, item.city].join(' ').toLowerCase();
     return categoryMatch(item, category) && search.includes(query.trim().toLowerCase());
-  }).sort((a, b) => point ? distance(point.latitude, point.longitude, a.latitude, a.longitude) - distance(point.latitude, point.longitude, b.latitude, b.longitude) : 0)), [items, category, query, saved, tab, point]);
-  const open = url => { if (url) Linking.openURL(url).catch(() => setError('Could not open this link.')); };
+  }).sort((a, b) => point ? distance(point.latitude, point.longitude, a.latitude, a.longitude) - distance(point.latitude, point.longitude, b.latitude, b.longitude) : 0)), [items, category, query, saved, tab, point, when, budget, adults, childAges]);
+  const open=async url=>{if(!url)return;try{const u=new URL(url);if(u.hostname==='khzpdyyywiucfhubxkev.supabase.co'&&/\/perkdrop-(go|nav)$/.test(u.pathname)){const c=await analyticsContext();u.searchParams.set('sid',c.sessionId);u.searchParams.set('vid',c.visitorId);if(c.internal)u.searchParams.set('internal','1');}await Linking.openURL(u.toString());}catch{setError('Could not open this link.');}};
   return <SafeAreaView style={styles.page}>
     <StatusBar barStyle="light-content" backgroundColor="#08090e" />
     <View style={styles.header}><View style={styles.brandRow}><Text style={styles.logo}>Perk<Text style={styles.logoAccent}>Drop</Text></Text><Pressable onPress={() => open(SITE + '/privacy')} accessibilityRole="link"><Text style={styles.privacyLink}>Privacy</Text></Pressable></View><Text style={styles.headline}>What’s worth doing near you?</Text></View>
-    <View style={styles.toolbar}><Pressable onPress={() => point ? setPoint(null) : useNearby()} disabled={nearBusy} style={styles.nearButton} accessibilityRole="button"><Text style={styles.nearText}>{nearBusy ? 'Finding…' : point ? '✓ Near me' : '◎ Near me'}</Text></Pressable><Text style={styles.toolbarText}>{point ? 'Within 50 km · tap to clear' : 'Across Australia'}</Text></View>
-    <TextInput style={styles.search} value={query} onChangeText={setQuery} placeholder="Search places and plans" placeholderTextColor="#888694" accessibilityLabel="Search listings" />
+    <View style={styles.toolbar}><Pressable onPress={useNearby} disabled={nearBusy} style={styles.nearButton} accessibilityRole="button"><Text style={styles.nearText}>{nearBusy ? 'Finding…' : '◎ Near me'}</Text></Pressable><Pressable onPress={()=>setPoint(point?null:{latitude:-34.9285,longitude:138.6007,label:'Adelaide',radius:50})}><Text style={styles.toolbarText}>{point?`${point.label} · ${point.radius} km · All Australia →`:'Across Australia · Adelaide →'}</Text></Pressable></View>
+    <Pressable onPress={()=>setShowArea(!showArea)} style={styles.areaToggle}><Text style={styles.nearText}>{showArea?'Close area search':'Choose suburb or postcode'}</Text></Pressable>
+    {showArea&&<View style={styles.toolbar}><TextInput style={[styles.search,{flex:1,marginHorizontal:0}]} value={areaQuery} onChangeText={setAreaQuery} placeholder="Suburb or postcode" placeholderTextColor="#888694" accessibilityLabel="Suburb or postcode"/><Pressable onPress={findArea} style={styles.nearButton}><Text style={styles.nearText}>Set area</Text></Pressable></View>}
+    {areas.length>0&&<ScrollView style={{maxHeight:160}}>{areas.map(a=><Pressable key={a.name+a.state+a.postcode} style={styles.nearButton} onPress={()=>{setPoint({latitude:a.lat,longitude:a.lng,label:a.name+' '+a.state,radius:25});setAreas([]);setShowArea(false);}}><Text style={styles.nearText}>{a.name} {a.state} {a.postcode}</Text></Pressable>)}</ScrollView>}
+    <ScrollView horizontal style={styles.categories} contentContainerStyle={styles.categoryContent}>{[['any','Any date'],['now','Now'],['tonight','Tonight'],['weekend','Weekend'],['week','Next 7 days']].map(([v,label])=><Pressable key={v} onPress={()=>setWhen(v)} accessibilityState={{selected:when===v}} style={[styles.chip,when===v&&styles.chipActive]}><Text style={styles.chipText}>{label}</Text></Pressable>)}</ScrollView>
+    {category==='Family'&&<View style={styles.toolbar}><TextInput value={adults} onChangeText={setAdults} keyboardType="numeric" style={[styles.search,{flex:1,marginHorizontal:0}]} placeholder="Adults" accessibilityLabel="Adults"/><TextInput value={childAges} onChangeText={setChildAges} style={[styles.search,{flex:1,marginHorizontal:0}]} placeholder="Ages: 5,8" placeholderTextColor="#aaa" accessibilityLabel="Children ages separated by commas"/><TextInput value={budget} onChangeText={setBudget} keyboardType="numeric" style={[styles.search,{flex:1,marginHorizontal:0}]} placeholder="Budget $" placeholderTextColor="#aaa" accessibilityLabel="Total group admission budget"/></View>}
+    <TextInput style={styles.search} value={query} onChangeText={setQuery} onSubmitEditing={()=>track('search',{search_term:query})} placeholder="Search places and plans" placeholderTextColor="#888694" accessibilityLabel="Search listings" />
     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categories} contentContainerStyle={styles.categoryContent}>
       {CATEGORIES.map(name => <Pressable key={name} accessibilityRole="button" accessibilityState={{ selected: category === name }} onPress={() => setCategory(name)} style={[styles.chip, category === name && styles.chipActive]}><Text style={[styles.chipText, category === name && styles.chipTextActive]}>{name}</Text></Pressable>)}
     </ScrollView>
     {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
-    {tab === 'Map' ? <WebView source={{ uri: SITE + '/map' }} style={styles.map} javaScriptEnabled geolocationEnabled startInLoadingState renderLoading={() => <ActivityIndicator style={styles.loader} size="large" color={PURPLE} />}
+    {tab === 'Map' ? <WebView source={{ uri: SITE + '/map'+(point?'?lat='+point.latitude.toFixed(3)+'&lng='+point.longitude.toFixed(3)+'&area='+encodeURIComponent(point.label||'Your area'):'') }} style={styles.map} javaScriptEnabled geolocationEnabled startInLoadingState renderLoading={() => <ActivityIndicator style={styles.loader} size="large" color={PURPLE} />}
       renderError={() => <View style={styles.mapError}><Text style={styles.empty}>Map unavailable. Check your connection and try again.</Text><Pressable onPress={() => open(SITE + '/map')}><Text style={styles.view}>Open map in browser</Text></Pressable></View>}
       onShouldStartLoadWithRequest={request => {
         if (request.url.startsWith(SITE + '/')) return true;
@@ -174,7 +201,7 @@ export default function App() {
         return false;
       }} /> : tab === 'My perks' ? <ScrollView contentContainerStyle={styles.list} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadSaved} tintColor={PURPLE} />}>
       <Text style={styles.count}>Your claimed Drops</Text>
-      <Text style={styles.deviceNote}>Passes are linked to this app installation. Keep a copy of your pass reference.</Text>
+      <Text style={styles.deviceNote}>Connect this app to another browser or device to keep the same saved Drops, plans and passes.</Text><Pressable style={styles.secondary} onPress={shareDevice}><Text style={styles.secondaryText}>Create private device link</Text></Pressable>
       {!passes.length ? <Text style={styles.empty}>Any Drops you claim in this app will appear here.</Text> : passes.map(pass => <Pressable key={pass.id} style={styles.passCard} onPress={() => showPass(pass.pass_reference)} accessibilityRole="button">
         <Text style={styles.offerCategory}>{pass.status}</Text><Text style={styles.offerTitle}>{pass.metadata?.offer_title || 'Your Drop'}</Text><Text style={styles.view}>View pass  →</Text>
       </Pressable>)}
@@ -193,10 +220,10 @@ export default function App() {
           {creditText(group.offers[0].imageCredit) ? <Text style={styles.photoCredit}>{creditText(group.offers[0].imageCredit)}</Text> : null}
           <View style={styles.cardBody}><Text style={styles.venue}>{group.name}</Text><Text style={styles.location}>{group.location}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.offerStrip}>
-              {group.offers.map((offer, index) => <Pressable key={offer.id + '-' + index} onPress={() => { setQuantity(1); setSelected(offer); }} style={styles.offer} accessibilityRole="button">
+              {group.offers.map((offer, index) => <Pressable key={offer.id + '-' + index} onPress={() => { setQuantity(1); setSelected(offer);track('deal_open',{deal_id:offer.id}); }} style={styles.offer} accessibilityRole="button">
                 <OfferImage uri={offer.image} title={offer.title} thumbnail />
                 {creditText(offer.imageCredit) ? <Text numberOfLines={1} style={styles.photoCredit}>{creditText(offer.imageCredit)}</Text> : null}
-                <Text style={styles.offerCategory}>{offer.category || 'DROP'}</Text><Text numberOfLines={2} style={styles.offerTitle}>{offer.title}</Text><Text style={styles.view}>View details  →</Text>
+                <Text style={styles.offerCategory}>{offer.category || 'DROP'}</Text><Text numberOfLines={2} style={styles.offerTitle}>{offer.title}</Text><Text style={styles.location}>{scheduleLabel(offer)}</Text><Text style={styles.location}>{offer.price||'Price to confirm'}</Text><Text style={styles.view}>View details  →</Text>
               </Pressable>)}
             </ScrollView>
           </View>
@@ -224,7 +251,7 @@ export default function App() {
             <Text style={styles.venue}>{selected?.merchant}</Text><Text style={styles.location}>{selected?.location || selected?.city}</Text>
             {selected?.publicLabel ? <Text style={styles.badge}>{selected.publicLabel}</Text> : null}
             {selected?.price ? <Text style={styles.body}>{selected.price}</Text> : null}
-            {selected?.timing ? <Text style={styles.body}>{selected.timing}</Text> : null}
+            {selected ? <Text style={styles.body}>{scheduleLabel(selected)}</Text> : null}
             {selected?.description ? <Text style={styles.body}>{selected.description}</Text> : null}
             {selected?.conditions ? <Text style={styles.conditions}>Conditions: {selected.conditions}</Text> : null}
             {selected?.redemptionAvailable && selected.capacityRemaining > 0 && selected.merchantOfferId ? <View>
@@ -232,7 +259,7 @@ export default function App() {
               <View style={styles.quantityRow}><Pressable onPress={() => setQuantity(Math.max(1, quantity - 1))} style={styles.quantityButton}><Text style={styles.quantityText}>−</Text></Pressable><Text style={styles.quantityText}>{quantity}</Text><Pressable onPress={() => setQuantity(Math.min(6, selected.capacityRemaining, quantity + 1))} style={styles.quantityButton}><Text style={styles.quantityText}>+</Text></Pressable></View>
               <Pressable disabled={claiming} style={styles.primary} onPress={() => confirmClaim(selected)}><Text style={styles.primaryText}>{claiming ? 'Claiming…' : `Claim for ${quantity}`}</Text></Pressable>
             </View> : null}
-            <Pressable style={styles.primary} onPress={() => open(selected?.detail)}><Text style={styles.primaryText}>View current details</Text></Pressable>
+            <Pressable style={styles.secondary} onPress={() => openPlan(selected)}><Text style={styles.secondaryText}>Add to a plan & calendar</Text></Pressable><Pressable style={styles.primary} onPress={() => open(selected?.detail)}><Text style={styles.primaryText}>View current details</Text></Pressable>
             <Pressable disabled={saving} style={styles.secondary} onPress={() => toggleSaved(selected)}><Text style={styles.secondaryText}>{saved.has(selected?.id) ? '♥ Saved — tap to remove' : '♡ Save this offer'}</Text></Pressable>
             {selected?.directions ? <Pressable style={styles.secondary} onPress={() => open(selected.directions)}><Text style={styles.secondaryText}>Get directions</Text></Pressable> : null}
             {selected?.official ? <Pressable style={styles.secondary} onPress={() => open(selected.official)}><Text style={styles.secondaryText}>Open official source</Text></Pressable> : null}
@@ -243,6 +270,7 @@ export default function App() {
   </SafeAreaView>;
 }
 const styles = StyleSheet.create({
+  areaToggle:{paddingHorizontal:20,paddingBottom:12},
   page: { flex: 1, backgroundColor: '#08090e' }, header: { paddingHorizontal: 20, paddingTop: 18 },
   toolbar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, marginBottom: 15, gap: 12 },
   nearButton: { backgroundColor: '#29213d', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 9 }, nearText: { color: '#d6b8ff', fontSize: 14, fontWeight: '700' }, toolbarText: { color: '#aaa8b6', fontSize: 14 },
