@@ -1,5 +1,6 @@
 import React from "react";
 import Head from "next/head";
+import {availabilityMatches,scheduleLabel} from "../public/availability.mjs";
 const API =
   "https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-catalogue-api?limit=500";
 const TRANSIENT = new Set([408, 429, 500, 502, 503, 504]);
@@ -97,7 +98,7 @@ const routeMeta = {
     "PerkDrop helps local businesses move expiring capacity and measure delivered value.",
   ],
 };
-export default function Shell({ deal, venue, canonicalPath, expiredDeal = false, unavailable = false, missing = false }) {
+export default function Shell({ deal, venue, collection=[], collectionCity="Adelaide", canonicalPath, expiredDeal = false, unavailable = false, missing = false }) {
   const h = React.createElement,
     meta = (venue ? [`${venue.name} | PerkDrop`, `${venue.name}${venue.location ? ' — '+venue.location : ''}. View business details and current offers. Check conditions with the venue.`] : routeMeta[canonicalPath]) || [
       "PerkDrop — Deals near you",
@@ -174,7 +175,8 @@ export default function Shell({ deal, venue, canonicalPath, expiredDeal = false,
         h("h1", null, expiredDeal ? "This offer has ended" : missing ? "Page not found" : unavailable ? "Temporarily unavailable" : deal?.title || venue?.name || "What’s worth doing near you?"),
         h("p", null, deal?.description || (deal || venue ? description : "Food, events, things to do and genuine local perks — before you make plans.")),
         h("a", {href:"/"}, "Explore current deals"),
-        h("p", {role:"status"}, "Loading live availability…"),
+        collection.length ? h("section",{className:"ssr-collection"},h("h2",null,`Current choices around ${collectionCity}`),h("ul",null,...collection.map(item=>h("li",{key:item.id},h("a",{href:item.href},`${item.merchant} — ${item.title}`),h("p",null,`${item.timing} · ${item.price||'Price to confirm'}`))))) : null,
+        h("p", {role:"status"}, "Loading your local guide…"),
       ),
     ),
     h("script", { src: "/app.js?v=v44-useful-discovery", type:"module" }),
@@ -184,7 +186,18 @@ export async function getServerSideProps({ params, resolvedUrl, req, res }) {
   const canonicalPath = (resolvedUrl || "/").split("?")[0] || "/";
   const parts = params?.slug;
   const publicRoutes=new Set([...Object.keys(routeMeta),'/tonight','/report','/search','/weekend','/ending-soon','/near-me','/saved','/terms','/privacy','/merchant-terms','/drop-terms','/verification','/affiliate','/contact','/fitness','/wellness','/travel','/family','/services','/freebies','/today','/now']);
-  if (publicRoutes.has(canonicalPath)) return {props:{deal:null,canonicalPath}};
+  if (publicRoutes.has(canonicalPath)) {
+    const discoveryRoutes=['/','/events','/food','/family','/free','/weekend','/tonight','/today','/now','/near-me'];
+    if(!discoveryRoutes.includes(canonicalPath))return {props:{deal:null,canonicalPath}};
+    try{
+      const r=await fetchCatalogue(API,{headers:{accept:'application/json'}});if(!r.ok)throw Error('catalogue_unavailable');const payload=await r.json(),deals=Array.isArray(payload)?payload:payload.deals||[];
+      const city=(String(req?.headers?.cookie||'').match(/(?:^|;\s*)perkdrop_city=([a-z-]+)/)||[])[1]||'adelaide';
+      const markets={adelaide:['Adelaide',-34.9285,138.6007],sydney:['Sydney',-33.8688,151.2093],melbourne:['Melbourne',-37.8136,144.9631],brisbane:['Brisbane',-27.4698,153.0251],perth:['Perth',-31.9523,115.8613],darwin:['Darwin',-12.4634,130.8456],canberra:['Canberra',-35.2809,149.13],hobart:['Hobart',-42.8821,147.3272],'gold-coast':['Gold Coast',-28.0167,153.4]},market=markets[city]||markets.adelaide;
+      const when={'/weekend':'weekend','/tonight':'tonight','/today':'today','/now':'now'}[canonicalPath];
+      const collection=deals.filter(d=>d.city===city||d.latitude!=null&&d.longitude!=null&&Math.abs(d.latitude-market[1])<.6&&Math.abs(d.longitude-market[2])<.7).filter(d=>!when||availabilityMatches(d,when)).filter(d=>canonicalPath==='/events'?d.kind==='event':canonicalPath==='/food'?d.vertical==='food':canonicalPath==='/family'?d.vertical==='family_kids'||/family|children|kids/i.test(d.category+' '+d.title):canonicalPath==='/free'?/^free$/i.test(d.price):true).slice(0,12).map(d=>({id:d.id,merchant:d.merchant,title:d.title,href:d.detailUrl||'/deals/'+encodeURIComponent(d.slug||d.id),timing:scheduleLabel(d),price:d.price}));
+      return {props:{deal:null,canonicalPath,collection,collectionCity:market[0]}};
+    }catch{return {props:{deal:null,canonicalPath}};}
+  }
   const entity=Array.isArray(parts)&&parts.length===2?parts[0]:null;
   if (!['deals','venues','places'].includes(entity)) {res.statusCode=404;return {props:{deal:null,canonicalPath,missing:true}};}
   if (entity === 'places') return { props: { deal: null, canonicalPath } };

@@ -47,7 +47,7 @@ Deno.serve(async(req)=>{
     const supabase=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     const starts=date(body.starts_at),ends=date(body.ends_at),normal=num(body.normal_price),deal=num(body.deal_price),capacity=fulfilment_mode==='direct_claim'?Math.floor(Number(body.capacity_total)):null;
-    if(!starts||!ends||new Date(ends)<=new Date(starts)||(fulfilment_mode==='direct_claim'&&(!Number.isInteger(capacity)||capacity!<1||capacity!>10000||!clean(body.redemption_verifier,160)))) return json({ok:false,error:'Add a valid offer window and, for PerkDrop claims, capacity and a verifier.'},400);
+    if(!starts||!ends||new Date(ends)<=new Date(starts)||(fulfilment_mode==='direct_claim'&&(!Number.isInteger(capacity)||(capacity??0)<1||(capacity??0)>10000||!clean(body.redemption_verifier,160)))) return json({ok:false,error:'Add a valid offer window and, for PerkDrop claims, capacity and a verifier.'},400);
     let merchant:any=null;
     const {data:exact}=await supabase.from('merchants').select('id,name,listing_status').eq('name',business_name).eq('primary_state',state).eq('primary_location',location).limit(1).maybeSingle();merchant=exact;
     if(!merchant){

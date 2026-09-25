@@ -24,3 +24,10 @@ test('calendar export escapes event content, folds UTF-8 safely, and includes an
  assert.match(ics,/DTSTART;VALUE=DATE:20261004/);assert.match(ics,/DTEND;VALUE=DATE:20261005/);assert.match(ics,/TRIGGER:-PT12H/);assert.equal((ics.match(/\r\nBEGIN:VEVENT/g)||[]).length,1);
  assert.ok(ics.split('\r\n').every(line=>Buffer.byteLength(line)<=75));
 });
+
+test('source failures back off, with a bounded daily check instead of a tight retry loop',async()=>{
+ const {nextSourceCheck}=await import('../supabase/functions/_shared/watch-retry.mjs');const now=Date.parse('2026-09-25T00:00:00Z');
+ assert.equal(nextSourceCheck({now,failures:1,status:403}),'2026-09-25T06:00:00.000Z');
+ assert.equal(nextSourceCheck({now,failures:50,status:500}),'2026-09-26T00:00:00.000Z');
+ assert.equal(nextSourceCheck({now,failures:0}),'2026-09-25T00:15:00.000Z');
+});

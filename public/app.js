@@ -87,7 +87,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     viewedDeal: "",
     viewedMap: "",
     city: CITIES[store.get("perkdrop_city")] ? store.get("perkdrop_city") : "adelaide",
-    user: store.json("perkdrop_area_v1", null),
+    user: validCoordinates(qs.get("lat"),qs.get("lng"))?{lat:Number(qs.get("lat")),lng:Number(qs.get("lng")),radius:25,label:qs.get("area")||"Selected area"}:store.json("perkdrop_area_v1", null),
     saved: store.json("perkdrop_saved", []),
     followed: store.json("perkdrop_followed_merchants", []),
     preferences: store.json("perkdrop_preferences_v1", {}),
@@ -103,6 +103,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     party: 1,
     locationOpen: false,
     areaResults: [],
+    areaTerm:"",areaRadius:25,areaMessage:"",
     pageKey: "",
   };
   const $ = (s) => document.querySelector(s),
@@ -601,7 +602,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     setTimeout(() => n.remove(), 2200);
   }
   function go(href) {
-    if (/^\/(my-perks|perk|recover|radar|standby|plans|plan|preferences|updates|account)(\/|#|\?|$)/.test(href)) {
+    if (/^\/(my-perks|perk|recover|radar|standby|plans|plan|preferences|updates|account|connect-device)(\/|#|\?|$)/.test(href)) {
       location.href = href;
       return;
     }
@@ -635,7 +636,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     return `<footer class="site-footer"><div class="footer-grid"><div><a class="footer-brand" data-internal href="/">${brand()}</a><p>Your local shortlist for food, things to do, events, experiences and genuine perks — with the details clear before you go.</p><div class="socials"><a target="_blank" rel="noopener" href="https://www.instagram.com/perkdropofficial/">Instagram</a><a target="_blank" rel="noopener" href="https://www.tiktok.com/@perkdrop8">TikTok</a><a target="_blank" rel="noopener" href="https://www.facebook.com/perkdrop">Facebook</a></div></div><div><b>Discover</b><a data-internal href="/food">Food</a><a data-internal href="/events">Events</a><a data-internal href="/map">Map</a><a data-internal href="/about">About</a></div><div><b>Business</b><a data-internal href="/business">Create a Drop</a><a href="/claim">Claim your business</a><a href="/merchant-floor">Business sign in</a></div></div><div class="footer-legal"><a data-internal href="/terms">Terms</a> · <a data-internal href="/privacy">Privacy</a> · <a data-internal href="/merchant-terms">Merchant Terms</a> · <a data-internal href="/verification">Verification</a> · <a data-internal href="/affiliate">Affiliate Disclosure</a> · <a data-internal href="/contact">Contact</a></div></footer>`;
   }
   function locationMenu() {
-    return `<div class="location-menu" id="location-overlay"><div class="location-sheet" role="dialog" aria-modal="true" aria-labelledby="location-title"><button id="close-location" class="tool-btn" aria-label="Close location chooser">Close ✕</button><h3 id="location-title">Choose your area</h3><button id="use-location" class="btn primary">⌖ Use my live location</button><form id="area-form" class="area-form"><label for="area-input">Suburb or postcode</label><input id="area-input" placeholder="e.g. Elizabeth or 5112" required maxlength="80"><label for="area-radius">Distance from selected area</label><select id="area-radius"><option value="10">10 km</option><option value="25" selected>25 km</option><option value="50">50 km</option></select><button class="btn secondary">Use area</button><small>Choose a suburb to search around its approximate centre. Distances are straight-line estimates.</small><div id="area-status" role="status"></div></form><div class="area-results">${state.areaResults.map((a,i)=>`<button class="btn secondary" data-area="${i}">${esc(a.name)} ${esc(a.state)} ${esc(a.postcode)}</button>`).join("")}</div><div class="city-grid">${Object.entries(
+    return `<div class="location-menu" id="location-overlay"><div class="location-sheet" role="dialog" aria-modal="true" aria-labelledby="location-title"><button id="close-location" class="tool-btn" aria-label="Close location chooser">Close ✕</button><h3 id="location-title">Choose your area</h3><button id="use-location" class="btn primary">⌖ Use my live location</button><form id="area-form" class="area-form"><label for="area-input">Suburb or postcode</label><input id="area-input" value="${esc(state.areaTerm)}" placeholder="e.g. Elizabeth or 5112" required maxlength="80"><label for="area-radius">Distance from selected area</label><select id="area-radius"><option value="10" ${state.areaRadius===10?"selected":""}>10 km</option><option value="25" ${state.areaRadius===25?"selected":""}>25 km</option><option value="50" ${state.areaRadius===50?"selected":""}>50 km</option></select><button class="btn secondary">Use area</button><small>Choose a suburb to search around its approximate centre. Distances are straight-line estimates.</small><div id="area-status" role="status">${esc(state.areaMessage)}</div></form><div class="area-results">${state.areaResults.map((a,i)=>`<button class="btn secondary" data-area="${i}">${esc(a.name)} ${esc(a.state)} ${esc(a.postcode)}</button>`).join("")}</div><div class="city-grid">${Object.entries(
       CITIES,
     )
       .map(
@@ -669,7 +670,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
             ? "saved"
             : "home");
     const savedCount = state.saved.length ? `<span class="saved-count">${state.saved.length > 9 ? "9+" : state.saved.length}</span>` : "";
-    return `<div class="app-shell"><header class="topbar"><div class="topbar-inner"><a class="wordmark" data-internal href="/">${brand()}</a><div class="topbar-actions"><button id="location-pill" class="location-pill"><i></i>${esc(CITIES[state.city]?.[0] || state.city)}⌄</button><a class="saved-top" data-internal href="/my-perks?tab=saved" aria-label="Saved Drops">♡${savedCount}</a></div></div></header>${catalogueNotice()}${content}${footer()}${nav(navActive)}${state.locationOpen ? locationMenu() : ""}</div>`;
+    return `<div class="app-shell"><header class="topbar"><div class="topbar-inner"><a class="wordmark" data-internal href="/">${brand()}</a><div class="topbar-actions"><button id="location-pill" class="location-pill"><i></i>${esc(state.user?.label||CITIES[state.city]?.[0]||state.city)}⌄</button><a class="saved-top" data-internal href="/my-perks?tab=saved" aria-label="Saved Drops">♡${savedCount}</a></div></div></header>${catalogueNotice()}${content}${footer()}${nav(navActive)}${state.locationOpen ? locationMenu() : ""}</div>`;
   }
   function searchBox(v = "", placeholder = "Search deals, places or events") {
     return `<form role="search" id="search-form" class="searchbar"><span aria-hidden="true">⌕</span><input id="search-input" value="${esc(v)}" placeholder="${esc(placeholder)}" aria-label="Search PerkDrop"><button aria-label="Search">Search</button>${v?'<button type="button" id="clear-search" aria-label="Clear search">✕</button>':''}</form>`;
@@ -767,7 +768,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     return [...groups.values()].map(offers=>{
       const ordered=[...offers].sort((a,b)=>discoveryRank(b)-discoveryRank(a));
       return {primary:ordered[0],offers:ordered};
-    }).sort((a,b)=>discoveryRank(b.primary)-discoveryRank(a.primary));
+    }).sort((a,b)=>(state.user&&mapped(a.primary)&&mapped(b.primary)?distance(state.user.lat,state.user.lng,a.primary.latitude,a.primary.longitude)-distance(state.user.lat,state.user.lng,b.primary.latitude,b.primary.longitude):discoveryRank(b.primary)-discoveryRank(a.primary)));
   }
   function merchantPlaceCount(d) {
     const sameMerchant = state.deals.filter((candidate) => {
@@ -1096,7 +1097,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     state.user={lat:area.lat,lng:area.lng,label:`${area.name} ${area.state} ${area.postcode}`,radius};
     const markets=Object.entries(CITIES).filter(([,v])=>v[1]===area.state).sort(([,a],[,b])=>distance(area.lat,area.lng,a[2],a[3])-distance(area.lat,area.lng,b[2],b[3]));
     if(markets.length)state.city=markets[0][0];
-    store.set('perkdrop_area_v1',JSON.stringify(state.user));store.set('perkdrop_city',state.city);state.locationOpen=false;state.areaResults=[];go('/search');
+    store.set('perkdrop_area_v1',JSON.stringify(state.user));store.set('perkdrop_city',state.city);document.cookie=`perkdrop_city=${state.city}; Path=/; Max-Age=31536000; SameSite=Lax; Secure`;state.locationOpen=false;state.areaResults=[];go('/search');
   }
   function requestLocation() {
     if (!navigator.geolocation) return toast("Location is not available.");
@@ -1204,6 +1205,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
           state.user = null;
           store.set("perkdrop_area_v1","null");
           store.set("perkdrop_city", state.city);
+          document.cookie=`perkdrop_city=${state.city}; Path=/; Max-Age=31536000; SameSite=Lax; Secure`;
           state.locationOpen = false;
           render();
         }),
@@ -1218,7 +1220,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     $('#search-scope')?.addEventListener('change',e=>{const p=new URLSearchParams(location.search);p.set('scope',e.target.value);go('/search?'+p);});
     $('#outing-filters')?.addEventListener('submit',e=>{e.preventDefault();const p=new URLSearchParams(location.search);for(const [k,v] of new FormData(e.currentTarget)){if(v)p.set(k,v);else p.delete(k);}go(state.route+'?'+p);});
     $$('[data-area]').forEach(b=>b.addEventListener('click',()=>selectArea(state.areaResults[Number(b.dataset.area)],Number($('#area-radius')?.value)||25)));
-    $('#area-form')?.addEventListener('submit',async e=>{e.preventDefault();const term=clean($('#area-input').value),status=$('#area-status'),radius=Number($('#area-radius').value);status.textContent='Finding areas…';try{const r=await fetch('/api/areas?q='+encodeURIComponent(term)+'&state='+CITIES[state.city][1]);if(!r.ok)throw Error();const data=await r.json();if(data.areas.length===1){selectArea(data.areas[0],radius);return;}state.areaResults=data.areas;render();$('#area-input').value=term;$('#area-radius').value=String(radius);$('#area-status').textContent=data.areas.length?'Choose your suburb below.':'No matching suburb found. Try a nearby suburb or postcode.';}catch{status.textContent='Area search is unavailable. Choose a city below or try again.'}});
+    $('#area-form')?.addEventListener('submit',async e=>{e.preventDefault();const term=clean($('#area-input').value),status=$('#area-status'),radius=Number($('#area-radius').value);status.textContent='Finding areas…';try{const r=await fetch('/api/areas?q='+encodeURIComponent(term)+'&state='+CITIES[state.city][1]);if(!r.ok)throw Error();const data=await r.json();if(data.areas.length===1){selectArea(data.areas[0],radius);return;}state.areaResults=data.areas;state.areaTerm=term;state.areaRadius=radius;state.areaMessage=data.areas.length?'Choose your suburb below.':'No matching suburb found. Try a nearby suburb or postcode.';render();}catch{status.textContent='Area search is unavailable. Choose a city below or try again.'}});
     $("#search-form")?.addEventListener("submit", (e) => {
       e.preventDefault();
       const q = clean($("#search-input")?.value);
@@ -1576,7 +1578,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
       events=all.filter(d=>isEvent(d)&&availabilityMatches(d,"week")),
       weekendDrops=all.filter(weekend),
       city=CITIES[state.city]?.[0]||state.city,
-      primary=tonight.length?tonight:all;
+      primary=tonight.length?tonight:venueGroups(all).slice(0,8).flatMap(g=>g.offers);
     const personal=personalisedDeals(all);
     const primaryPlaces=new Set(venueGroups(primary).map(group=>placeKey(group.primary)));
     const weekendPicks=weekendDrops.filter(d=>!primaryPlaces.has(placeKey(d)));

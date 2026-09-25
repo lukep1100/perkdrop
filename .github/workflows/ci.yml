@@ -15,3 +15,12 @@ jobs:
       - run: node --check public/app.js
       - run: node --check public/sw.js
       - run: npm run build
+      - run: npm run lint && node --test tests/availability.test.mjs tests/selected-availability.test.mjs tests/outing-rules.test.mjs tests/analytics-contract.test.mjs tests/inline-scripts.test.mjs
+  edge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npx --yes deno check --node-modules-dir=none supabase/functions/perkdrop-catalogue-api/index.ts supabase/functions/perkdrop-marketplace/index.ts supabase/functions/perkdrop-merchant-submit/index.ts supabase/functions/perkdrop-track/index.ts supabase/functions/perkdrop-nav/index.ts supabase/functions/perkdrop-go/index.ts supabase/functions/perkdrop-owner-analytics/index.ts supabase/functions/perkdrop-event-watch/index.ts supabase/functions/perkdrop-event-watch-profiled/index.ts

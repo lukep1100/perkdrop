@@ -69,6 +69,11 @@ Deno.serve(async req=>{
       const ok=await rpc('marketplace_recover',{p_token_hash:await hash(body.token),p_new_hash:await hash(body.new_credential)});
       return reply(ok?{ok:true}:{error:'invalid_or_expired_recovery'},ok?200:400);
     }
+    if(action==='device_connect'){
+      if(!validToken(body.token)||!validToken(body.new_credential))return reply({error:'invalid_device_link'},400);
+      const ok=await rpc('marketplace_connect_device',{p_token_hash:await hash(body.token),p_new_hash:await hash(body.new_credential),p_label:clean(body.label,80)});
+      return reply(ok?{ok:true}:{error:'invalid_or_expired_device_link'},ok?200:400);
+    }
     if(action==='recovery_email'){
       const email=clean(body.email,254).toLowerCase();
       if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return reply({error:'invalid_email'},400);
@@ -88,6 +93,21 @@ Deno.serve(async req=>{
     }
     if(!validToken(incoming))return reply({error:'identity_required'},401);
     const credentialHash=await hash(incoming),cid=await rpc('marketplace_identity',{p_hash:credentialHash});
+    if(action==='device_link'){
+      if(!await rpc('marketplace_rate_limit',{p_bucket:'device-link:'+cid,p_max:5,p_seconds:3600}))return reply({error:'rate_limited'},429);
+      const token=secret(),expires=new Date(Date.now()+10*60000).toISOString();
+      await rows(db.from('marketplace_device_links').insert({consumer_id:cid,token_hash:await hash(token),expires_at:expires}));
+      return reply({url:'https://perkdrop.au/connect-device#'+token,app_url:'perkdrop://connect#'+token,expires_at:expires});
+    }
+    if(action==='devices'){
+      const devices=await rows(db.from('marketplace_devices').select('credential_hash,label,created_at,revoked_at').eq('consumer_id',cid));
+      return reply({devices:devices.map((d:any)=>({id:d.credential_hash,label:d.label,created_at:d.created_at,revoked_at:d.revoked_at,current:d.credential_hash===credentialHash}))});
+    }
+    if(action==='device_revoke'){
+      if(!validToken(body.id))return reply({error:'invalid_device'},400);
+      await rows(db.from('marketplace_devices').update({revoked_at:new Date().toISOString()}).eq('consumer_id',cid).eq('credential_hash',body.id));
+      return reply({ok:true});
+    }
     if(action==='claim')return reply(await rpc('marketplace_claim',{p_hash:credentialHash,p_offer:body.offer_id,p_quantity:Number(body.quantity)}));
     if(action==='preferences'){
       const profile=await rows(db.from('marketplace_consumers').select('preferences').eq('id',cid).single());

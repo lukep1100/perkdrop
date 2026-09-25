@@ -1,13 +1,15 @@
 // Shared by web and native. Structured evidence only; never infer hours from copy.
 export const ZONES = {SA:'Australia/Adelaide',NT:'Australia/Darwin',WA:'Australia/Perth',QLD:'Australia/Brisbane',NSW:'Australia/Sydney',ACT:'Australia/Sydney',VIC:'Australia/Melbourne',TAS:'Australia/Hobart'};
 export const addDays=(date,n)=>new Date(Date.parse(`${date}T12:00:00Z`)+n*86400000).toISOString().slice(0,10);
+const clockFormatters=new Map(),dateFormatters=new Map();
 const dayNumber=date=>new Date(`${date}T12:00:00Z`).getUTCDay()||7;
 const minutes=t=>typeof t==='string'&&/^(?:[01]\d|2[0-3]):[0-5]\d$|^24:00$/.test(t)?Number(t.slice(0,2))*60+Number(t.slice(3)):NaN;
 const timeString=m=>`${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;
 const zone=deal=>deal.timezone||deal.availability?.timezone||ZONES[deal.state];
 export function localClock(state,now=new Date()) {
   const tz=ZONES[state]||Object.values(ZONES).find(z=>z===state);if(!tz||!Number.isFinite(now.getTime()))return null;
-  const p=Object.fromEntries(new Intl.DateTimeFormat('en-AU',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(now).map(x=>[x.type,x.value]));
+  if(!clockFormatters.has(tz))clockFormatters.set(tz,new Intl.DateTimeFormat('en-AU',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}));
+  const p=Object.fromEntries(clockFormatters.get(tz).formatToParts(now).map(x=>[x.type,x.value]));
   return {date:`${p.year}-${p.month}-${p.day}`,minutes:Number(p.hour)*60+Number(p.minute),zone:tz};
 }
 const blocked=d=>d.active===false||d.publicVisible===false||d.qualityGrade==='D'||['conflicting','cancelled','unverified','unknown'].includes(d.availability?.reviewState)||['cancelled','canceled','postponed'].includes(d.availability?.status);
@@ -15,7 +17,8 @@ export function freshness(deal,now=new Date()) {
   const a=deal.availability||{},checked=Date.parse(a.checkedAt||a.checked_at||deal.scheduleVerifiedAt||deal.lastVerifiedAt||'');
   if(a.reviewState==='conflicting')return {state:'conflicting',label:'Details conflict — check with venue'};
   if(!Number.isFinite(checked)||checked>now.getTime())return {state:'unknown',label:'Not recently checked'};
-  const date=new Intl.DateTimeFormat('en-AU',{day:'numeric',month:'short',year:'numeric',timeZone:zone(deal)||'Australia/Sydney'}).format(new Date(checked));
+  const tz=zone(deal)||'Australia/Sydney';if(!dateFormatters.has(tz))dateFormatters.set(tz,new Intl.DateTimeFormat('en-AU',{day:'numeric',month:'short',year:'numeric',timeZone:tz}));
+  const date=dateFormatters.get(tz).format(new Date(checked));
   return {state:now-checked>30*86400000?'stale':'recent',label:`${now-checked>30*86400000?'Needs recheck · last checked':'Source checked'} ${date}`};
 }
 const source=d=>d.availability?.sourceUrl||d.officialSource||d.source;
