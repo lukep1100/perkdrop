@@ -174,6 +174,7 @@ export default function App() {
         return false;
       }} /> : tab === 'My perks' ? <ScrollView contentContainerStyle={styles.list} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadSaved} tintColor={PURPLE} />}>
       <Text style={styles.count}>Your claimed Drops</Text>
+      <Text style={styles.deviceNote}>Passes are linked to this app installation. Keep a copy of your pass reference.</Text>
       {!passes.length ? <Text style={styles.empty}>Any Drops you claim in this app will appear here.</Text> : passes.map(pass => <Pressable key={pass.id} style={styles.passCard} onPress={() => showPass(pass.pass_reference)} accessibilityRole="button">
         <Text style={styles.offerCategory}>{pass.status}</Text><Text style={styles.offerTitle}>{pass.metadata?.offer_title || 'Your Drop'}</Text><Text style={styles.view}>View pass  →</Text>
       </Pressable>)}
@@ -205,8 +206,9 @@ export default function App() {
       <Pressable style={styles.close} onPress={() => setActivePass(null)}><Text style={styles.closeText}>Close</Text></Pressable>
       <ScrollView contentContainerStyle={styles.detailBody}><Text style={styles.offerCategory}>{activePass?.state || 'PASS'}</Text>
         <Text style={styles.detailTitle}>{activePass?.title}</Text><Text style={styles.venue}>{activePass?.merchant}</Text>
-        <Text style={styles.body}>Reference: {activePass?.reference}</Text>
-        {activePass?.code ? <Text selectable style={styles.passCode}>{activePass.code}</Text> : null}
+        <Text selectable style={styles.body}>Reference: {activePass?.reference}</Text>
+        {activePass?.state === 'pending' ? <Text style={styles.body}>Waiting for the venue to confirm. Check this pass again before attending.</Text> : null}
+        {activePass?.code && ['active', 'redeemed'].includes(activePass.state) ? <Text selectable style={styles.passCode}>{activePass.code}</Text> : null}
         {activePass?.quantity ? <Text style={styles.body}>{activePass.quantity} {activePass.unit}{activePass.quantity === 1 ? '' : 's'}</Text> : null}
         {activePass?.service_start ? <Text style={styles.body}>Valid from: {activePass.service_start}</Text> : null}
         {activePass?.service_end ? <Text style={styles.body}>Valid until: {activePass.service_end}</Text> : null}
@@ -247,6 +249,7 @@ const styles = StyleSheet.create({
   tabs: { flexDirection: 'row', borderTopWidth: 1, borderTopColor: '#2b2932', paddingBottom: 8 }, tab: { flex: 1, paddingVertical: 14, alignItems: 'center' }, tabText: { color: '#aaa8b6', fontSize: 13, fontWeight: '700' }, tabActive: { color: '#d6b8ff' },
   badge: { color: '#e8d4ff', fontSize: 14, fontWeight: '700', marginTop: 16 },
   passCard: { backgroundColor: '#191923', padding: 18, borderRadius: 16, marginBottom: 12 }, passCode: { color: '#fff', backgroundColor: '#29213d', fontSize: 28, fontWeight: '800', textAlign: 'center', padding: 18, marginTop: 20, borderRadius: 14 },
+  deviceNote: { color: '#bcb9c8', fontSize: 14, lineHeight: 20, marginBottom: 18 },
   map: { flex: 1, backgroundColor: '#08090e' },
   mapError: { flex: 1, padding: 22, backgroundColor: '#08090e' },
   quantityRow: { flexDirection: 'row', alignItems: 'center', gap: 20, marginTop: 16 }, quantityButton: { backgroundColor: '#29213d', borderRadius: 12, minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }, quantityText: { color: '#fff', fontSize: 22, fontWeight: '700' },
