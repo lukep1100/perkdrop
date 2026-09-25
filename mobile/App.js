@@ -252,6 +252,7 @@ export default function App() {
             {selected?.publicLabel ? <Text style={styles.badge}>{selected.publicLabel}</Text> : null}
             {selected?.price ? <Text style={styles.body}>{selected.price}</Text> : null}
             {selected ? <Text style={styles.body}>{scheduleLabel(selected)}</Text> : null}
+            {selected?.suitability?.warning ? <Text style={styles.conditions}>Before you go: {selected.suitability.warning}</Text> : null}
             {selected?.description ? <Text style={styles.body}>{selected.description}</Text> : null}
             {selected?.conditions ? <Text style={styles.conditions}>Conditions: {selected.conditions}</Text> : null}
             {selected?.redemptionAvailable && selected.capacityRemaining > 0 && selected.merchantOfferId ? <View>
