@@ -8,13 +8,40 @@
     "userInterfaceStyle": "dark",
     "ios": {
       "bundleIdentifier": "au.perkdrop.app",
-      "supportsTablet": false
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "PerkDrop uses your location while the app is open to show nearby places and offers."
+      }
     },
     "android": {
-      "package": "au.perkdrop.app"
+      "package": "au.perkdrop.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#08090e"
+      },
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ],
+      "blockedPermissions": [
+        "ACCESS_BACKGROUND_LOCATION"
+      ]
     },
-    "extra": {
-      "catalogueUrl": "https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-catalogue-api?limit=500"
-    }
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#08090e"
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "PerkDrop uses your location while the app is open to show nearby places and offers.",
+          "isIosBackgroundLocationEnabled": false,
+          "isAndroidBackgroundLocationEnabled": false
+        }
+      ]
+    ]
   }
 }
