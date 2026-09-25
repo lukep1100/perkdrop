@@ -5,7 +5,7 @@ import { analyticsContext } from '/analytics.mjs';
 import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfilmentLabel, localDate, searchMatches } from '/discovery-rules.mjs?v=v39-venue-rails';
 (() => {
   "use strict";
-  const VERSION = "v44-useful-discovery";
+  const VERSION = "v46-simple-offers";
   const API =
     "https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-catalogue-api?limit=500";
   const SUBMIT =
@@ -1002,7 +1002,22 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
   function venuePage(b) {
     const offers=state.deals.filter(d=>d.merchantId===b.id);
     const followed=state.followed.includes(b.id);
-    return shell('<main class="page"><section class="section"><div class="eyebrow">BUSINESS LISTING</div><h1>'+esc(b.name)+'</h1><p>'+esc(b.location)+'</p><p>'+esc(b.publicState==='unclaimed'?'Public listing · not yet business-verified':b.publicLabel)+'</p><p>'+esc(String(b.category||'').replaceAll('_',' '))+'</p>'+(b.image?'<img class="venue-photo" src="'+esc(safeImage(b.image))+'" alt="'+esc(b.name)+'">':'<p class="muted">A verified venue photo is not available yet.</p>')+reportLink(null,b.id)+(b.photoCaption?'<p class="muted">'+esc(b.photoCaption)+(b.photoSource&&/^https:\/\//.test(b.photoSource)?' · <a href="'+esc(b.photoSource)+'" target="_blank" rel="noopener">Photo source / licence</a>':'')+'</p>':'')+'<div class="hero-actions">'+(b.website?'<a class="btn primary" target="_blank" rel="noopener" href="'+esc(b.website)+'">Official website</a>':'')+'<a class="btn secondary" target="_blank" rel="noopener" href="'+esc(navUrl({...b,merchant:b.name}))+'">Directions</a><button class="btn secondary" data-save-kind="merchant" data-save="'+esc(b.id)+'">'+(followed?'Following business':'Follow business')+'</button>'+(b.claimable?'<a class="btn secondary" href="/claim?merchant='+encodeURIComponent(b.slug)+'">Claim this business</a>':'')+'</div><h2>Current offers</h2><div class="grid">'+offers.map(card).join('')+'</div>'+(!offers.length?'<p>No active offer is listed. Check the official website for current information.</p>':'')+'</section></main>');
+    const seenPhotos=new Set();
+    const choices=offers.map(d=>{
+      const photo=displayPhoto(d);
+      const showPhoto=photo&&!seenPhotos.has(photo.src);
+      if(photo)seenPhotos.add(photo.src);
+      const visual=showPhoto?`<img loading="lazy" src="${esc(photo.src)}" alt="${esc(photo.alt)}">`:!photo?'<div class="offer-choice-fallback">Photo unavailable</div>':'';
+      // A direct claim needs its conditions and capacity screen. External
+      // offers can take the visitor straight to the reviewed booking link.
+      const direct=d.fulfilmentMode==='external_booking'&&d.goUrl;
+      const destination=direct?d.goUrl:route(d);
+      const cta=direct?'Book with venue':d.redemptionAvailable?'View offer & claim':'View offer details';
+      const price=d.price||badge(d);
+      return `<article class="offer-choice ${visual?'':'offer-choice--plain'}">${visual}<div class="offer-choice-copy">${d.title.toLowerCase().includes(price.toLowerCase())?'':`<span class="offer-choice-price">${esc(price)}</span>`}<h3>${esc(d.title)}</h3><p>${esc(scheduleLabel(d))}</p>${d.redemptionAvailable&&d.capacityRemaining!=null?`<p class="offer-choice-capacity">${esc(d.capacityRemaining)} ${esc(unitLabel(d))} left</p>`:''}<div class="offer-choice-actions"><a class="btn primary" ${direct?'target="_blank" rel="noopener"':'data-internal'} href="${esc(destination)}">${cta} →</a>${direct?`<a data-internal href="${esc(route(d))}">Check conditions</a>`:''}</div></div></article>`;
+    }).join('');
+    const visit='<a class="btn secondary" target="_blank" rel="noopener" href="'+esc(navUrl({...b,merchant:b.name}))+'">Directions</a>'+(b.website?'<a class="btn secondary" target="_blank" rel="noopener" href="'+esc(b.website)+'">Venue website</a>':'');
+    return shell(`<main class="page venue-listing"><section class="section"><div class="eyebrow">${offers.length?'OFFERS AT THIS PLACE':'BUSINESS LISTING'}</div><h1>${esc(b.name)}</h1><p class="venue-listing-location">${esc(b.location)}</p>${offers.length?`<h2>Choose an offer</h2><div class="offer-choice-list">${choices}</div>`:`${b.image?'<img class="venue-photo" src="'+esc(safeImage(b.image))+'" alt="'+esc(b.name)+'">':'<p class="muted">A verified venue photo is not available yet.</p>'}<p>No active offer is listed. Check the official website for current information.</p>`}<div class="venue-secondary-actions">${visit}<button class="btn secondary" data-save-kind="merchant" data-save="${esc(b.id)}">${followed?'Following business':'Follow business'}</button></div><div class="venue-listing-foot">${reportLink(null,b.id)}${b.claimable?'<a href="/claim?merchant='+encodeURIComponent(b.slug)+'">Own this business? Claim the profile</a>':''}</div></section></main>`);
   }
   function placePage(group) {
     const d=group.primary,photo=displayPhoto(d),count=group.offers.length;
@@ -1497,17 +1512,29 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     }catch{}
   }
   async function load() {
+    // Venue directory and catalogue are independent requests. A direct venue
+    // link should not make visitors wait for one before starting the other.
+    if(state.route.startsWith('/venues/'))loadDirectory();
+    const cached=cachedCatalogue();
+    if(cached){
+      applyCatalogue(cached.deals);
+      state.catalogueStale={savedAt:cached.savedAt};
+      state.loading=false;
+      render();
+    }
     try {
       await loadCatalogue();
-      await loadConsumerState();
       state.loading = false;
       state.catalogueStale = null;
       state.catalogueRetryError = false;
       trackPage();
       render();
+      // Account state is useful, but it must not hold the first usable screen.
+      loadConsumerState().then(()=>{
+        if(!document.activeElement?.matches('input,textarea,select')) render();
+      });
     } catch (e) {
       console.error(e);
-      const cached = cachedCatalogue();
       state.loading = false;
       if (cached) {
         applyCatalogue(cached.deals);
@@ -1587,12 +1614,9 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     const weekendPicks=weekendDrops.filter(d=>!primaryPlaces.has(placeKey(d)));
     const weekendPlaces=new Set(venueGroups(weekendPicks).map(group=>placeKey(group.primary)));
     const eventPicks=events.filter(d=>!primaryPlaces.has(placeKey(d))&&!weekendPlaces.has(placeKey(d)));
-    const mapCard=`<a data-internal class="map-shortcut" href="/map"><span class="map-shortcut-icon">⌖</span><span><small>SEE IT ON THE MAP</small><b>Places, events and perks near you</b><em>Open the live map before you decide where to go</em></span><i>→</i></a>`;
-    const planner=`<section class="discover-intro"><div class="discover-kicker"><span class="live-dot" aria-hidden="true"></span><span>${esc(city).toUpperCase()} SHORTLIST</span><span class="kicker-divider" aria-hidden="true"></span><span>NEW IDEAS, CLEAR DETAILS</span></div><div class="discover-copy"><div><h1>Find your next <strong>good plan.</strong></h1><p>Live local deals, events and places worth checking before you lock in your plans.</p></div><div class="plan-pills" aria-label="Quick ways to browse"><a data-internal href="/tonight"><span>✦</span>Tonight</a><a data-internal href="/weekend"><span>◷</span>This weekend</a><a data-internal href="/near-me"><span>⌖</span>Near me</a></div></div>${searchBox('',`Search ${city} — food, events, places or ideas`)}<div class="home-actions"><a href="/near-me" id="home-use-location">⌖ Use my location</a><a href="/preferences">Tune my guide</a><a data-internal href="/map">Explore map <span aria-hidden="true">→</span></a></div>${chips()}</section>`;
-    const explainer=`<section class="perks-explainer"><div><div class="eyebrow">ONE LOCAL GUIDE</div><h2>One place to check before you go.</h2></div><p>PerkDrop brings together the good local stuff: somewhere to eat, something to do, an event to catch, a family plan or a worthwhile perk — with the key details clear before you make a decision.</p></section>`;
-    const businessCta=`<a class="business-cta" data-internal href="/business"><span>FOR LOCAL BUSINESSES</span><b>Own a local business? Add your first perk free</b><i>→</i></a>`;
+    const planner=`<section class="discover-intro"><div class="discover-kicker"><span class="live-dot" aria-hidden="true"></span><span>${esc(city).toUpperCase()} SHORTLIST</span></div><div class="discover-copy"><div><h1>Find something <strong>worth doing.</strong></h1><p>Deals, events and local perks with the key details clear.</p></div><div class="plan-pills" aria-label="Quick ways to browse"><a data-internal href="/tonight"><span>✦</span>Tonight</a><a data-internal href="/weekend"><span>◷</span>This weekend</a><a data-internal href="/near-me"><span>⌖</span>Near me</a></div></div>${searchBox('',`Search ${city} — food, events, places or ideas`)}${chips()}</section>`;
     const personalRail=hasPreferences()&&personal.length?dealRail('Picked for your local guide',personal,'/preferences','FOR YOU'):'<p class="personalise-link"><a href="/preferences">Personalise your local guide →</a></p>';
-    return shell(`<main class="page discover-page">${planner}${primary.length?dealRail(tonight.length?'Tonight in '+city:'Worth checking out near you',primary,tonight.length?'/tonight':'/near-me',tonight.length?'AVAILABLE TONIGHT':'YOUR LOCAL SHORTLIST'):''}${personalRail}${mapCard}${weekendPicks.length?dealRail('Make a weekend plan',weekendPicks,'/weekend','SAVE THIS FOR LATER'):''}${eventPicks.length?dealRail('Worth seeing this week',eventPicks,'/events','EVENTS & EXPERIENCES'):''}${explainer}${businessCta}${!all.length?'<section class="empty"><h2>No local Drops yet</h2><p>Choose another city, or browse public offers across Australia.</p><a class="btn primary" data-internal href="/search">Explore all offers</a></section>':''}</main>`);
+    return shell(`<main class="page discover-page">${planner}${primary.length?dealRail(tonight.length?'Tonight in '+city:'Worth checking out near you',primary,tonight.length?'/tonight':'/near-me',tonight.length?'AVAILABLE TONIGHT':'YOUR LOCAL SHORTLIST'):''}${personalRail}${weekendPicks.length?dealRail('Make a weekend plan',weekendPicks,'/weekend','SAVE THIS FOR LATER'):''}${eventPicks.length?dealRail('Worth seeing this week',eventPicks,'/events','EVENTS & EXPERIENCES'):''}${!all.length?'<section class="empty"><h2>No local Drops yet</h2><p>Choose another city, or browse public offers across Australia.</p><a class="btn primary" data-internal href="/search">Explore all offers</a></section>':''}</main>`);
   }
   const MARKET_PAGES = {
     beauty: ["beauty", "Beauty & wellness", "APPOINTMENTS & SELF-CARE"],
