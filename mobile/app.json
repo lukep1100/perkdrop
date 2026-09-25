@@ -1,0 +1,51 @@
+{
+  "expo": {
+    "name": "PerkDrop",
+    "slug": "perkdrop",
+    "scheme": "perkdrop",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "bundleIdentifier": "au.perkdrop.app",
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "PerkDrop uses your location while the app is open to show nearby places and offers."
+      },
+      "config": {
+        "usesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "au.perkdrop.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#08090e"
+      },
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ],
+      "blockedPermissions": [
+        "ACCESS_BACKGROUND_LOCATION"
+      ]
+    },
+    "icon": "./assets/icon.png",
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "PerkDrop uses your location while the app is open to show nearby places and offers.",
+          "isIosBackgroundLocationEnabled": false,
+          "isAndroidBackgroundLocationEnabled": false
+        }
+      ]
+    ],
+    "owner": "luke1100s-team",
+    "extra": {
+      "eas": {
+        "projectId": "3e46f3cc-15c9-40d2-8a4a-6a0c93d977b3"
+      }
+    }
+  }
+}

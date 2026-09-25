@@ -1,0 +1,37 @@
+name: Mobile release checks
+
+on:
+  pull_request:
+    paths:
+      - 'mobile/**'
+      - 'public/availability.mjs'
+      - 'public/outing-rules.mjs'
+      - 'public/venue-identity.mjs'
+      - 'public/discovery-rules.mjs'
+      - '.github/workflows/mobile.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'mobile/**'
+      - 'public/availability.mjs'
+      - 'public/outing-rules.mjs'
+      - 'public/venue-identity.mjs'
+      - 'public/discovery-rules.mjs'
+      - '.github/workflows/mobile.yml'
+
+jobs:
+  mobile:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npx expo-doctor@latest
+      - run: npx expo export --platform all --output-dir dist
