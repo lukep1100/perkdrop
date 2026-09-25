@@ -40,6 +40,12 @@
           "isAndroidBackgroundLocationEnabled": false
         }
       ]
-    ]
+    ],
+    "owner": "luke1100s-team",
+    "extra": {
+      "eas": {
+        "projectId": "3e46f3cc-15c9-40d2-8a4a-6a0c93d977b3"
+      }
+    }
   }
 }
