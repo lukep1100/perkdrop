@@ -7,11 +7,12 @@ const TRANSIENT = new Set([408, 429, 500, 502, 503, 504]);
 async function fetchCatalogue(url, init = {}) {
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      const r = await fetch(url, { ...init, signal: AbortSignal.timeout(10000) });
+      const r = await fetch(url, { ...init, signal: init.signal || AbortSignal.timeout(10000) });
       if (r.ok || !TRANSIENT.has(r.status) || attempt === 1) return r;
       console.warn(JSON.stringify({ msg: "catalogue_dependency_retry", route: "ssr", attempt: attempt + 1, upstreamStatus: r.status }));
       await r.arrayBuffer().catch(() => {});
     } catch (error) {
+      if (init.signal?.aborted) throw error;
       if (attempt === 1) throw error;
       console.warn(JSON.stringify({ msg: "catalogue_dependency_retry", route: "ssr", attempt: attempt + 1, errorName: error?.name || "unknown" }));
     }
@@ -161,7 +162,7 @@ export default function Shell({ deal, venue, collection=[], collectionCity="Adel
       }),
       h("link", {
         rel: "stylesheet",
-        href: "/styles.css?v=v44-useful-discovery",
+        href: "/styles.css?v=v45-offer-first",
       }),
     ),
     h(
@@ -179,7 +180,7 @@ export default function Shell({ deal, venue, collection=[], collectionCity="Adel
         h("p", {role:"status"}, "Loading your local guide…"),
       ),
     ),
-    h("script", { src: "/app.js?v=v44-useful-discovery", type:"module" }),
+    h("script", { src: "/app.js?v=v45-offer-first", type:"module" }),
   );
 }
 export async function getServerSideProps({ params, resolvedUrl, req, res }) {
@@ -189,8 +190,11 @@ export async function getServerSideProps({ params, resolvedUrl, req, res }) {
   if (publicRoutes.has(canonicalPath)) {
     const discoveryRoutes=['/','/events','/food','/family','/free','/weekend','/tonight','/today','/now','/near-me'];
     if(!discoveryRoutes.includes(canonicalPath))return {props:{deal:null,canonicalPath}};
+    // The catalogue is loaded again by the client. Keep its optional SSR
+    // collection from holding the entire page during a slow upstream response.
+    if(!req?.headers?.cookie)res.setHeader('Cache-Control','public, s-maxage=30, stale-while-revalidate=60');
     try{
-      const r=await fetchCatalogue(API,{headers:{accept:'application/json'}});if(!r.ok)throw Error('catalogue_unavailable');const payload=await r.json(),deals=Array.isArray(payload)?payload:payload.deals||[];
+      const r=await fetchCatalogue(API,{headers:{accept:'application/json'},signal:AbortSignal.timeout(1800)});if(!r.ok)throw Error('catalogue_unavailable');const payload=await r.json(),deals=Array.isArray(payload)?payload:payload.deals||[];
       const city=(String(req?.headers?.cookie||'').match(/(?:^|;\s*)perkdrop_city=([a-z-]+)/)||[])[1]||'adelaide';
       const markets={adelaide:['Adelaide',-34.9285,138.6007],sydney:['Sydney',-33.8688,151.2093],melbourne:['Melbourne',-37.8136,144.9631],brisbane:['Brisbane',-27.4698,153.0251],perth:['Perth',-31.9523,115.8613],darwin:['Darwin',-12.4634,130.8456],canberra:['Canberra',-35.2809,149.13],hobart:['Hobart',-42.8821,147.3272],'gold-coast':['Gold Coast',-28.0167,153.4]},market=markets[city]||markets.adelaide;
       const when={'/weekend':'weekend','/tonight':'tonight','/today':'today','/now':'now'}[canonicalPath];

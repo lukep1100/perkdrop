@@ -5,7 +5,7 @@ import { analyticsContext } from '/analytics.mjs';
 import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfilmentLabel, localDate, searchMatches } from '/discovery-rules.mjs?v=v39-venue-rails';
 (() => {
   "use strict";
-  const VERSION = "v44-useful-discovery";
+  const VERSION = "v45-offer-first";
   const API =
     "https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-catalogue-api?limit=500";
   const SUBMIT =
@@ -1002,7 +1002,18 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
   function venuePage(b) {
     const offers=state.deals.filter(d=>d.merchantId===b.id);
     const followed=state.followed.includes(b.id);
-    return shell('<main class="page"><section class="section"><div class="eyebrow">BUSINESS LISTING</div><h1>'+esc(b.name)+'</h1><p>'+esc(b.location)+'</p><p>'+esc(b.publicState==='unclaimed'?'Public listing · not yet business-verified':b.publicLabel)+'</p><p>'+esc(String(b.category||'').replaceAll('_',' '))+'</p>'+(b.image?'<img class="venue-photo" src="'+esc(safeImage(b.image))+'" alt="'+esc(b.name)+'">':'<p class="muted">A verified venue photo is not available yet.</p>')+reportLink(null,b.id)+(b.photoCaption?'<p class="muted">'+esc(b.photoCaption)+(b.photoSource&&/^https:\/\//.test(b.photoSource)?' · <a href="'+esc(b.photoSource)+'" target="_blank" rel="noopener">Photo source / licence</a>':'')+'</p>':'')+'<div class="hero-actions">'+(b.website?'<a class="btn primary" target="_blank" rel="noopener" href="'+esc(b.website)+'">Official website</a>':'')+'<a class="btn secondary" target="_blank" rel="noopener" href="'+esc(navUrl({...b,merchant:b.name}))+'">Directions</a><button class="btn secondary" data-save-kind="merchant" data-save="'+esc(b.id)+'">'+(followed?'Following business':'Follow business')+'</button>'+(b.claimable?'<a class="btn secondary" href="/claim?merchant='+encodeURIComponent(b.slug)+'">Claim this business</a>':'')+'</div><h2>Current offers</h2><div class="grid">'+offers.map(card).join('')+'</div>'+(!offers.length?'<p>No active offer is listed. Check the official website for current information.</p>':'')+'</section></main>');
+    const choices=offers.map(d=>{
+      const photo=displayPhoto(d);
+      const visual=photo?`<img loading="lazy" src="${esc(photo.src)}" alt="${esc(photo.alt)}">`:'<div class="offer-choice-fallback">Photo unavailable</div>';
+      // A direct claim needs its conditions and capacity screen. External
+      // offers can take the visitor straight to the reviewed booking link.
+      const direct=d.fulfilmentMode==='external_booking'&&d.goUrl;
+      const destination=direct?d.goUrl:route(d);
+      const cta=direct?'Book with venue':d.redemptionAvailable?'View offer & claim':'View offer details';
+      return `<article class="offer-choice">${visual}<div class="offer-choice-copy"><span class="offer-choice-price">${esc(d.price||badge(d))}</span><h3>${esc(d.title)}</h3><p>${esc(scheduleLabel(d))}</p>${d.capacityRemaining!=null?`<p class="offer-choice-capacity">${esc(d.capacityRemaining)} ${esc(unitLabel(d))} left</p>`:''}<div class="offer-choice-actions"><a class="btn primary" ${direct?'target="_blank" rel="noopener"':'data-internal'} href="${esc(destination)}">${cta} →</a><a data-internal href="${esc(route(d))}">${direct?'Check conditions':'See conditions'}</a></div></div></article>`;
+    }).join('');
+    const visit='<a class="btn secondary" target="_blank" rel="noopener" href="'+esc(navUrl({...b,merchant:b.name}))+'">Directions</a>'+(b.website?'<a class="btn secondary" target="_blank" rel="noopener" href="'+esc(b.website)+'">Venue website</a>':'');
+    return shell(`<main class="page venue-listing"><section class="section"><div class="eyebrow">${offers.length?'OFFERS AT THIS PLACE':'BUSINESS LISTING'}</div><h1>${esc(b.name)}</h1><p class="venue-listing-location">${esc(b.location)}</p>${offers.length?`<h2>Choose an offer</h2><div class="offer-choice-list">${choices}</div>`:`${b.image?'<img class="venue-photo" src="'+esc(safeImage(b.image))+'" alt="'+esc(b.name)+'">':'<p class="muted">A verified venue photo is not available yet.</p>'}<p>No active offer is listed. Check the official website for current information.</p>`}<div class="venue-secondary-actions">${visit}<button class="btn secondary" data-save-kind="merchant" data-save="${esc(b.id)}">${followed?'Following business':'Follow business'}</button></div><div class="venue-listing-foot">${reportLink(null,b.id)}${b.claimable?'<a href="/claim?merchant='+encodeURIComponent(b.slug)+'">Own this business? Claim the profile</a>':''}</div></section></main>`);
   }
   function placePage(group) {
     const d=group.primary,photo=displayPhoto(d),count=group.offers.length;
@@ -1497,17 +1508,26 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     }catch{}
   }
   async function load() {
+    const cached=cachedCatalogue();
+    if(cached){
+      applyCatalogue(cached.deals);
+      state.catalogueStale={savedAt:cached.savedAt};
+      state.loading=false;
+      render();
+    }
     try {
       await loadCatalogue();
-      await loadConsumerState();
       state.loading = false;
       state.catalogueStale = null;
       state.catalogueRetryError = false;
       trackPage();
       render();
+      // Account state is useful, but it must not hold the first usable screen.
+      loadConsumerState().then(()=>{
+        if(!document.activeElement?.matches('input,textarea,select')) render();
+      });
     } catch (e) {
       console.error(e);
-      const cached = cachedCatalogue();
       state.loading = false;
       if (cached) {
         applyCatalogue(cached.deals);
