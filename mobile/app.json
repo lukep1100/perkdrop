@@ -11,6 +11,9 @@
       "supportsTablet": false,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "PerkDrop uses your location while the app is open to show nearby places and offers."
+      },
+      "config": {
+        "usesNonExemptEncryption": false
       }
     },
     "android": {
