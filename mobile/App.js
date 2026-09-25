@@ -20,6 +20,7 @@ const safeUrl = value => {
   try { const url = new URL(value, SITE); return ['https:', 'http:'].includes(url.protocol) ? url.href : null; }
   catch { return null; }
 };
+const creditText = credit => credit ? [credit.caption || credit.source, credit.license].filter(Boolean).join(' · ') : '';
 function normalize(item) {
   return {
     id: clean(item.id || item.slug), merchantId: clean(item.merchantId || item.merchant_id), merchant: clean(item.merchant),
@@ -165,7 +166,8 @@ export default function App() {
       {CATEGORIES.map(name => <Pressable key={name} accessibilityRole="button" accessibilityState={{ selected: category === name }} onPress={() => setCategory(name)} style={[styles.chip, category === name && styles.chipActive]}><Text style={[styles.chipText, category === name && styles.chipTextActive]}>{name}</Text></Pressable>)}
     </ScrollView>
     {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
-    {tab === 'Map' ? <WebView source={{ uri: SITE + '/map' }} style={styles.map} javaScriptEnabled geolocationEnabled
+    {tab === 'Map' ? <WebView source={{ uri: SITE + '/map' }} style={styles.map} javaScriptEnabled geolocationEnabled startInLoadingState renderLoading={() => <ActivityIndicator style={styles.loader} size="large" color={PURPLE} />}
+      renderError={() => <View style={styles.mapError}><Text style={styles.empty}>Map unavailable. Check your connection and try again.</Text><Pressable onPress={() => open(SITE + '/map')}><Text style={styles.view}>Open map in browser</Text></Pressable></View>}
       onShouldStartLoadWithRequest={request => {
         if (request.url.startsWith(SITE + '/')) return true;
         open(safeUrl(request.url));
@@ -187,10 +189,12 @@ export default function App() {
         ListEmptyComponent={<Text style={styles.empty}>{tab === 'Saved' ? 'Save an offer to find it here.' : 'No current listings match. Try another search or category.'}</Text>}
         renderItem={({ item: group }) => <View style={styles.card}>
           <OfferImage uri={group.offers[0].image} title={group.offers[0].title} />
+          {creditText(group.offers[0].imageCredit) ? <Text style={styles.photoCredit}>{creditText(group.offers[0].imageCredit)}</Text> : null}
           <View style={styles.cardBody}><Text style={styles.venue}>{group.name}</Text><Text style={styles.location}>{group.location}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.offerStrip}>
               {group.offers.map((offer, index) => <Pressable key={offer.id + '-' + index} onPress={() => { setQuantity(1); setSelected(offer); }} style={styles.offer} accessibilityRole="button">
                 <OfferImage uri={offer.image} title={offer.title} thumbnail />
+                {creditText(offer.imageCredit) ? <Text numberOfLines={1} style={styles.photoCredit}>{creditText(offer.imageCredit)}</Text> : null}
                 <Text style={styles.offerCategory}>{offer.category || 'DROP'}</Text><Text numberOfLines={2} style={styles.offerTitle}>{offer.title}</Text><Text style={styles.view}>View details  →</Text>
               </Pressable>)}
             </ScrollView>
@@ -213,6 +217,7 @@ export default function App() {
     <Modal visible={!!selected} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setSelected(null)}>
       <SafeAreaView style={styles.modal}><Pressable style={styles.close} onPress={() => setSelected(null)}><Text style={styles.closeText}>Close</Text></Pressable>
         <ScrollView><OfferImage uri={selected?.image} title={selected?.title} detail />
+          {creditText(selected?.imageCredit) ? <Text style={styles.photoCredit}>{creditText(selected.imageCredit)}</Text> : null}
           <View style={styles.detailBody}><Text style={styles.offerCategory}>{selected?.category}</Text><Text style={styles.detailTitle}>{selected?.title}</Text>
             <Text style={styles.venue}>{selected?.merchant}</Text><Text style={styles.location}>{selected?.location || selected?.city}</Text>
             {selected?.publicLabel ? <Text style={styles.badge}>{selected.publicLabel}</Text> : null}
@@ -243,6 +248,7 @@ const styles = StyleSheet.create({
   badge: { color: '#e8d4ff', fontSize: 14, fontWeight: '700', marginTop: 16 },
   passCard: { backgroundColor: '#191923', padding: 18, borderRadius: 16, marginBottom: 12 }, passCode: { color: '#fff', backgroundColor: '#29213d', fontSize: 28, fontWeight: '800', textAlign: 'center', padding: 18, marginTop: 20, borderRadius: 14 },
   map: { flex: 1, backgroundColor: '#08090e' },
+  mapError: { flex: 1, padding: 22, backgroundColor: '#08090e' },
   quantityRow: { flexDirection: 'row', alignItems: 'center', gap: 20, marginTop: 16 }, quantityButton: { backgroundColor: '#29213d', borderRadius: 12, minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }, quantityText: { color: '#fff', fontSize: 22, fontWeight: '700' },
   logo: { color: '#fff', fontSize: 27, fontWeight: '900' }, logoAccent: { color: PURPLE },
   brandRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }, privacyLink: { color: '#bcb6ca', fontSize: 14 },
@@ -255,6 +261,7 @@ const styles = StyleSheet.create({
   card: { backgroundColor: '#191923', borderRadius: 20, overflow: 'hidden', marginBottom: 19 },
   image: { height: 185, width: '100%' }, imageFallback: { height: 100, justifyContent: 'center', alignItems: 'center', backgroundColor: '#242134' }, fallbackText: { color: PURPLE, fontSize: 24, fontWeight: '800' },
   thumbnail: { height: 96, width: '100%', borderRadius: 9, marginBottom: 12 },
+  photoCredit: { color: '#aaa8b6', fontSize: 12, paddingHorizontal: 12, paddingVertical: 5 },
   cardBody: { padding: 16 }, venue: { color: '#fff', fontSize: 19, fontWeight: '800' }, location: { color: '#bbb9c6', fontSize: 14, marginTop: 3 },
   offerStrip: { marginTop: 15 }, offer: { backgroundColor: '#292634', borderRadius: 14, padding: 14, marginRight: 10, width: 220, minHeight: 120 },
   offerCategory: { color: '#c8a1ff', fontSize: 13, fontWeight: '800', textTransform: 'uppercase' },
