@@ -1,10 +1,17 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import * as Location from 'expo-location';
+import { marketplace } from './src/marketplace';
 import { ActivityIndicator, FlatList, Image, Linking, Modal, Pressable, RefreshControl, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
 
 const API = 'https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-catalogue-api?limit=500';
 const SITE = 'https://perkdrop.au';
 const PURPLE = '#a45cff';
 const CATEGORIES = ['All', 'Food', 'Drinks', 'Events', 'Beauty', 'Experiences', 'Family', 'Free'];
+const RAD = Math.PI / 180;
+function distance(a, b, c, d) {
+  const x = Math.sin((c - a) * RAD / 2) ** 2 + Math.cos(a * RAD) * Math.cos(c * RAD) * Math.sin((d - b) * RAD / 2) ** 2;
+  return 12742 * Math.asin(Math.min(1, Math.sqrt(x)));
+}
 const clean = value => String(value ?? '').trim();
 const safeUrl = value => {
   if (!clean(value)) return null;
@@ -13,14 +20,16 @@ const safeUrl = value => {
 };
 function normalize(item) {
   return {
-    id: clean(item.id || item.slug), merchant: clean(item.merchant),
+    id: clean(item.id || item.slug), merchantId: clean(item.merchantId || item.merchant_id), merchant: clean(item.merchant),
     title: clean(item.title), category: clean(item.category),
     description: clean(item.description), location: clean(item.location),
     city: clean(item.city), timing: clean(item.timing),
     conditions: clean(item.conditions), end: clean(item.end),
-    image: safeUrl(item.imageUrl || item.image_url || item.image),
+    image: safeUrl(item.imageUrl || item.image_url || item.image), imageCredit: item.imageCredit || null,
+    price: clean(item.price), publicLabel: clean(item.publicLabel || item.public_label),
     detail: safeUrl(item.detailUrl || item.detail_url || (item.slug && '/deals/' + encodeURIComponent(item.slug))),
     official: safeUrl(item.goUrl || item.go_url || item.officialSource || item.official_source),
+    directions: safeUrl(item.navigationUrl || item.navigation_url),
     latitude: Number(item.latitude), longitude: Number(item.longitude)
   };
 }
@@ -47,6 +56,11 @@ export default function App() {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('All');
   const [selected, setSelected] = useState(null);
+  const [tab, setTab] = useState('Explore');
+  const [saved, setSaved] = useState(new Set());
+  const [point, setPoint] = useState(null);
+  const [nearBusy, setNearBusy] = useState(false);
+  const [saving, setSaving] = useState(false);
   const load = useCallback(async (refresh = false) => {
     if (refresh) setRefreshing(true); else setLoading(true);
     try {
@@ -61,24 +75,53 @@ export default function App() {
       setError('Could not refresh listings. Pull down to try again.');
     } finally { setLoading(false); setRefreshing(false); }
   }, []);
-  useEffect(() => { load(); }, [load]);
+  const loadSaved = useCallback(async () => {
+    try {
+      const data = await marketplace('my_perks');
+      setSaved(new Set((data.saves || []).filter(x => x.kind === 'drop' && x.href).map(x => String(x.target))));
+    } catch { setError('Saved offers could not be loaded. Pull down to retry.'); }
+  }, []);
+  useEffect(() => { load(); loadSaved(); }, [load, loadSaved]);
+  async function useNearby() {
+    setNearBusy(true);
+    try {
+      const permission = await Location.requestForegroundPermissionsAsync();
+      if (!permission.granted) { setError('Location permission is off. You can still search all places.'); return; }
+      const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      setPoint(position.coords);
+      setError('');
+    } catch { setError('Could not find your location. Try again or search by place.'); }
+    finally { setNearBusy(false); }
+  }
+  async function toggleSaved(item) {
+    if (!item || saving) return;
+    setSaving(true);
+    const remove = saved.has(item.id);
+    try {
+      await marketplace('save', { kind: 'drop', target: item.id, remove });
+      setSaved(previous => { const next = new Set(previous); if (remove) next.delete(item.id); else next.add(item.id); return next; });
+    } catch { setError('Could not update saved offers. Please try again.'); }
+    finally { setSaving(false); }
+  }
   const groups = useMemo(() => groupListings(items.filter(item => {
+    if (tab === 'Saved' && !saved.has(item.id)) return false;
     const search = [item.title, item.merchant, item.location, item.city].join(' ').toLowerCase();
     return categoryMatch(item, category) && search.includes(query.trim().toLowerCase());
-  })), [items, category, query]);
+  })).sort((a, b) => point ? distance(point.latitude, point.longitude, a.latitude, a.longitude) - distance(point.latitude, point.longitude, b.latitude, b.longitude) : 0)), [items, category, query, saved, tab, point]);
   const open = url => { if (url) Linking.openURL(url).catch(() => setError('Could not open this link.')); };
   return <SafeAreaView style={styles.page}>
     <StatusBar barStyle="light-content" backgroundColor="#08090e" />
     <View style={styles.header}><Text style={styles.logo}>Perk<Text style={styles.logoAccent}>Drop</Text></Text><Text style={styles.headline}>What’s worth doing near you?</Text></View>
+    <View style={styles.toolbar}><Pressable onPress={useNearby} disabled={nearBusy} style={styles.nearButton} accessibilityRole="button"><Text style={styles.nearText}>{nearBusy ? 'Finding…' : point ? '✓ Near me' : '◎ Near me'}</Text></Pressable><Text style={styles.toolbarText}>{point ? 'Closest first' : 'Across Australia'}</Text></View>
     <TextInput style={styles.search} value={query} onChangeText={setQuery} placeholder="Search places and plans" placeholderTextColor="#888694" accessibilityLabel="Search listings" />
     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categories} contentContainerStyle={styles.categoryContent}>
       {CATEGORIES.map(name => <Pressable key={name} accessibilityRole="button" accessibilityState={{ selected: category === name }} onPress={() => setCategory(name)} style={[styles.chip, category === name && styles.chipActive]}><Text style={[styles.chipText, category === name && styles.chipTextActive]}>{name}</Text></Pressable>)}
     </ScrollView>
     {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
     {loading ? <ActivityIndicator style={styles.loader} size="large" color={PURPLE} /> :
-      <FlatList data={groups} keyExtractor={group => group.key} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={PURPLE} />} contentContainerStyle={styles.list}
-        ListHeaderComponent={<Text style={styles.count}>{groups.length} places to explore</Text>}
-        ListEmptyComponent={<Text style={styles.empty}>No current listings match. Try another search or category.</Text>}
+      <FlatList data={groups} keyExtractor={group => group.key} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { load(true); loadSaved(); }} tintColor={PURPLE} />} contentContainerStyle={styles.list}
+        ListHeaderComponent={<Text style={styles.count}>{groups.length} {tab === 'Saved' ? 'saved places' : 'places to explore'}</Text>}
+        ListEmptyComponent={<Text style={styles.empty}>{tab === 'Saved' ? 'Save an offer to find it here.' : 'No current listings match. Try another search or category.'}</Text>}
         renderItem={({ item: group }) => <View style={styles.card}>
           {group.offers[0].image ? <Image source={{ uri: group.offers[0].image }} style={styles.image} resizeMode="cover" accessibilityLabel={group.offers[0].title} /> : <View style={styles.imageFallback}><Text style={styles.fallbackText}>PerkDrop</Text></View>}
           <View style={styles.cardBody}><Text style={styles.venue}>{group.name}</Text><Text style={styles.location}>{group.location}</Text>
@@ -89,15 +132,20 @@ export default function App() {
             </ScrollView>
           </View>
         </View>} />}
+    <View style={styles.tabs}>{['Explore', 'Saved'].map(name => <Pressable key={name} onPress={() => setTab(name)} accessibilityRole="tab" accessibilityState={{ selected: tab === name }} style={styles.tab}><Text style={[styles.tabText, tab === name && styles.tabActive]}>{name}{name === 'Saved' ? ` (${saved.size})` : ''}</Text></Pressable>)}</View>
     <Modal visible={!!selected} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setSelected(null)}>
       <SafeAreaView style={styles.modal}><Pressable style={styles.close} onPress={() => setSelected(null)}><Text style={styles.closeText}>Close</Text></Pressable>
         <ScrollView>{selected?.image ? <Image source={{ uri: selected.image }} style={styles.detailImage} /> : null}
           <View style={styles.detailBody}><Text style={styles.offerCategory}>{selected?.category}</Text><Text style={styles.detailTitle}>{selected?.title}</Text>
             <Text style={styles.venue}>{selected?.merchant}</Text><Text style={styles.location}>{selected?.location || selected?.city}</Text>
+            {selected?.publicLabel ? <Text style={styles.badge}>{selected.publicLabel}</Text> : null}
+            {selected?.price ? <Text style={styles.body}>{selected.price}</Text> : null}
             {selected?.timing ? <Text style={styles.body}>{selected.timing}</Text> : null}
             {selected?.description ? <Text style={styles.body}>{selected.description}</Text> : null}
             {selected?.conditions ? <Text style={styles.conditions}>Conditions: {selected.conditions}</Text> : null}
             <Pressable style={styles.primary} onPress={() => open(selected?.detail)}><Text style={styles.primaryText}>View current details</Text></Pressable>
+            <Pressable disabled={saving} style={styles.secondary} onPress={() => toggleSaved(selected)}><Text style={styles.secondaryText}>{saved.has(selected?.id) ? '♥ Saved — tap to remove' : '♡ Save this offer'}</Text></Pressable>
+            {selected?.directions ? <Pressable style={styles.secondary} onPress={() => open(selected.directions)}><Text style={styles.secondaryText}>Get directions</Text></Pressable> : null}
             {selected?.official ? <Pressable style={styles.secondary} onPress={() => open(selected.official)}><Text style={styles.secondaryText}>Open official source</Text></Pressable> : null}
           </View>
         </ScrollView>
@@ -107,6 +155,10 @@ export default function App() {
 }
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: '#08090e' }, header: { paddingHorizontal: 20, paddingTop: 18 },
+  toolbar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, marginBottom: 15, gap: 12 },
+  nearButton: { backgroundColor: '#29213d', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 9 }, nearText: { color: '#d6b8ff', fontSize: 14, fontWeight: '700' }, toolbarText: { color: '#aaa8b6', fontSize: 14 },
+  tabs: { flexDirection: 'row', borderTopWidth: 1, borderTopColor: '#2b2932', paddingBottom: 8 }, tab: { flex: 1, paddingVertical: 14, alignItems: 'center' }, tabText: { color: '#aaa8b6', fontSize: 16, fontWeight: '700' }, tabActive: { color: '#d6b8ff' },
+  badge: { color: '#e8d4ff', fontSize: 14, fontWeight: '700', marginTop: 16 },
   logo: { color: '#fff', fontSize: 27, fontWeight: '900' }, logoAccent: { color: PURPLE },
   headline: { color: '#fff', fontSize: 24, fontWeight: '800', marginTop: 20, marginBottom: 16 },
   search: { marginHorizontal: 20, backgroundColor: '#1b1b25', color: '#fff', borderRadius: 14, minHeight: 52, paddingHorizontal: 16, fontSize: 16 },
