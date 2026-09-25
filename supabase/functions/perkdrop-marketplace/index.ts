@@ -81,7 +81,7 @@ Deno.serve(async req=>{
       if(!validToken(body.token))return reply({error:'plan_not_found'},404);
       const tokenHash=await hash(body.token);
       if(!await rpc('marketplace_rate_limit',{p_bucket:'plan-view:'+tokenHash,p_max:60,p_seconds:60}))return reply({error:'rate_limited'},429);
-      const plan=await rows(db.from('marketplace_plans').select('id,name,planned_for,note,created_at,updated_at').eq('share_token_hash',tokenHash).is('share_revoked_at',null).maybeSingle());
+      const plan=await rows(db.from('marketplace_plans').select('id,name,planned_for,note,group_details,created_at,updated_at').eq('share_token_hash',tokenHash).is('share_revoked_at',null).maybeSingle());
       if(!plan)return reply({error:'plan_not_found'},404);
       const [publicPlan]=await plansWithItems([plan]);
       return reply({plan:publicPlan});
@@ -161,11 +161,14 @@ Deno.serve(async req=>{
       return reply({ok:true});
     }
     if(action==='plans'){
-      const plans=await rows(db.from('marketplace_plans').select('id,name,planned_for,note,share_created_at,share_revoked_at,created_at,updated_at').eq('consumer_id',cid).order('updated_at',{ascending:false}).limit(20));
+      const plans=await rows(db.from('marketplace_plans').select('id,name,planned_for,note,group_details,share_created_at,share_revoked_at,created_at,updated_at').eq('consumer_id',cid).order('updated_at',{ascending:false}).limit(20));
       return reply({plans:await plansWithItems(plans||[])});
     }
     if(action==='plan_save'){
       const name=clean(body.name,100),note=clean(body.note,600),plannedFor=validDate(body.planned_for);
+      const adults=Number(body.group_details?.adults??1),ages=body.group_details?.ages??[];
+      if(!Number.isInteger(adults)||adults<1||adults>20||!Array.isArray(ages)||ages.length>12||ages.some((a:any)=>!Number.isInteger(a)||a<0||a>17))return reply({error:'invalid_group'},400);
+      const group_details={adults,ages};
       const itemIds=unique(body.item_ids,PLAN_ITEM_LIMIT);
       if(!name)return reply({error:'plan_name_required'},400);
       if(plannedFor===null)return reply({error:'invalid_plan_date'},400);
@@ -175,13 +178,13 @@ Deno.serve(async req=>{
       const existingId=clean(body.id,64);
       let plan:any;
       if(existingId){
-        plan=await rows(db.from('marketplace_plans').update({name,note,planned_for:plannedFor||null,updated_at:new Date().toISOString()}).eq('id',existingId).eq('consumer_id',cid).select('id,name,planned_for,note,share_created_at,share_revoked_at,created_at,updated_at').maybeSingle());
+        plan=await rows(db.from('marketplace_plans').update({name,note,group_details,planned_for:plannedFor||null,updated_at:new Date().toISOString()}).eq('id',existingId).eq('consumer_id',cid).select('id,name,planned_for,note,group_details,share_created_at,share_revoked_at,created_at,updated_at').maybeSingle());
         if(!plan)return reply({error:'plan_not_found'},404);
         await rows(db.from('marketplace_plan_items').delete().eq('plan_id',plan.id));
       }else{
         const planCount=await count(db.from('marketplace_plans').select('id',{count:'exact',head:true}).eq('consumer_id',cid));
         if(planCount>=20)return reply({error:'plan_limit_reached'},409);
-        plan=await rows(db.from('marketplace_plans').insert({consumer_id:cid,name,note,planned_for:plannedFor||null}).select('id,name,planned_for,note,share_created_at,share_revoked_at,created_at,updated_at').single());
+        plan=await rows(db.from('marketplace_plans').insert({consumer_id:cid,name,note,group_details,planned_for:plannedFor||null}).select('id,name,planned_for,note,group_details,share_created_at,share_revoked_at,created_at,updated_at').single());
       }
       await rows(db.from('marketplace_plan_items').insert(itemIds.map((catalogue_item_id,position)=>({plan_id:plan.id,catalogue_item_id,position}))));
       const [result]=await plansWithItems([plan]);

@@ -30,15 +30,24 @@ Deno.serve(async(req)=>{
     const authority_confirmed=body.authority_confirmed===true,accuracy_confirmed=body.accuracy_confirmed===true,exclusive_requested=body.exclusive_requested===true;
     const termsAccepted=body.terms_accepted===true,termsAcceptedAt=termsAccepted?new Date().toISOString():null;
     const commercial_model_requested=clean(body.commercial_model_requested,80)||null;
-    if(!business_name||!contact_name||!emailOk(contact_email)||!contact_phone||!offer_title||!description||!location||!city||!(["ACT","NSW","NT","QLD","SA","TAS","VIC","WA"].includes(state))||conditions.length<12) return json({ok:false,error:"Please complete the required fields and conditions."},400);
+    if(!business_name||!contact_name||!emailOk(contact_email)||!offer_title||!description||!location||!city||!(["ACT","NSW","NT","QLD","SA","TAS","VIC","WA"].includes(state))||conditions.length<12) return json({ok:false,error:"Please complete the required fields and conditions."},400);
     if(!authority_confirmed||!accuracy_confirmed||!termsAccepted) return json({ok:false,error:"Authority, accuracy and merchant-terms confirmations are required."},400);
     const num=(v:unknown)=>{if(v===null||v===""||v===undefined)return null;const n=Number(v);return Number.isFinite(n)&&n>=0&&n<=1000000?n:null};
-    const date=(v:unknown)=>{const s=clean(v,80);if(!s)return null;const d=new Date(s);return Number.isNaN(d.getTime())?null:d.toISOString()};
+    const date=(v:unknown)=>{
+      const s=clean(v,80);if(!s)return null;
+      if(/Z$|[+-]\d{2}:\d{2}$/.test(s)){const d=new Date(s);return Number.isFinite(+d)?d.toISOString():null;}
+      if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(s))return null;
+      const tz=({SA:'Australia/Adelaide',NT:'Australia/Darwin',WA:'Australia/Perth',QLD:'Australia/Brisbane',NSW:'Australia/Sydney',ACT:'Australia/Sydney',VIC:'Australia/Melbourne',TAS:'Australia/Hobart'} as Record<string,string>)[state];
+      const wanted=Date.parse(s+':00Z');let candidate=wanted;
+      const local=(at:number)=>{const p=Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date(at)).map(p=>[p.type,p.value]));return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`};
+      for(let i=0;i<3;i++)candidate+=wanted-Date.parse(local(candidate)+':00Z');
+      return local(candidate)===s?new Date(candidate).toISOString():null;
+    };
     const forwarded=req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()||"";let source_ip_hash:string|null=null;try{source_ip_hash=forwarded?await hashIp(forwarded):null}catch{}
     const supabase=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-    const starts=date(body.starts_at),ends=date(body.ends_at),normal=num(body.normal_price),deal=num(body.deal_price),capacity=Math.floor(Number(body.capacity_total));
-    if(!starts||!ends||new Date(ends)<=new Date(starts)||!Number.isInteger(capacity)||capacity<1||capacity>10000) return json({ok:false,error:'Add a valid capacity and offer window.'},400);
+    const starts=date(body.starts_at),ends=date(body.ends_at),normal=num(body.normal_price),deal=num(body.deal_price),capacity=fulfilment_mode==='direct_claim'?Math.floor(Number(body.capacity_total)):null;
+    if(!starts||!ends||new Date(ends)<=new Date(starts)||(fulfilment_mode==='direct_claim'&&(!Number.isInteger(capacity)||capacity!<1||capacity!>10000||!clean(body.redemption_verifier,160)))) return json({ok:false,error:'Add a valid offer window and, for PerkDrop claims, capacity and a verifier.'},400);
     let merchant:any=null;
     const {data:exact}=await supabase.from('merchants').select('id,name,listing_status').eq('name',business_name).eq('primary_state',state).eq('primary_location',location).limit(1).maybeSingle();merchant=exact;
     if(!merchant){

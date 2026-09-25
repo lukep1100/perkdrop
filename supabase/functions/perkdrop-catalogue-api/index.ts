@@ -231,6 +231,13 @@ function priorityScore(
   if (soldOut && merchantControlled) return 80;
   return 100;
 }
+function publicImageCredit(d:any){
+  if(d.media_status==='permission_required'||d.metadata?.image_review_hold)return null;
+  const raw=d.metadata?.image_provenance;
+  // An array may contain unused candidates. Select only evidence bound to this asset.
+  const p=Array.isArray(raw)?raw.find((x:any)=>x.imageUrl===d.image_url||x.image_url===d.image_url||x.url===d.image_url):raw;
+  return p?{caption:p.caption||p.credit||'',source:p.source||p.source_url||'',license:p.license||'',licenseUrl:p.licenseUrl||p.license_url||''}:null;
+}
 Deno.serve(async (req) => {
   const started = Date.now();
   const requestId = String(req.headers.get("x-vercel-id") || req.headers.get("x-request-id") || crypto.randomUUID()).slice(0, 180);
@@ -345,7 +352,7 @@ Deno.serve(async (req) => {
     () => queryWithRetry(() => supabase
       .from("catalogue_items")
       .select(
-        "availability,quality_grade,quality_note,last_verified_at,id,merchant_id,merchant,title,description,category,kind,city,state,location,timing,end_date,ends_at,price,conditions,booking,source,verified,hot,featured,slug,detail_url,city_label,active,metadata,latitude,longitude,image_url,image_alt,media_status,cuisine,discount_percent,venue_type,offer_origin,exclusive,affiliate_url,affiliate_network",
+        "venue_id,venue:discovery_venues(id,latitude,longitude,address),starts_at,timezone,schedule_verified_at,availability,quality_grade,quality_note,last_verified_at,id,merchant_id,merchant,title,description,category,kind,city,state,location,timing,end_date,ends_at,price,conditions,booking,source,verified,hot,featured,slug,detail_url,city_label,active,metadata,latitude,longitude,image_url,image_alt,media_status,cuisine,discount_percent,venue_type,offer_origin,exclusive,affiliate_url,affiliate_network",
       )
       .eq("active", true)
       // Exclude stale rows before the limit; the per-state local-day check
@@ -490,6 +497,7 @@ Deno.serve(async (req) => {
             ...(d.metadata || {}),
             multi_location_parent: true,
             location_name: l.name || "",
+            location_id: l.id,
             location_source_url: l.source_url || "",
             location_verified_at: l.verified_at || "",
           },
@@ -662,6 +670,9 @@ Deno.serve(async (req) => {
     return {
       id: d.id,
       merchantId: d.merchant_id || null,
+      venueId: d.metadata?.location_id ? `branch:${d.metadata.location_id}` : d.venue_id || null,
+      locationId: d.metadata?.location_id || null,
+      legacyPlaceKeys: d.metadata?.legacy_place_keys || [],
       merchant: merchantName,
       merchantSlug,
       listingStatus,
@@ -688,6 +699,10 @@ Deno.serve(async (req) => {
       location: d.location || "",
       timing,
       end: d.end_date || "",
+      startsAt: d.starts_at || null, endsAt: d.ends_at || null,
+      timezone: d.timezone || d.availability?.timezone || null,
+      scheduleVerifiedAt: d.schedule_verified_at || null,
+      pricing: d.metadata?.pricing || null, suitability: d.metadata?.suitability || null,
       price: d.price || "",
       conditions: d.conditions || "",
       booking: Boolean(d.booking || activeOffer || merchant?.booking_url),
@@ -705,9 +720,9 @@ Deno.serve(async (req) => {
       detailUrl: d.detail_url,
       goUrl: tracked,
       cityLabel: d.city_label || cityLabel(d.city),
-      latitude: validLat,
-      longitude: validLng,
-      navigationUrl: nav(d, validLat, validLng),
+      latitude: d.venue?.latitude ?? validLat,
+      longitude: d.venue?.longitude ?? validLng,
+      navigationUrl: nav(d, d.venue?.latitude ?? validLat, d.venue?.longitude ?? validLng),
       mapQuery:
         validLat !== null && validLng !== null
           ? `${validLat},${validLng}`
@@ -715,7 +730,8 @@ Deno.serve(async (req) => {
       imageUrl: publicOfferImage(d, merchant),
       imageAlt: d.image_alt || `${merchantName} — ${d.title}`,
       imageFit: d.metadata?.image_fit === 'contain' ? 'contain' : 'cover',
-      imageCredit: d.media_status !== 'permission_required' && !d.metadata?.image_review_hold && d.metadata?.image_provenance ? {caption:d.metadata.image_provenance.caption||'',source:d.metadata.image_provenance.source||'',license:d.metadata.image_provenance.license||'',licenseUrl:d.metadata.image_provenance.licenseUrl||''} : null,
+      imageCredit: publicImageCredit(d),
+      imageKind: d.metadata?.image_kind || 'venue',
       cuisine,
       discountPercent:
         d.discount_percent === null ? null : Number(d.discount_percent),
