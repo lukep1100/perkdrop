@@ -53,6 +53,13 @@ function categoryMatch(item, category) {
   const terms = { Food: ['food', 'dining', 'restaurant', 'cafe'], Drinks: ['drink', 'bar'], Events: ['event', 'festival'], Beauty: ['beauty', 'hair', 'wellness'], Experiences: ['experience', 'activity', 'tour'], Family: ['family', 'kids'], Free: ['free'] };
   return terms[category].some(term => text.includes(term));
 }
+function OfferImage({ uri, title, detail = false, thumbnail = false }) {
+  const [failed, setFailed] = useState(false);
+  useEffect(() => setFailed(false), [uri]);
+  const imageStyle = thumbnail ? styles.thumbnail : detail ? styles.detailImage : styles.image;
+  if (!uri || failed) return <View style={[styles.imageFallback, imageStyle]}><Text style={styles.fallbackText}>PerkDrop</Text></View>;
+  return <Image source={{ uri }} style={imageStyle} resizeMode="cover" accessibilityLabel={title || 'Place photo'} onError={() => setFailed(true)} />;
+}
 export default function App() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -179,10 +186,11 @@ export default function App() {
         ListHeaderComponent={<Text style={styles.count}>{groups.length} {tab === 'Saved' ? 'saved places' : 'places to explore'}</Text>}
         ListEmptyComponent={<Text style={styles.empty}>{tab === 'Saved' ? 'Save an offer to find it here.' : 'No current listings match. Try another search or category.'}</Text>}
         renderItem={({ item: group }) => <View style={styles.card}>
-          {group.offers[0].image ? <Image source={{ uri: group.offers[0].image }} style={styles.image} resizeMode="cover" accessibilityLabel={group.offers[0].title} /> : <View style={styles.imageFallback}><Text style={styles.fallbackText}>PerkDrop</Text></View>}
+          <OfferImage uri={group.offers[0].image} title={group.offers[0].title} />
           <View style={styles.cardBody}><Text style={styles.venue}>{group.name}</Text><Text style={styles.location}>{group.location}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.offerStrip}>
               {group.offers.map((offer, index) => <Pressable key={offer.id + '-' + index} onPress={() => { setQuantity(1); setSelected(offer); }} style={styles.offer} accessibilityRole="button">
+                <OfferImage uri={offer.image} title={offer.title} thumbnail />
                 <Text style={styles.offerCategory}>{offer.category || 'DROP'}</Text><Text numberOfLines={2} style={styles.offerTitle}>{offer.title}</Text><Text style={styles.view}>View details  →</Text>
               </Pressable>)}
             </ScrollView>
@@ -204,7 +212,7 @@ export default function App() {
     </SafeAreaView></Modal>
     <Modal visible={!!selected} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setSelected(null)}>
       <SafeAreaView style={styles.modal}><Pressable style={styles.close} onPress={() => setSelected(null)}><Text style={styles.closeText}>Close</Text></Pressable>
-        <ScrollView>{selected?.image ? <Image source={{ uri: selected.image }} style={styles.detailImage} /> : null}
+        <ScrollView><OfferImage uri={selected?.image} title={selected?.title} detail />
           <View style={styles.detailBody}><Text style={styles.offerCategory}>{selected?.category}</Text><Text style={styles.detailTitle}>{selected?.title}</Text>
             <Text style={styles.venue}>{selected?.merchant}</Text><Text style={styles.location}>{selected?.location || selected?.city}</Text>
             {selected?.publicLabel ? <Text style={styles.badge}>{selected.publicLabel}</Text> : null}
@@ -246,6 +254,7 @@ const styles = StyleSheet.create({
   count: { color: '#aaa8b6', fontSize: 14, marginBottom: 14 }, list: { padding: 20, paddingBottom: 55 },
   card: { backgroundColor: '#191923', borderRadius: 20, overflow: 'hidden', marginBottom: 19 },
   image: { height: 185, width: '100%' }, imageFallback: { height: 100, justifyContent: 'center', alignItems: 'center', backgroundColor: '#242134' }, fallbackText: { color: PURPLE, fontSize: 24, fontWeight: '800' },
+  thumbnail: { height: 96, width: '100%', borderRadius: 9, marginBottom: 12 },
   cardBody: { padding: 16 }, venue: { color: '#fff', fontSize: 19, fontWeight: '800' }, location: { color: '#bbb9c6', fontSize: 14, marginTop: 3 },
   offerStrip: { marginTop: 15 }, offer: { backgroundColor: '#292634', borderRadius: 14, padding: 14, marginRight: 10, width: 220, minHeight: 120 },
   offerCategory: { color: '#c8a1ff', fontSize: 13, fontWeight: '800', textTransform: 'uppercase' },
