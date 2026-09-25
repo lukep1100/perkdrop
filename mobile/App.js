@@ -9,6 +9,7 @@ const PURPLE = '#a45cff';
 const CATEGORIES = ['All', 'Food', 'Drinks', 'Events', 'Beauty', 'Experiences', 'Family', 'Free'];
 const RAD = Math.PI / 180;
 function distance(a, b, c, d) {
+  if (![a, b, c, d].every(Number.isFinite)) return Number.POSITIVE_INFINITY;
   const x = Math.sin((c - a) * RAD / 2) ** 2 + Math.cos(a * RAD) * Math.cos(c * RAD) * Math.sin((d - b) * RAD / 2) ** 2;
   return 12742 * Math.asin(Math.min(1, Math.sqrt(x)));
 }
@@ -107,7 +108,7 @@ export default function App() {
     if (tab === 'Saved' && !saved.has(item.id)) return false;
     const search = [item.title, item.merchant, item.location, item.city].join(' ').toLowerCase();
     return categoryMatch(item, category) && search.includes(query.trim().toLowerCase());
-  })).sort((a, b) => point ? distance(point.latitude, point.longitude, a.latitude, a.longitude) - distance(point.latitude, point.longitude, b.latitude, b.longitude) : 0)), [items, category, query, saved, tab, point]);
+  }).sort((a, b) => point ? distance(point.latitude, point.longitude, a.latitude, a.longitude) - distance(point.latitude, point.longitude, b.latitude, b.longitude) : 0)), [items, category, query, saved, tab, point]);
   const open = url => { if (url) Linking.openURL(url).catch(() => setError('Could not open this link.')); };
   return <SafeAreaView style={styles.page}>
     <StatusBar barStyle="light-content" backgroundColor="#08090e" />
