@@ -151,7 +151,7 @@ export default function App() {
   const open = url => { if (url) Linking.openURL(url).catch(() => setError('Could not open this link.')); };
   return <SafeAreaView style={styles.page}>
     <StatusBar barStyle="light-content" backgroundColor="#08090e" />
-    <View style={styles.header}><Text style={styles.logo}>Perk<Text style={styles.logoAccent}>Drop</Text></Text><Text style={styles.headline}>What’s worth doing near you?</Text></View>
+    <View style={styles.header}><View style={styles.brandRow}><Text style={styles.logo}>Perk<Text style={styles.logoAccent}>Drop</Text></Text><Pressable onPress={() => open(SITE + '/privacy')} accessibilityRole="link"><Text style={styles.privacyLink}>Privacy</Text></Pressable></View><Text style={styles.headline}>What’s worth doing near you?</Text></View>
     <View style={styles.toolbar}><Pressable onPress={() => point ? setPoint(null) : useNearby()} disabled={nearBusy} style={styles.nearButton} accessibilityRole="button"><Text style={styles.nearText}>{nearBusy ? 'Finding…' : point ? '✓ Near me' : '◎ Near me'}</Text></Pressable><Text style={styles.toolbarText}>{point ? 'Within 50 km · tap to clear' : 'Across Australia'}</Text></View>
     <TextInput style={styles.search} value={query} onChangeText={setQuery} placeholder="Search places and plans" placeholderTextColor="#888694" accessibilityLabel="Search listings" />
     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categories} contentContainerStyle={styles.categoryContent}>
@@ -237,6 +237,7 @@ const styles = StyleSheet.create({
   map: { flex: 1, backgroundColor: '#08090e' },
   quantityRow: { flexDirection: 'row', alignItems: 'center', gap: 20, marginTop: 16 }, quantityButton: { backgroundColor: '#29213d', borderRadius: 12, minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }, quantityText: { color: '#fff', fontSize: 22, fontWeight: '700' },
   logo: { color: '#fff', fontSize: 27, fontWeight: '900' }, logoAccent: { color: PURPLE },
+  brandRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }, privacyLink: { color: '#bcb6ca', fontSize: 14 },
   headline: { color: '#fff', fontSize: 24, fontWeight: '800', marginTop: 20, marginBottom: 16 },
   search: { marginHorizontal: 20, backgroundColor: '#1b1b25', color: '#fff', borderRadius: 14, minHeight: 52, paddingHorizontal: 16, fontSize: 16 },
   categories: { flexGrow: 0, marginTop: 15 }, categoryContent: { paddingHorizontal: 20, paddingBottom: 14, gap: 8 },
