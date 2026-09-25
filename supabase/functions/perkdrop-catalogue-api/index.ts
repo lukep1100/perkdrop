@@ -674,7 +674,7 @@ Deno.serve(async (req) => {
       merchantId: d.merchant_id || null,
       venueId: d.metadata?.location_id ? `branch:${d.metadata.location_id}` : d.venue_id || null,
       locationId: d.metadata?.location_id || null,
-      legacyPlaceKeys: d.metadata?.legacy_place_keys || [],
+      legacyPlaceKeys: [...(d.metadata?.legacy_place_keys || []),`${String(d.merchant_id||merchant?.slug||merchantName||d.title).normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim()}|${validLat!==null&&validLng!==null?`${validLat.toFixed(4)},${validLng.toFixed(4)}`:String(d.location||d.city).toLowerCase().replace(/[^a-z0-9]+/g,' ').trim()}`],
       merchant: merchantName,
       merchantSlug,
       listingStatus,

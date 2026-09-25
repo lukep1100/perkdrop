@@ -26,4 +26,21 @@ export async function testAuditUtility(pool,check){
   assert.equal((await pool.query("select has_function_privilege('anon','marketplace_connect_device(text,text,text)','EXECUTE') ok")).rows[0].ok,false);
  });
 
+ await pool.query(await readFile(new URL('../../supabase/migrations/20260925093800_atomic_outing_plans.sql',import.meta.url),'utf8'));
+ await check('plan saves are atomic, owner-scoped and keep stop order',async()=>{
+  const hash=()=>randomUUID().replaceAll('-','')+randomUUID().replaceAll('-','');
+  const cid=(await pool.query('select marketplace_identity($1) id',[hash()])).rows[0].id;
+  const other=(await pool.query('select marketplace_identity($1) id',[hash()])).rows[0].id;
+  const ids=[];for(let n=0;n<2;n++){const id='plan-fixture-'+randomUUID();ids.push(id);await pool.query(`insert into catalogue_items(id,merchant,title,description,category,kind,city,state,source,slug,detail_url,active) values($1,'Audit','Event','Fixture','Events','event','adelaide','SA','https://example.test',$1,'/deals/'||$1,true)`,[id]);}
+  const save=(owner,id,name,items)=>pool.query(`select marketplace_save_plan($1,$2,$3,'',current_date,'{"adults":1,"ages":[]}',$4) plan`,[owner,id,name,items]);
+  const plan=(await save(cid,null,'Original',ids)).rows[0].plan;
+  await assert.rejects(save(other,plan.id,'Stolen',ids),/plan_not_found/);
+  await assert.rejects(save(cid,plan.id,'Broken',[ids[0],'missing-listing']),/plan_item_not_found/);
+  assert.equal((await pool.query('select name from marketplace_plans where id=$1',[plan.id])).rows[0].name,'Original');
+  assert.deepEqual((await pool.query('select catalogue_item_id from marketplace_plan_items where plan_id=$1 order by position',[plan.id])).rows.map(r=>r.catalogue_item_id),ids);
+  await save(cid,plan.id,'Reordered',[...ids].reverse());
+  assert.deepEqual((await pool.query('select catalogue_item_id from marketplace_plan_items where plan_id=$1 order by position',[plan.id])).rows.map(r=>r.catalogue_item_id),[...ids].reverse());
+ });
+
+ await pool.query(await readFile(new URL('../../supabase/migrations/20260925094500_landmark_venue_aliases.sql',import.meta.url),'utf8'));
 }

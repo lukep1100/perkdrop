@@ -47,8 +47,13 @@ Deno.serve(async req=>{
       const itemIds=[...new Set<string>((links||[]).map((item:any)=>String(item.catalogue_item_id)))];
       const items=await publicCatalogueItems(itemIds);
       const itemMap=new Map((items||[]).map((item:any)=>[item.id,item]));
+      const branchIds=[...new Set<string>(plans.flatMap(p=>Object.values(p.group_details?.branch_ids||{}) as string[]).filter(Boolean))];
+      const branchRows=branchIds.length?await rows(db.from('catalogue_locations').select('id,drop_id,address,city,latitude,longitude').in('id',branchIds).eq('active',true)):[];
+      const branches=new Map<string,any>(branchRows.map((b:any)=>[b.id,b]));
       return plans.map(plan=>({...plan,items:(links||[]).filter((link:any)=>link.plan_id===plan.id).map((link:any)=>{
-        const item=itemMap.get(link.catalogue_item_id);
+        const item=itemMap.get(link.catalogue_item_id),branchId=plan.group_details?.branch_ids?.[link.catalogue_item_id],branch=branches.get(branchId);
+        if(branchId&&(!branch||branch.drop_id!==link.catalogue_item_id))return {id:link.catalogue_item_id,title:'Branch no longer available',href:null,available:false};
+        if(item&&branch)return {id:item.id,merchant:item.merchant,title:item.title,location:branch.address,latitude:branch.latitude,longitude:branch.longitude,locationId:branch.id,timing:item.timing,href:dealPath(item.slug+'-'+String(branch.city).toLowerCase().replace(/[^a-z0-9-]/g,'-')),available:true};
         return item?{id:item.id,merchant:item.merchant,title:item.title,location:item.location,timing:item.timing,href:planHref(item),available:true}:{id:link.catalogue_item_id,merchant:'',title:'Listing unavailable',location:'',timing:'',href:null,available:false};
       })}));
     }
@@ -188,25 +193,21 @@ Deno.serve(async req=>{
       const name=clean(body.name,100),note=clean(body.note,600),plannedFor=validDate(body.planned_for);
       const adults=Number(body.group_details?.adults??1),ages=body.group_details?.ages??[];
       if(!Number.isInteger(adults)||adults<1||adults>20||!Array.isArray(ages)||ages.length>12||ages.some((a:any)=>!Number.isInteger(a)||a<0||a>17))return reply({error:'invalid_group'},400);
-      const group_details={adults,ages};
+      const branchIds=body.group_details?.branch_ids||{};
+      if(typeof branchIds!=='object'||Array.isArray(branchIds))return reply({error:'invalid_plan_branch'},400);
+      const group_details={adults,ages,branch_ids:{} as Record<string,string>};
       const itemIds=unique(body.item_ids,PLAN_ITEM_LIMIT);
       if(!name)return reply({error:'plan_name_required'},400);
       if(plannedFor===null)return reply({error:'invalid_plan_date'},400);
       if(!itemIds.length)return reply({error:'plan_items_required'},400);
       const catalogue=await publicCatalogueItems(itemIds);
       if((catalogue||[]).length!==itemIds.length)return reply({error:'plan_item_not_found'},404);
-      const existingId=clean(body.id,64);
-      let plan:any;
-      if(existingId){
-        plan=await rows(db.from('marketplace_plans').update({name,note,group_details,planned_for:plannedFor||null,updated_at:new Date().toISOString()}).eq('id',existingId).eq('consumer_id',cid).select('id,name,planned_for,note,group_details,share_created_at,share_revoked_at,created_at,updated_at').maybeSingle());
-        if(!plan)return reply({error:'plan_not_found'},404);
-        await rows(db.from('marketplace_plan_items').delete().eq('plan_id',plan.id));
-      }else{
-        const planCount=await count(db.from('marketplace_plans').select('id',{count:'exact',head:true}).eq('consumer_id',cid));
-        if(planCount>=20)return reply({error:'plan_limit_reached'},409);
-        plan=await rows(db.from('marketplace_plans').insert({consumer_id:cid,name,note,group_details,planned_for:plannedFor||null}).select('id,name,planned_for,note,group_details,share_created_at,share_revoked_at,created_at,updated_at').single());
+      for(const id of itemIds){const branch=clean(branchIds[id],120);if(!branch)continue;
+        const found=await rows(db.from('catalogue_locations').select('id').eq('drop_id',id).eq('id',branch).eq('active',true).maybeSingle());
+        if(!found)return reply({error:'invalid_plan_branch'},400);group_details.branch_ids[id]=branch;
       }
-      await rows(db.from('marketplace_plan_items').insert(itemIds.map((catalogue_item_id,position)=>({plan_id:plan.id,catalogue_item_id,position}))));
+      const existingId=clean(body.id,64);
+      const plan=await rpc('marketplace_save_plan',{p_consumer:cid,p_id:existingId||null,p_name:name,p_note:note,p_date:plannedFor||null,p_group:group_details,p_items:itemIds});
       const [result]=await plansWithItems([plan]);
       return reply({ok:true,plan:result});
     }
