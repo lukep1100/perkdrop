@@ -43,4 +43,5 @@ export async function testAuditUtility(pool,check){
  });
 
  await pool.query(await readFile(new URL('../../supabase/migrations/20260925094500_landmark_venue_aliases.sql',import.meta.url),'utf8'));
+ const {testMerchantPublication}=await import('./merchant-publication.mjs');await testMerchantPublication(pool,check);
 }
