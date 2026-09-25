@@ -7,6 +7,7 @@ const PURPLE = '#a45cff';
 const CATEGORIES = ['All', 'Food', 'Drinks', 'Events', 'Beauty', 'Experiences', 'Family', 'Free'];
 const clean = value => String(value ?? '').trim();
 const safeUrl = value => {
+  if (!clean(value)) return null;
   try { const url = new URL(value, SITE); return ['https:', 'http:'].includes(url.protocol) ? url.href : null; }
   catch { return null; }
 };
