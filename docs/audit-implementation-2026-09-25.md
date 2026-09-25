@@ -19,11 +19,11 @@ This release makes local discovery and a usable outing plan the main product jou
 
 ## Release evidence
 
-Website change: [PR #16](https://github.com/lukep1100/perkdrop/pull/16). Native continuation: [PR #14](https://github.com/lukep1100/perkdrop/pull/14).
+Website changes: [PR #16](https://github.com/lukep1100/perkdrop/pull/16) and the merchant publishing follow-up [PR #17](https://github.com/lukep1100/perkdrop/pull/17). Native continuation: [PR #14](https://github.com/lukep1100/perkdrop/pull/14).
 
 - Web production builds and lint passed. The focused suite passed **27 checks**, including date/DST/overnight boundaries, price/age evidence, stable branches, calendar escaping, analytics contracts and watcher backoff.
-- GitHub's isolated PostgreSQL integration suite passed the four migrations, device-link concurrency/replay/revocation, private access, schedule invalidation and atomic owner-scoped plan saves. Local embedded PostgreSQL could not run under this workspace's root-only UID mapping; the cloud database checks supplied that gate.
-- All nine changed Edge Functions passed Deno type checking. Production deployments: catalogue v42, marketplace v6, merchant-submit v9, track v9, nav v4, go v7, owner-analytics v7, regular event-watch v3 and profiled event-watch v4. Existing JWT/custom-auth requirements were retained.
+- GitHub's isolated PostgreSQL integration suite passed **71 checks**, covering the five audit migrations, device-link concurrency/replay/revocation, private access, schedule invalidation atomic owner-scoped plan saves, non-claim publication and reviewed media projection. Local embedded PostgreSQL could not run under this workspace's root-only UID mapping; the cloud database checks supplied that gate.
+- All nine changed Edge Functions passed Deno type checking. Production deployments: catalogue v42, marketplace v6, merchant-submit v10, track v9, nav v4, go v7, owner-analytics v7, regular event-watch v3 and profiled event-watch v4. Existing JWT/custom-auth requirements were retained.
 - Browser verification exercised the corrected concert, selected-area search, grouped gallery, popup contrast, a two-stop saved/reordered outing, calendar button, private sharing and revoked-link rejection. A second browser identity connected through a single-use link and displayed the same private outing.
 - Native Expo Doctor passed **21/21**. iOS and Android bundles exported successfully. The native PR's build, database, Edge and mobile checks passed after the shared release integration. This is source/build evidence, not physical-device certification.
 
