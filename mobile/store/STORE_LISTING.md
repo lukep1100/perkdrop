@@ -1,7 +1,7 @@
 # PerkDrop store listing draft (en-AU)
 
 App name: PerkDrop
-Subtitle / short description: Deals and local plans worth knowing
+Subtitle / short description: Local deals worth knowing
 Category: Lifestyle (review final category selection in each store)
 Support: https://perkdrop.au/contact
 Privacy policy: https://perkdrop.au/privacy
