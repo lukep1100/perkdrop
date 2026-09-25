@@ -10,10 +10,10 @@ const httpsUrl=(v:string)=>{if(!v)return "";try{const u=new URL(v);return u.prot
 const hashIp=async(ip:string)=>{const salt=Deno.env.get("PERKDROP_HASH_SALT")||"perkdrop";const d=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(`${salt}:${ip}`));return Array.from(new Uint8Array(d)).map(b=>b.toString(16).padStart(2,"0")).join("")};
 const slugify=(s:string)=>s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,90)||'business';
 const verticals=['food','drinks','beauty','wellness','hair','experiences','events','activities','fitness','golf','tourism','stay','shopping','free','family_kids','travel_stays','freebies','services','other'];
-const fulfilmentModes=['direct_claim','external_booking','ticket','appointment','merchant_confirmation','information_only'];
+const fulfilmentModes=['direct_claim','external_booking','information_only'];
 const inventoryUnits=['diner','person','appointment','ticket','booking','room','tee_time','class_spot','player','seat','item','package','other'];
 const dropTypes=['capacity','last_minute','cancellation'];
-const discountTypes=['value_add','percent','fixed','free'];
+const discountTypes=['custom','percent','fixed','free'];
 
 Deno.serve(async(req)=>{
   if(req.method==="OPTIONS") return new Response(null,{status:204,headers:CORS});
@@ -26,7 +26,10 @@ Deno.serve(async(req)=>{
     const business_name=clean(body.business_name,160),contact_name=clean(body.contact_name,160),contact_email=clean(body.contact_email,254).toLowerCase(),contact_phone=clean(body.contact_phone,80);
     const offer_title=clean(body.offer_title,180),description=clean(body.description,2500),category=clean(body.category,80),location=clean(body.location,300),city=clean(body.city,100),state=clean(body.state,60).toUpperCase();
     const promo_code=clean(body.promo_code,100),conditions=clean(body.conditions,1800),booking_url=httpsUrl(clean(body.booking_url,1200)),media_url=httpsUrl(clean(body.media_url,1200));
-    const vertical=verticals.includes(clean(body.vertical,40))?clean(body.vertical,40):'food',fulfilment_mode=fulfilmentModes.includes(clean(body.fulfilment_mode,40))?clean(body.fulfilment_mode,40):'external_booking',inventory_unit=inventoryUnits.includes(clean(body.inventory_unit,40))?clean(body.inventory_unit,40):'person',drop_type=dropTypes.includes(clean(body.drop_type,40))?clean(body.drop_type,40):'capacity',discount_type=discountTypes.includes(clean(body.discount_type,40))?clean(body.discount_type,40):'value_add';
+    const vertical=verticals.includes(clean(body.vertical,40))?clean(body.vertical,40):'food',fulfilment_mode=fulfilmentModes.includes(clean(body.fulfilment_mode,40))?clean(body.fulfilment_mode,40):'external_booking',inventory_unit=inventoryUnits.includes(clean(body.inventory_unit,40))?clean(body.inventory_unit,40):'person',drop_type=dropTypes.includes(clean(body.drop_type,40))?clean(body.drop_type,40):'capacity',discount_type=discountTypes.includes(clean(body.discount_type,40))?clean(body.discount_type,40):'custom';
+    if(!fulfilmentModes.includes(clean(body.fulfilment_mode,40))) return json({ok:false,error:'Choose external booking, a public event or a PerkDrop claim.'},400);
+    if(fulfilment_mode!=='direct_claim'&&!booking_url) return json({ok:false,error:'Add the HTTPS booking or official event page.'},400);
+    const action_type=fulfilment_mode==='information_only'?'ticket_link':fulfilment_mode==='external_booking'?'booking':'redemption_code';
     const authority_confirmed=body.authority_confirmed===true,accuracy_confirmed=body.accuracy_confirmed===true,exclusive_requested=body.exclusive_requested===true;
     const termsAccepted=body.terms_accepted===true,termsAcceptedAt=termsAccepted?new Date().toISOString():null;
     const commercial_model_requested=clean(body.commercial_model_requested,80)||null;
@@ -59,7 +62,7 @@ Deno.serve(async(req)=>{
     let discountPercent:number|null=null;if(normal!==null&&deal!==null&&normal>0&&deal<=normal)discountPercent=Math.round(((normal-deal)/normal)*10000)/100;
     // A public form may retain a submitted URL as review context below, but it
     // must never become an offer image without a staged binary and owner review.
-    const {data:offer,error:offerError}=await supabase.from('merchant_offers').insert({merchant_id:merchant.id,title:offer_title,description,category:category||vertical,vertical,drop_type,inventory_unit,fulfilment_mode,discount_type,discount_percent:discountPercent,normal_price:normal,deal_price:deal,promo_code:promo_code||null,conditions,starts_at:starts,ends_at:ends,capacity_total:capacity,capacity_remaining:capacity,location,city:city.toLowerCase().replace(/\s+/g,'-'),state,booking_url:booking_url||null,exclusive:exclusive_requested,status:'pending',metadata:{submission_source:'public_business_form',redemption_verifier:clean(body.redemption_verifier,160),commercial_model:'free_standard',media_review_status:media_url?'source_reference_only':'required'}}).select('id').single();
+    const {data:offer,error:offerError}=await supabase.from('merchant_offers').insert({merchant_id:merchant.id,title:offer_title,description,category:category||vertical,vertical,drop_type,inventory_unit,fulfilment_mode,action_type,discount_type,discount_percent:discountPercent,normal_price:normal,deal_price:deal,promo_code:promo_code||null,conditions,starts_at:starts,ends_at:ends,capacity_total:capacity,capacity_remaining:capacity,location,city:city.toLowerCase().replace(/\s+/g,'-'),state,booking_url:booking_url||null,exclusive:exclusive_requested,status:'pending',metadata:{submission_source:'public_business_form',redemption_verifier:clean(body.redemption_verifier,160),commercial_model:'free_standard',media_review_status:media_url?'source_reference_only':'required'}}).select('id').single();
     if(offerError){console.error('offer create',offerError);return json({ok:false,error:'Offer could not be saved. Please try again.'},500)}
 
     const {data,error}=await supabase.from("merchant_submissions").insert({
