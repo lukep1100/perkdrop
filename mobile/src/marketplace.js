@@ -12,7 +12,7 @@ async function credential() {
   return value;
 }
 export async function marketplace(action, body = {}) {
-  credentialPromise ||= credential();
+  credentialPromise ||= credential().catch(error => { credentialPromise = undefined; throw error; });
   const token = await credentialPromise;
   const response = await fetch(API, {
     method: 'POST',
