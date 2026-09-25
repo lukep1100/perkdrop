@@ -162,7 +162,7 @@ export default function Shell({ deal, venue, collection=[], collectionCity="Adel
       }),
       h("link", {
         rel: "stylesheet",
-        href: "/styles.css?v=v45-offer-first",
+        href: "/styles.css?v=v46-simple-offers",
       }),
     ),
     h(
@@ -180,7 +180,7 @@ export default function Shell({ deal, venue, collection=[], collectionCity="Adel
         h("p", {role:"status"}, "Loading your local guide…"),
       ),
     ),
-    h("script", { src: "/app.js?v=v45-offer-first", type:"module" }),
+    h("script", { src: "/app.js?v=v46-simple-offers", type:"module" }),
   );
 }
 export async function getServerSideProps({ params, resolvedUrl, req, res }) {
