@@ -43,3 +43,28 @@ test('Last checked labels are based on source evidence, never page render time',
  assert.match(freshness(deal(),monday).label,/14 Sept? 2026/);
  assert.equal(freshness({verified:'Today'},monday).state,'unknown');
 });
+
+test('verified event timestamps qualify on their actual dates without service windows',()=>{
+ const d={state:'VIC',timezone:'Australia/Melbourne',qualityGrade:'A',officialSource:'https://www.shrine.org.au/event',scheduleVerifiedAt:'2026-09-23T23:20:00Z',startsAt:'2026-09-28T01:00:00Z',endsAt:'2026-09-28T01:45:00Z'};
+ assert.equal(availabilityMatches(d,'week',new Date('2026-09-25T08:27:00Z')),true);
+ assert.equal(availabilityMatches(d,'now',new Date('2026-09-28T01:20:00Z')),true);
+ assert.equal(availabilityMatches(d,'now',new Date('2026-09-28T01:45:00Z')),false);
+ assert.equal(availabilityMatches({...d,availability:{status:'cancelled'}},'week',new Date('2026-09-25T08:27:00Z')),false);
+ assert.equal(availabilityMatches({...d,scheduleVerifiedAt:null},'week',new Date('2026-09-25T08:27:00Z')),false);
+});
+test('multi-day envelopes match dates but never invent continuous opening hours',()=>{
+ const d={state:'SA',officialSource:'https://example.org/festival',scheduleVerifiedAt:'2026-09-25T00:00:00Z',startsAt:'2026-09-25T00:30:00Z',endsAt:'2026-10-11T06:30:00Z'};
+ assert.equal(availabilityMatches(d,'weekend',new Date('2026-09-25T08:00:00Z')),true);
+ assert.equal(availabilityMatches(d,'tonight',new Date('2026-09-25T08:00:00Z')),false);
+ assert.equal(availabilityMatches(d,'now',new Date('2026-09-25T08:00:00Z')),false);
+});
+test('explicit overnight windows retain their local start date and exclusions',()=>{
+ const d=deal();d.availability.windows=[{days:[1],start:'22:00',end:'02:00',overnight:true}];
+ assert.equal(availabilityMatches(d,'now',new Date('2026-09-14T15:00:00Z')),true);
+ d.availability.excludedDates=['2026-09-15'];assert.equal(availabilityMatches(d,'now',new Date('2026-09-14T15:00:00Z')),false);
+});
+test('daylight-saving conversion uses the event zone and last admission is exclusive',()=>{
+ const d={state:'SA',officialSource:'https://example.org/gig',scheduleVerifiedAt:'2026-09-25T00:00:00Z',startsAt:'2026-10-16T09:30:00Z',endsAt:'2026-10-16T10:30:00Z'};
+ assert.equal(availabilityMatches(d,'now',new Date('2026-10-16T10:00:00Z')),true);
+ const recurring=deal();recurring.availability.windows=[{days:[1],start:'17:30',end:'20:30',lastEntry:'20:00'}];assert.equal(availabilityMatches(recurring,'now',new Date('2026-09-14T10:30:00Z')),false);
+});

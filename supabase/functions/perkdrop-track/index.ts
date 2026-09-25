@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
 
-const events=new Set(["deal_open","search","save_toggle","map_open","map_marker_open","business_open","share","directions_click","official_deal_click","business_submit_started","business_submit_completed","claim_portal_open","page_view","paid_landing","service_date_selected","party_size_selected","claim_started","hold_created","claim_issued","book_table_clicked","booking_claim_confirmed","hold_expired","hold_released","subscriber_signup","redemption_complete"]);
+const events=new Set(["deal_open","search","save_toggle","map_open","map_marker_open","business_open","share","directions_click","official_deal_click","business_submit_started","business_submit_completed","claim_portal_open","page_view","paid_landing","service_date_selected","party_size_selected","claim_started","hold_created","claim_issued","book_table_clicked","booking_claim_confirmed","hold_expired","hold_released","subscriber_signup","redemption_complete","plan_created","plan_shared","calendar_export","account_linked"]);
 const canonical:Record<string,string>={deal_open:'deal_view',save_toggle:'save',directions_click:'directions',official_deal_click:'website_click'};
 const originOk=(v:string)=>{try{const h=new URL(v).host;return h==='perkdrop.au'||h==='www.perkdrop.au'||h==='khzpdyyywiucfhubxkev.supabase.co'||(h.includes('perkdrop')&&h.endsWith('.vercel.app'))}catch{return false}};
 const clean=(v:unknown,n:number)=>typeof v==='string'?v.trim().slice(0,n):'';
@@ -29,6 +29,7 @@ Deno.serve(async req=>{
     const m=b.metadata&&typeof b.metadata==='object'&&!Array.isArray(b.metadata)?b.metadata:{};
     const path=clean(m.path,1000);const qp=paramsFromPath(path);
     const metadata={
+      visitor_id:UUID.test(clean(m.visitor_id,80))?clean(m.visitor_id,80):null,traffic_type:m.traffic_type==='internal'?'internal':'public',platform:m.platform==='native'?'native':'web',
       path:path||null,deal_slug:clean(m.deal_slug,160)||null,merchant:clean(m.merchant,160)||null,category:clean(m.category,80)||null,
       search_term:clean(m.search_term,80)||null,saved_state:typeof m.saved_state==='boolean'?m.saved_state:null,
       utm_source:clean(m.utm_source,60)||clean(qp.get('utm_source'),60)||null,

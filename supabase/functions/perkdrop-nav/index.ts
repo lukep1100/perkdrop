@@ -10,12 +10,22 @@ Deno.serve(async(req)=>{
   try{
     const url=new URL(req.url);const dropId=(url.searchParams.get('drop')||'').trim();if(!validDropId(dropId))return Response.redirect('https://perkdrop.au/map',302);
     const service=createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
-    const {data:deal}=await service.from('catalogue_items').select('id,merchant_id,merchant,city,location,latitude,longitude,active').eq('id',dropId).eq('active',true).maybeSingle();if(!deal)return Response.redirect('https://perkdrop.au/map',302);
+    const {data:deal}=await service.from('catalogue_items').select('id,merchant_id,merchant,city,location,latitude,longitude,active,venue:discovery_venues(latitude,longitude)').eq('id',dropId).eq('active',true).maybeSingle();if(!deal)return Response.redirect('https://perkdrop.au/map',302);
     if(deal.merchant_id){const {data:merchant,error}=await service.from('merchants').select('permanent_listing,directory_status').eq('id',deal.merchant_id).maybeSingle();if(error||!directoryVisible(merchant))return Response.redirect('https://perkdrop.au/map',302);}
-    const destination=navigationDestination(deal);
+    const venue=Array.isArray(deal.venue)?deal.venue[0]:deal.venue;
+    let targetDeal={...deal,latitude:venue?.latitude??deal.latitude,longitude:venue?.longitude??deal.longitude};
+    const branch=url.searchParams.get('branch');
+    if(branch){
+      // Resolve the branch against this listing; never trust supplied coordinates.
+      if(!/^[a-zA-Z0-9_-]{1,120}$/.test(branch))return Response.redirect('https://perkdrop.au/map',302);
+      const {data:location,error}=await service.from('catalogue_locations').select('latitude,longitude,address').eq('id',branch).eq('drop_id',deal.id).eq('active',true).maybeSingle();
+      if(error||!location)return Response.redirect('https://perkdrop.au/map',302);
+      targetDeal={...targetDeal,latitude:location.latitude,longitude:location.longitude,location:location.address};
+    }
+    const destination=navigationDestination(targetDeal);
     const target=`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`;
     const forwarded=req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()||'';let sourceIpHash:string|null=null;try{sourceIpHash=forwarded?await hashIp(forwarded):null}catch{}
-    try{await service.from('engagement_events').insert({merchant_id:deal.merchant_id,catalogue_item_id:deal.id,event_type:'directions',session_id:(url.searchParams.get('sid')||'').slice(0,120)||null,city:deal.city||null,source_page:(url.searchParams.get('from')||'detail').slice(0,500),referrer:(req.headers.get('referer')||'').slice(0,1000)||null,source_ip_hash:sourceIpHash,user_agent:(req.headers.get('user-agent')||'').slice(0,300)||null,metadata:{destination}})}catch{}
+    try{await service.from('engagement_events').insert({merchant_id:deal.merchant_id,catalogue_item_id:deal.id,event_type:'directions',session_id:(url.searchParams.get('sid')||'').slice(0,120)||null,city:deal.city||null,source_page:(url.searchParams.get('from')||'detail').slice(0,500),referrer:(req.headers.get('referer')||'').slice(0,1000)||null,source_ip_hash:sourceIpHash,user_agent:(req.headers.get('user-agent')||'').slice(0,300)||null,metadata:{destination,visitor_id:(url.searchParams.get('vid')||'').slice(0,120)||null,traffic_type:url.searchParams.get('internal')==='1'?'internal':'public'}})}catch{}
     return Response.redirect(target,302);
   }catch(e){console.error('perkdrop-nav',e);return Response.redirect('https://perkdrop.au/map',302)}
 });

@@ -7,7 +7,7 @@ const hashIp=async(ip:string)=>{const salt=Deno.env.get("PERKDROP_HASH_SALT")||"
 Deno.serve(async(req)=>{
   try{
     if(req.method!=="GET") return new Response("Method not allowed",{status:405});
-    const url=new URL(req.url);const dropId=(url.searchParams.get("drop")||"").trim();if(!/^PD-\d{4}-\d{4}$/.test(dropId)) return new Response("Invalid Drop",{status:400});
+    const url=new URL(req.url);const dropId=(url.searchParams.get("drop")||"").trim();if(!/^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$/.test(dropId)) return new Response("Invalid Drop",{status:400});
     const supabase=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const {data:deal,error}=await supabase.from("catalogue_items").select("id,merchant_id,merchant,source,city,category,active,metadata,offer_origin,detail_url").eq("id",dropId).eq("active",true).maybeSingle();
     if(error||!deal) return Response.redirect("https://perkdrop.au/deals",302);
@@ -20,7 +20,7 @@ Deno.serve(async(req)=>{
         const claimUrl=`https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-consumer-claim?drop=${encodeURIComponent(deal.id)}`;
         try{await Promise.all([
           supabase.from("outbound_clicks").insert({drop_id:deal.id,merchant_id:deal.merchant_id||null,merchant:deal.merchant||null,destination_url:claimUrl,source_page:sourcePage||null,city:deal.city||null,category:deal.category||null,session_id:sessionId,referrer:ref.slice(0,1000)||null,utm_source:url.searchParams.get("utm_source")?.slice(0,120)||null,utm_medium:url.searchParams.get("utm_medium")?.slice(0,120)||null,utm_campaign:url.searchParams.get("utm_campaign")?.slice(0,180)||null,device_hint:(req.headers.get("sec-ch-ua-mobile")||req.headers.get("user-agent")||"").slice(0,300),source_ip_hash:sourceIpHash}),
-          supabase.from('engagement_events').insert({merchant_id:deal.merchant_id||null,catalogue_item_id:deal.id,merchant_offer_id:activeOffer.id,event_type:'redemption_page_open',session_id:sessionId,city:deal.city||null,source_page:sourcePage||'detail',referrer:ref.slice(0,1000)||null,source_ip_hash:sourceIpHash,user_agent:(req.headers.get('user-agent')||'').slice(0,300)||null,metadata:{destination_host:'khzpdyyywiucfhubxkev.supabase.co'}})
+          supabase.from('engagement_events').insert({merchant_id:deal.merchant_id||null,catalogue_item_id:deal.id,merchant_offer_id:activeOffer.id,event_type:'redemption_page_open',session_id:sessionId,city:deal.city||null,source_page:sourcePage||'detail',referrer:ref.slice(0,1000)||null,source_ip_hash:sourceIpHash,user_agent:(req.headers.get('user-agent')||'').slice(0,300)||null,metadata:{visitor_id:(url.searchParams.get('vid')||'').slice(0,120)||null,traffic_type:url.searchParams.get('internal')==='1'?'internal':'public',destination_host:'khzpdyyywiucfhubxkev.supabase.co'}})
         ])}catch{}
         return Response.redirect(claimUrl,302);
       }
@@ -31,7 +31,7 @@ Deno.serve(async(req)=>{
     try{
       await Promise.all([
         supabase.from("outbound_clicks").insert({drop_id:deal.id,merchant_id:deal.merchant_id||null,merchant:deal.merchant||null,destination_url:target.toString(),source_page:sourcePage||null,city:deal.city||null,category:deal.category||null,session_id:sessionId,referrer:ref.slice(0,1000)||null,utm_source:url.searchParams.get("utm_source")?.slice(0,120)||null,utm_medium:url.searchParams.get("utm_medium")?.slice(0,120)||null,utm_campaign:url.searchParams.get("utm_campaign")?.slice(0,180)||null,device_hint:(req.headers.get("sec-ch-ua-mobile")||req.headers.get("user-agent")||"").slice(0,300),source_ip_hash:sourceIpHash}),
-        supabase.from('engagement_events').insert({merchant_id:deal.merchant_id||null,catalogue_item_id:deal.id,event_type:'website_click',session_id:sessionId,city:deal.city||null,source_page:sourcePage||'detail',referrer:ref.slice(0,1000)||null,source_ip_hash:sourceIpHash,user_agent:(req.headers.get('user-agent')||'').slice(0,300)||null,metadata:{destination_host:target.host}})
+        supabase.from('engagement_events').insert({merchant_id:deal.merchant_id||null,catalogue_item_id:deal.id,event_type:'website_click',session_id:sessionId,city:deal.city||null,source_page:sourcePage||'detail',referrer:ref.slice(0,1000)||null,source_ip_hash:sourceIpHash,user_agent:(req.headers.get('user-agent')||'').slice(0,300)||null,metadata:{visitor_id:(url.searchParams.get('vid')||'').slice(0,120)||null,traffic_type:url.searchParams.get('internal')==='1'?'internal':'public',destination_host:target.host}})
       ]);
     }catch{}
     return Response.redirect(target.toString(),302);
