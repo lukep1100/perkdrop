@@ -1,0 +1,20 @@
+{
+  "expo": {
+    "name": "PerkDrop",
+    "slug": "perkdrop",
+    "scheme": "perkdrop",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "bundleIdentifier": "au.perkdrop.app",
+      "supportsTablet": false
+    },
+    "android": {
+      "package": "au.perkdrop.app"
+    },
+    "extra": {
+      "catalogueUrl": "https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-catalogue-api?limit=500"
+    }
+  }
+}
