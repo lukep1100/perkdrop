@@ -3,9 +3,6 @@ import {readFile} from 'node:fs/promises';
 import {randomUUID} from 'node:crypto';
 
 export async function testMerchantPublication(pool,check){
-  // Load the real authority function and its tables omitted from the core fixture.
-  const original=await readFile(new URL('../../supabase/migrations/20260909112633_marketplace_os_completion.sql',import.meta.url),'utf8');
-  await pool.query(original.slice(original.indexOf('create table public.business_groups('),original.indexOf('create table public.merchant_pilots(')));
   await pool.query(await readFile(new URL('../../supabase/migrations/20260925100500_merchant_listing_publication.sql',import.meta.url),'utf8'));
   const actor=randomUUID();await pool.query('insert into auth.users(id) values($1)',[actor]);
   const mid=(await pool.query("insert into merchants(name,slug,listing_status,primary_state,primary_city) values('Publication fixture',$1,'verified','SA','adelaide') returning id",[randomUUID()])).rows[0].id;
