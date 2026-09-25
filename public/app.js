@@ -144,6 +144,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
       return false;
     }
   }
+  function safePagePath(){const u=new URL(location.href);u.searchParams.delete('_vercel_share');u.searchParams.delete('token');return u.pathname+u.search;}
   function track(event_type, metadata = {}) {
     try {
       fetch(TRACK, {
@@ -154,7 +155,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
           event_type,
           session_id: analyticsContext().sessionId,
           city: state.city,
-          source_page: location.pathname + location.search,
+          source_page: safePagePath(),
           referrer: document.referrer,
           metadata: {
             ...metadata,
@@ -165,7 +166,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
             utm_medium: traffic.medium || null,
             utm_campaign: traffic.campaign || null,
             fbclid: traffic.fbclid || null,
-            path: location.pathname + location.search,
+            path: safePagePath(),
           },
         }),
       }).catch(() => {});

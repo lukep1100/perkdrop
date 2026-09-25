@@ -10,8 +10,8 @@ const headers = {
 };
 const tracker = (id: string) =>
   `https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-go?drop=${encodeURIComponent(id)}&from=detail&utm_source=perkdrop&utm_medium=referral&utm_campaign=verified_catalogue`;
-const nav = (d: any, lat: number | null, lng: number | null) =>
-  `https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-nav?drop=${encodeURIComponent(d.id)}&from=detail${lat !== null && lng !== null ? `&lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}` : `&loc=${encodeURIComponent(d.location || d.merchant || "")}`}`;
+const nav = (d: any) =>
+  `https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-nav?drop=${encodeURIComponent(d.id)}&from=detail${d.metadata?.location_id ? `&branch=${encodeURIComponent(d.metadata.location_id)}` : ""}`;
 const portal = (slug: string) =>
   `https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-portal?merchant=${encodeURIComponent(slug)}`;
 const cityLabel = (s: string) =>
@@ -130,7 +130,7 @@ async function recordFailure(
     // Failure telemetry must never change the client's truthful error path.
   }
 }
-async function queryWithRetry(run: () => Promise<any>) {
+async function queryWithRetry(run: () => PromiseLike<any>) {
   let result: any = null;
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
@@ -422,7 +422,7 @@ Deno.serve(async (req) => {
       { status: 500, headers: responseHeaders },
     );
   }
-  const merchantMap = new Map((merchants || []).map((m: any) => [m.id, m]));
+  const merchantMap = new Map<string, any>((merchants || []).map((m: any) => [m.id, m]));
   const offerByDrop = new Map<string, any>();
   for (const o of offers || [])
     if (o.published_drop_id) offerByDrop.set(o.published_drop_id, o);
@@ -455,10 +455,10 @@ Deno.serve(async (req) => {
       };
     return o;
   };
-  const campaignDrops = new Set(
+  const campaignDrops = new Set<string>(
     (campaigns || []).map((c: any) => c.catalogue_item_id).filter(Boolean),
   );
-  const campaignOffers = new Set(
+  const campaignOffers = new Set<string>(
     (campaigns || []).map((c: any) => c.merchant_offer_id).filter(Boolean),
   );
   const locByDrop = new Map<string, any[]>();
@@ -614,7 +614,7 @@ Deno.serve(async (req) => {
       longitude = rawLng === null || rawLng === "" ? null : Number(rawLng);
     const validLat = isAustralianPoint(latitude, longitude) ? latitude : null,
       validLng = isAustralianPoint(latitude, longitude) ? longitude : null;
-    const merchant = merchantMap.get(d.merchant_id) || null;
+    const merchant = merchantMap.get(d.merchant_id) || undefined;
     const cuisine = String(d.cuisine || merchant?.cuisine || "").trim(),
       baseTiming = String(d.timing || "").trim();
     const activeOffer = effectiveOffer(offerByDrop.get(d.id));
@@ -667,6 +667,8 @@ Deno.serve(async (req) => {
     const merchantSlug = merchant?.slug || "";
     const claimUrl = claimable && merchantSlug ? portal(merchantSlug) : "";
     const merchantName = merchant?.name || d.merchant;
+    const venue = d.metadata?.location_id ? null : (Array.isArray(d.venue) ? d.venue[0] : d.venue);
+    const mapLat = venue?.latitude ?? validLat, mapLng = venue?.longitude ?? validLng;
     return {
       id: d.id,
       merchantId: d.merchant_id || null,
@@ -720,12 +722,12 @@ Deno.serve(async (req) => {
       detailUrl: d.detail_url,
       goUrl: tracked,
       cityLabel: d.city_label || cityLabel(d.city),
-      latitude: d.venue?.latitude ?? validLat,
-      longitude: d.venue?.longitude ?? validLng,
-      navigationUrl: nav(d, d.venue?.latitude ?? validLat, d.venue?.longitude ?? validLng),
+      latitude: mapLat,
+      longitude: mapLng,
+      navigationUrl: nav(d),
       mapQuery:
-        validLat !== null && validLng !== null
-          ? `${validLat},${validLng}`
+        mapLat !== null && mapLng !== null
+          ? `${mapLat},${mapLng}`
           : d.location || merchantName || "",
       imageUrl: publicOfferImage(d, merchant),
       imageAlt: d.image_alt || `${merchantName} — ${d.title}`,

@@ -44,7 +44,7 @@ Deno.serve(async req=>{
       if(!plans.length)return [];
       const ids=plans.map(plan=>plan.id);
       const links=await rows(db.from('marketplace_plan_items').select('plan_id,catalogue_item_id,position').in('plan_id',ids).order('position',{ascending:true}));
-      const itemIds=[...new Set((links||[]).map((item:any)=>item.catalogue_item_id))];
+      const itemIds=[...new Set<string>((links||[]).map((item:any)=>String(item.catalogue_item_id)))];
       const items=await publicCatalogueItems(itemIds);
       const itemMap=new Map((items||[]).map((item:any)=>[item.id,item]));
       return plans.map(plan=>({...plan,items:(links||[]).filter((link:any)=>link.plan_id===plan.id).map((link:any)=>{
