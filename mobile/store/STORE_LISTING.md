@@ -1,46 +1,56 @@
-# PerkDrop store listing draft (en-AU)
+# PerkDrop store listing — en-AU release candidate
 
 App name: PerkDrop
-Subtitle / short description: Local deals worth knowing
-Category: Lifestyle (review final category selection in each store)
+Apple subtitle: Local deals worth knowing
+Google short description: Find local offers, events and things to do across Australia.
+Suggested category: Lifestyle; final selection must match store review.
 Support: https://perkdrop.au/contact
-Privacy policy: https://perkdrop.au/privacy
+Privacy: https://perkdrop.au/privacy
+Deletion information: https://perkdrop.au/delete-account
 Contact: perkdropofficial@gmail.com
 
-## Short description (Google Play)
-Find local offers, events and things to do across Australia.
-
 ## Full description
-Know what's worth doing before you make plans.
 
-PerkDrop brings local offers, events, food, drinks, experiences and family activities into one place. Choose a suburb or postcode, use Near me for a 25 km area, or explicitly browse across Australia. Filter verified dates and check evidenced age and group-cost information.
+Know what’s worth doing before you make plans.
 
-Browse places with their offers together, check dates and conditions, and open the official source before you go. Save offers, connect your devices with a private single-use link and create an outing in the website planner. Where a venue supports an in-app Drop, you can claim available places and keep the pass in My perks.
+PerkDrop brings local offers, events, food, experiences and family activities into one place. Choose a suburb or postcode, use Near me, or browse across Australia. Explore current listings and verified date filters, check the price and conditions, then open the official source or directions.
 
-Listings and availability can change. Always check the current conditions and confirmation shown for each offer.
+See offers grouped by place, save useful finds and share a public listing with friends. Connect your own devices with a private one-time link to use the same saves, plans and passes. Add an outing to the website planner and export it to your calendar.
+
+Where a business supports a PerkDrop claim, check its availability and conditions before claiming. Not all listings support booking or claiming in the app. A listing is not a booking confirmation.
+
+Listings, dates and availability can change. Always check the current source, booking requirements and any exclusions before you go. Cached offline listings are labelled and cannot issue claims.
 
 ## Apple promotional text
+
 Food, events, experiences and genuine local perks — before you make plans.
 
 ## Apple keywords
+
 deals,events,food,activities,experiences,local,family,offers
 
 ## Review notes
-The app opens directly to a public catalogue; no login is required to browse. Saved items and in-app claims use a device-held anonymous credential. Location permission is requested only when Near me is tapped. The Map tab presents PerkDrop's live website map inside the app. Claims are shown only for eligible offers with available capacity; the reviewer may not see a claimable offer at all times. Privacy: https://perkdrop.au/privacy. Support: perkdropofficial@gmail.com.
 
-## Store data disclosure draft — verify against the final binary
-- Device-held anonymous credential: used for saved offers, pass history and updates; stored with Expo SecureStore and represented server-side by a hash.
-- Purchases/claims: offer, party size, pass status and codes stored by Supabase where an in-app claim is made; no payment in the app.
-- Precise location: accessed only after the user selects Near me; used to filter listings within 25 km. The selected point is rounded to three decimals before local SecureStore storage and the website map URL. No background location is requested.
-- Analytics: pseudonymous installation ID, 30-minute visits, viewed listings, searches, saves and outbound actions. Preview traffic is internal.
-- Website map and external links: may collect usage, referral, and request information as disclosed at the privacy policy.
-- Push notifications: not included in this build. Do not claim push permission or delivery in store disclosures.
-- No ads or in-app purchases are configured in the native app. Some catalogue destinations may be affiliate or sponsored as disclosed with the listing and site policy.
+Browsing does not require login. Private saves/plans/passes use a guest device credential. Location is requested only after tapping Near me; manual area search is available after permission denial. Map and current website details use an embedded WebView; the planner opens through explicit device pairing. In-app claims appear only for genuinely eligible, available offers; do not expect a claim button on every listing.
 
-## Remaining account and asset work
-1. The existing EAS project is linked. Confirm signing access and ownership of bundle ID `au.perkdrop.app` in Apple Developer and Play Console.
-2. Create signed iOS and Android test builds and test discovery, search, map, saves, claims, passes, permissions, external links and errors on real devices.
-3. Capture required screenshots from those tested builds at the device sizes requested in App Store Connect and Play Console.
-4. Complete each store's privacy/data-safety and content-rating questionnaires from the final binary and actual data practices.
-5. Supply Apple signing access and Google Play developer access; use EAS to submit review builds. A new personal Google Play developer account may need closed testing before production access.
-6. Add push notifications only after the delivery service, consent, credentials and physical-device test are complete.
+Settings includes Delete PerkDrop data with typed DELETE confirmation. It removes private account content and linked-device access; existing external bookings are not cancelled. Do not create or redeem a live merchant claim merely to demonstrate the UI; use an approved isolated review fixture if required.
+
+Remote push is disabled in the committed release candidate. The Updates tab says so. Do not advertise push delivery in the listing or screenshots for a push-disabled build. No ads SDK, in-app payments, subscriptions or paid consumer tier is configured in this native build.
+
+## Data disclosure working inventory — not completed store answers
+
+- App functionality: guest device credential (stored in SecureStore; server stores its hash), saved items, private plans, connected devices and eligible claim/pass records.
+- Analytics: pseudonymous installation/browser identifier, separate visits, interactions, platform/OS, first-tracked-open and bounded campaign tags. First tracked open is not verified App Store/Play installation. Production/QA traffic have separate labels.
+- Location: foreground permission only; coordinates used for local filtering and rounded to three decimals for local persistence and map URL. The coordinate passed to a map/website provider must be included in the disclosure review; do not claim all location stays on-device.
+- Offline cache: public catalogue only, up to 24 hours. It contains no private passes or credentials. Clearing it does not delete private saves.
+- Optional push-capable builds: Expo push token, consent, selected city/timezone, limited delivery history, and provider processing through Expo/APNs/FCM. Currently disabled; final binary/actual configuration controls the store answer.
+- WebView/external destinations: website request, referral and third-party processing can occur under their policies.
+- Deletion: native Settings removes private account content and account-linked notification registration after server confirmation. Necessary transaction evidence can remain without account/session/pass-reference links. Technical logs/analytics are a separate retention category; do not state that all historical logs are erased by this action.
+
+## Screenshots to capture from the signed release build
+
+Discover; manual Near Me/area selection; family/free filters with accurate live results; map; listing details; saved items. Use genuine current inventory and truthful feature captions. Exclude private pass codes, device links and personal data. Capture required store/device sizes after physical-device QA. The existing feature graphic is not a substitute for screenshots.
+
+## Owner/store gates
+
+Apple membership/signing/2FA and Google account verification/testing are not completed by these files. Confirm identifier ownership, genuine provider credentials, privacy/support/deletion pages LIVE at their published URLs, content rating, app privacy/data safety, required tests and final binaries before submitting.

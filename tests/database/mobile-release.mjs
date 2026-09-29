@@ -11,6 +11,7 @@ export async function runMobileReleaseChecks(pool,check) {
     provider_subscription_id text
   )`);
   await pool.query(await readFile(new URL('../../supabase/release/mobile-release.sql',import.meta.url),'utf8'));
+  await pool.query(await readFile(new URL('../../supabase/release/mobile-push-revocation.sql',import.meta.url),'utf8'));
   const a=randomBytes(32).toString('hex'),b=randomBytes(32).toString('hex');
   const token='ExponentPushToken['+randomBytes(16).toString('hex')+']';
   const prefs={city:'adelaide',timezone:'Australia/Adelaide'};
@@ -46,6 +47,20 @@ export async function runMobileReleaseChecks(pool,check) {
   await check('public roles cannot read notification tokens or call destructive RPCs',async()=>{
     const result=(await pool.query("select has_table_privilege('anon','mobile_push_subscriptions','SELECT') as token_read,has_function_privilege('anon','mobile_delete_consumer(text)','EXECUTE') as can_delete,has_function_privilege('authenticated','mobile_register_push(text,text,text,jsonb)','EXECUTE') as can_register")).rows[0];
     assert.equal(result.token_read,false);assert.equal(result.can_delete,false);assert.equal(result.can_register,false);
+  });
+  await check('web device revocation immediately disables native notifications',async()=>{
+    await pool.query('select mobile_register_push($1,$2,$3,$4)',[a,token,'ios',prefs]);
+    await pool.query("insert into marketplace_devices(credential_hash,consumer_id,label) values($1,$2,'isolated native test') on conflict(credential_hash) do update set revoked_at=null",[a,ca]);
+    await pool.query('update marketplace_devices set revoked_at=now() where credential_hash=$1',[a]);
+    assert.equal((await pool.query('select enabled from mobile_push_subscriptions where device_hash=$1',[a])).rows[0].enabled,false);
+    await pool.query('update marketplace_devices set revoked_at=null where credential_hash=$1',[a]);
+  });
+  await check('primary credential rotation disables its old notification registration',async()=>{
+    const otherToken='ExpoPushToken['+randomBytes(16).toString('hex')+']';
+    await pool.query('select mobile_register_push($1,$2,$3,$4)',[b,otherToken,'android',prefs]);
+    await pool.query('update marketplace_consumers set credential_hash=$2 where id=$1',[cb,randomBytes(32).toString('hex')]);
+    assert.equal((await pool.query('select enabled from mobile_push_subscriptions where device_hash=$1',[b])).rows[0].enabled,false);
+    await pool.query('update marketplace_consumers set credential_hash=$2 where id=$1',[cb,b]);
   });
   await check('unexpected paid billing cannot be silently orphaned by deletion',async()=>{
     await pool.query("insert into consumer_memberships(consumer_id,provider_subscription_id) values($1,'isolated-not-a-real-subscription')",[ca]);
