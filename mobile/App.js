@@ -1,307 +1,100 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {analyticsContext,track} from './src/analytics';
+import React,{useCallback,useEffect,useMemo,useRef,useState} from 'react';
+import {ActivityIndicator,Alert,AppState,FlatList,Image,Linking,Modal,Pressable,RefreshControl,SafeAreaView,ScrollView,Share,StatusBar,StyleSheet,Text,TextInput,View} from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import * as Location from 'expo-location';
-import { marketplace, connectDevice } from './src/marketplace';
+import {WebView} from 'react-native-webview';
+import {marketplace,connectDevice} from './src/marketplace';
+import {analyticsContext,setCampaign,track} from './src/analytics';
+import {fetchJson} from './src/http.mjs';
+import {readCatalogueCache,writeCatalogueCache} from './src/catalogue-cache';
+import {safeWebUrl,parseIncomingLink,listingEnded,passTime,SITE} from './src/release-rules.mjs';
+import {observeNotificationOpens,reconcileNotificationPermission} from './src/notifications';
+import {AppErrorBoundary,LoadingCards,WelcomeSheet,SettingsSheet,NotificationControls} from './src/ReleaseUI';
 import {availabilityMatches,scheduleLabel} from '../public/availability.mjs';
 import {venueKey} from '../public/venue-identity.mjs';
 import {matchesOuting,suggestedDate} from '../public/outing-rules.mjs';
 import {isUnconditionallyFree} from '../public/discovery-rules.mjs';
-import { WebView } from 'react-native-webview';
-import { ActivityIndicator, Alert, FlatList, Image, Linking, Modal, Pressable, RefreshControl, SafeAreaView, ScrollView, Share, StatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
 
-const API = 'https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-catalogue-api?limit=500';
-const SITE = 'https://perkdrop.au';
-const PURPLE = '#a45cff';
-const CATEGORIES = ['All', 'Food', 'Drinks', 'Events', 'Beauty', 'Experiences', 'Family', 'Free'];
-const RAD = Math.PI / 180;
-function distance(a, b, c, d) {
-  if (![a, b, c, d].every(Number.isFinite)) return Number.POSITIVE_INFINITY;
-  const x = Math.sin((c - a) * RAD / 2) ** 2 + Math.cos(a * RAD) * Math.cos(c * RAD) * Math.sin((d - b) * RAD / 2) ** 2;
-  return 12742 * Math.asin(Math.min(1, Math.sqrt(x)));
+const API='https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-catalogue-api?limit=500';
+const ADELAIDE={latitude:-34.9285,longitude:138.6007,label:'Adelaide',radius:50};
+const CATEGORIES=['All','Food','Drinks','Events','Beauty','Experiences','Family','Free'];
+const DATES=[['any','Any date'],['now','Now'],['tonight','Tonight'],['weekend','Weekend'],['week','Next 7 days']];
+const TABS=['Explore','Map','Saved','My perks','Updates'];
+const clean=value=>String(value??'').trim();
+function distance(a,b,c,d){if(![a,b,c,d].every(Number.isFinite))return Infinity;const r=Math.PI/180,x=Math.sin((c-a)*r/2)**2+Math.cos(a*r)*Math.cos(c*r)*Math.sin((d-b)*r/2)**2;return 12742*Math.asin(Math.min(1,Math.sqrt(x)));}
+function normalize(item){return {...item,id:clean(item.id||item.slug),merchantId:clean(item.merchantId||item.merchant_id),merchant:clean(item.merchant),title:clean(item.title),category:clean(item.category),description:clean(item.description),location:clean(item.location),city:clean(item.city),timing:clean(item.timing),conditions:clean(item.conditions),end:clean(item.end),image:safeWebUrl(item.imageUrl||item.image_url||item.image),imageCredit:item.imageCredit||null,price:clean(item.price),publicLabel:clean(item.publicLabel||item.public_label),merchantOfferId:clean(item.merchantOfferId||item.merchant_offer_id),redemptionAvailable:Boolean(item.redemptionAvailable||item.redemption_available),capacityRemaining:Number(item.capacityRemaining??item.capacity_remaining??0),detail:safeWebUrl(item.detailUrl||item.detail_url||(item.slug&&'/deals/'+encodeURIComponent(item.slug))),official:safeWebUrl(item.goUrl||item.go_url||item.officialSource||item.official_source),directions:safeWebUrl(item.navigationUrl||item.navigation_url),latitude:item.latitude==null?null:Number(item.latitude),longitude:item.longitude==null?null:Number(item.longitude)};}
+function categoryMatch(item,category){if(category==='All')return true;if(category==='Free')return isUnconditionallyFree(item);const terms={Food:['food','dining','restaurant','cafe'],Drinks:['drink','bar'],Events:['event','festival'],Beauty:['beauty','hair','wellness'],Experiences:['experience','activity','tour'],Family:['family','kids']};return terms[category].some(term=>(item.category+' '+item.title).toLowerCase().includes(term));}
+function groupListings(items){const groups=new Map();for(const item of items){const key=venueKey(item);if(!groups.has(key))groups.set(key,{key,name:item.merchant||'Local listing',location:item.location||item.city,offers:[]});groups.get(key).offers.push(item);}return [...groups.values()];}
+const creditText=credit=>credit?[credit.caption||credit.source,credit.license].filter(Boolean).join(' · '):'';
+function Photo({item,detail=false}){const [failed,setFailed]=useState(false);useEffect(()=>setFailed(false),[item?.image]);const style=detail?s.detailImage:s.image;return !item?.image||failed?<View style={[style,s.imageFallback]}><Text style={s.accent}>PerkDrop</Text><Text style={s.muted}>Photo unavailable</Text></View>:<Image source={{uri:item.image}} style={style} resizeMode="cover" accessibilityLabel={item.title||'Place photo'} onError={()=>setFailed(true)}/>;}
+function Button({children,onPress,disabled=false,secondary=false}){return <Pressable accessibilityRole="button" disabled={disabled} onPress={onPress} style={[secondary?s.secondary:s.primary,disabled&&{opacity:0.45}]}><Text style={secondary?s.link:s.primaryText}>{children}</Text></Pressable>;}
+function Sheet({visible,onClose,children}){return <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}><SafeAreaView style={s.page}><Button secondary onPress={onClose}>Close</Button>{children}</SafeAreaView></Modal>;}
+function PerkDropApp(){
+ const [items,setItems]=useState([]),[loading,setLoading]=useState(true),[refreshing,setRefreshing]=useState(false),[error,setError]=useState(''),[cachedAt,setCachedAt]=useState(null);
+ const [tab,setTab]=useState('Explore'),[query,setQuery]=useState(''),[category,setCategory]=useState('All'),[when,setWhen]=useState('any');
+ const [point,setPoint]=useState(ADELAIDE),[areaLoaded,setAreaLoaded]=useState(false),[areaQuery,setAreaQuery]=useState(''),[areas,setAreas]=useState([]),[showArea,setShowArea]=useState(false),[areaBusy,setAreaBusy]=useState(false),[nearBusy,setNearBusy]=useState(false);
+ const [budget,setBudget]=useState(''),[adults,setAdults]=useState('1'),[childAges,setChildAges]=useState('');
+ const [selected,setSelected]=useState(null),[saved,setSaved]=useState(new Set()),[saving,setSaving]=useState(false),[savedRefreshing,setSavedRefreshing]=useState(false),[passes,setPasses]=useState([]),[activePass,setActivePass]=useState(null),[updates,setUpdates]=useState([]),[quantity,setQuantity]=useState(1),[claiming,setClaiming]=useState(false);
+ const [welcome,setWelcome]=useState(false),[settings,setSettings]=useState(false),[webUrl,setWebUrl]=useState(null),[pendingLink,setPendingLink]=useState(null),[mapVersion,setMapVersion]=useState(0);
+ const generation=useRef(0),currentItems=useRef([]),receiveLink=useRef(()=>{}),handledConnect=useRef(''),hasIncomingLink=useRef(false);
+ currentItems.current=items;
+ const load=useCallback(async(refresh=false)=>{
+   const request=++generation.current;if(refresh)setRefreshing(true);else setLoading(true);
+   try{const payload=await fetchJson(API,{headers:{accept:'application/json'}});const rows=Array.isArray(payload)?payload:payload.deals;if(!Array.isArray(rows))throw Error('Invalid catalogue response');if(request!==generation.current)return;
+     const next=rows.map(normalize).filter(item=>item.title&&item.id&&!listingEnded(item));setItems(next);setCachedAt(null);setError('');await writeCatalogueCache(next).catch(()=>{});
+   }catch{if(request!==generation.current)return;const cache=await readCatalogueCache();if(request!==generation.current)return;if(cache){setItems(cache.items.map(normalize));setCachedAt(cache.savedAt);}else{setItems([]);setCachedAt(null);}setError('Live listings could not be refreshed. Check your connection and retry.');}
+   finally{if(request===generation.current){setLoading(false);setRefreshing(false);}}
+ },[]);
+ const loadSaved=useCallback(async()=>{setSavedRefreshing(true);try{const data=await marketplace('my_perks');setSaved(new Set((data.saves||[]).filter(x=>x.kind==='drop'&&x.href).map(x=>String(x.target))));setPasses(data.redemptions||[]);}catch{setError('Saved items could not be refreshed. Please retry.');}finally{setSavedRefreshing(false);}},[]);
+ useEffect(()=>{let live=true;readCatalogueCache().then(cache=>{if(live&&cache&&generation.current===0){setItems(cache.items.map(normalize));setCachedAt(cache.savedAt);}}).finally(()=>{if(live)load();});loadSaved();
+   SecureStore.getItemAsync('perkdrop_area_v1').then(text=>{if(!live||!text)return;const area=JSON.parse(text);if(area===null||(Number.isFinite(area.latitude)&&Number.isFinite(area.longitude)))setPoint(area);}).catch(()=>{}).finally(()=>{if(live)setAreaLoaded(true);});
+   SecureStore.getItemAsync('perkdrop_welcome_v1').then(value=>{if(live&&!value&&!hasIncomingLink.current)setWelcome(true);}).catch(()=>{});
+   return()=>{live=false;generation.current++;};
+ },[load,loadSaved]);
+ useEffect(()=>{if(areaLoaded)SecureStore.setItemAsync('perkdrop_area_v1',JSON.stringify(point)).catch(()=>{});},[point,areaLoaded]);
+ useEffect(()=>{track('page_view',{path:'app/'+tab});if(tab==='Map')track('map_open');},[tab]);
+ useEffect(()=>{if(tab==='Updates')marketplace('updates').then(data=>setUpdates(data.updates||[])).catch(()=>setError('Updates could not be refreshed.'));},[tab]);
+ receiveLink.current=url=>{const route=parseIncomingLink(url);if(!route){setError('That link is not supported. Browse current listings instead.');return;}hasIncomingLink.current=true;setWelcome(false);
+   if(route.kind==='connect'){if(handledConnect.current===route.token)return;handledConnect.current=route.token;Alert.alert('Connect this app?','Only continue if you created this private link. It replaces this app’s saved-item access; the original device stays connected.',[{text:'Cancel',style:'cancel',onPress:()=>{handledConnect.current='';}},{text:'Connect',onPress:()=>connectDevice(route.token).then(()=>{setSaved(new Set());setPasses([]);setActivePass(null);setUpdates([]);return loadSaved();}).catch(()=>{handledConnect.current='';setError('This private link is unavailable, expired or already used.');})}]);return;}
+   setCampaign(route.campaign);setPendingLink(route);setTab('Explore');
+ };
+ useEffect(()=>{let disposed=false;Linking.getInitialURL().then(url=>{if(!disposed&&url)receiveLink.current(url);}).catch(()=>{});const listener=Linking.addEventListener('url',({url})=>receiveLink.current(url));const stop=observeNotificationOpens(url=>receiveLink.current(url),()=>setError('That notification has expired. Check the current listings.'));return()=>{disposed=true;listener.remove();stop();};},[]);
+ useEffect(()=>{if(!pendingLink||loading)return;const route=pendingLink;setPendingLink(null);const item=currentItems.current.find(d=>{try{return new URL(d.detail||SITE).pathname===route.path;}catch{return false;}});if(item){setQuantity(1);setSelected(item);track('deal_open',{deal_id:item.id});}else{setSelected(null);setWebUrl(SITE+route.path);}},[pendingLink,loading,items]);
+ useEffect(()=>{const listener=AppState.addEventListener('change',state=>{if(state==='active'){reconcileNotificationPermission().catch(()=>{});load(true);}});reconcileNotificationPermission().catch(()=>{});return()=>listener.remove();},[load]);
+ useEffect(()=>{if(!selected)return;const next=items.find(item=>item.id===selected.id);if(next&&next!==selected)setSelected(next);else if(!next&&!loading){setSelected(null);setError('This listing is no longer in the current catalogue.');}},[items,selected,loading]);
+ async function dismissWelcome(action){setWelcome(false);await SecureStore.setItemAsync('perkdrop_welcome_v1','seen').catch(()=>{});if(action==='area')setShowArea(true);if(action==='near')useNearby();if(action==='adelaide')setPoint(ADELAIDE);}
+ async function findArea(){if(areaBusy)return;setAreaBusy(true);try{const data=await fetchJson(SITE+'/api/areas?q='+encodeURIComponent(areaQuery));if(!Array.isArray(data.areas))throw Error();setAreas(data.areas);setError(data.areas.length?'':'No matching suburb. Try a suburb name or postcode.');}catch{setError('Area search is unavailable. Retry or use Near me.');}finally{setAreaBusy(false);}}
+ async function useNearby(){setNearBusy(true);try{const permission=await Location.requestForegroundPermissionsAsync();if(!permission.granted){setShowArea(true);setError('Location is off. Choose a suburb or postcode instead.');return;}const position=await Location.getCurrentPositionAsync({accuracy:Location.Accuracy.Balanced});if(position.coords.latitude< -44||position.coords.latitude> -10||position.coords.longitude<112||position.coords.longitude>154){setError('PerkDrop covers Australia. Choose a suburb or postcode.');return;}setPoint({latitude:Number(position.coords.latitude.toFixed(3)),longitude:Number(position.coords.longitude.toFixed(3)),label:'Your area',radius:25});setError('');}catch{setError('Could not find your location. Choose a suburb instead.');setShowArea(true);}finally{setNearBusy(false);}}
+ async function open(url){const safe=safeWebUrl(url);if(!safe)return;try{const u=new URL(safe);if(u.origin===SITE&&u.pathname.startsWith('/deals/')){setSelected(null);setWebUrl(safe);return;}if(u.hostname==='khzpdyyywiucfhubxkev.supabase.co'&&/\/perkdrop-(go|nav)$/.test(u.pathname)){const context=await analyticsContext();u.searchParams.set('sid',context.sessionId);u.searchParams.set('vid',context.visitorId);if(context.internal)u.searchParams.set('internal','1');}await Linking.openURL(u.toString());}catch{setError('Could not open this link.');}}
+ async function openPlan(item){try{const link=await marketplace('device_link');const u=new URL(link.url);if(u.origin!==SITE||u.pathname!=='/connect-device')throw Error();u.searchParams.set('next','/plans?add='+encodeURIComponent(item.id)+'&date='+suggestedDate(item)+(item.locationId?'&branch='+encodeURIComponent(item.locationId):''));await open(u.toString());}catch{setError('Could not connect the planner. Please retry.');}}
+ async function shareDevice(){try{const link=await marketplace('device_link');if(!parseIncomingLink(link.app_url))throw Error();await Share.share({message:'Private PerkDrop device link. Keep it secret. Expires in 10 minutes. '+link.url});}catch{setError('Could not create a private device link.');}}
+ async function toggleSaved(item){if(!item||saving)return;setSaving(true);const remove=saved.has(item.id);try{await marketplace('save',{kind:'drop',target:item.id,remove});setSaved(previous=>{const next=new Set(previous);if(remove)next.delete(item.id);else next.add(item.id);return next;});track('save_toggle',{deal_id:item.id,saved_state:!remove});}catch{setError('Could not update your saved items.');}finally{setSaving(false);}}
+ async function showPass(reference){try{const result=await marketplace('pass',{reference});setActivePass(result.pass);}catch{setError('Could not load this pass. Please retry.');}}
+ function confirmClaim(item){if(cachedAt||!item?.merchantOfferId||!item.redemptionAvailable||item.capacityRemaining<quantity||claiming)return;Alert.alert('Claim this Drop?',`Reserve ${quantity} ${quantity===1?'place':'places'} at ${item.merchant}. Check the conditions and service time first.`,[{text:'Cancel',style:'cancel'},{text:'Claim',onPress:async()=>{setClaiming(true);try{const result=await marketplace('claim',{offer_id:item.merchantOfferId,quantity});await loadSaved();await load(true);setSelected(null);if(result.redemption?.pass_reference)await showPass(result.redemption.pass_reference);}catch(e){Alert.alert('Claim not confirmed',e.message||'Check availability before trying again.');}finally{setClaiming(false);}}}]);}
+ const groups=useMemo(()=>groupListings(items.filter(item=>{if(listingEnded(item))return false;if(tab==='Saved')return saved.has(item.id);if(when!=='any'&&!availabilityMatches(item,when))return false;if(category==='Family'&&!matchesOuting(item,{budget,adults:Number(adults)||1,ages:childAges.split(',').filter(a=>a.trim()!=='').map(Number)}))return false;if(point&&distance(point.latitude,point.longitude,item.latitude,item.longitude)>(point.radius||25))return false;return categoryMatch(item,category)&&[item.title,item.merchant,item.location,item.city].join(' ').toLowerCase().includes(query.trim().toLowerCase());}).sort((a,b)=>point?distance(point.latitude,point.longitude,a.latitude,a.longitude)-distance(point.latitude,point.longitude,b.latitude,b.longitude):0)),[items,tab,saved,when,category,budget,adults,childAges,point,query]);
+ const internal=__DEV__||process.env.EXPO_PUBLIC_TRAFFIC_TYPE==='internal';
+ const mapUrl=SITE+'/map?'+new URLSearchParams({...(point?{lat:point.latitude.toFixed(3),lng:point.longitude.toFixed(3),area:point.label||'Your area'}:{}),...(internal?{internal:'1'}:{})}).toString();
+ const webAllowed=request=>{try{const u=new URL(request.url);if(u.protocol==='https:'&&u.hostname==='perkdrop.au')return true;if(request.url==='about:blank')return true;open(request.url);return false;}catch{return false;}};
+ return <SafeAreaView style={s.page}><StatusBar barStyle="light-content" backgroundColor="#08090e"/><View style={s.header}><Text style={s.logo}>Perk<Text style={s.accent}>Drop</Text></Text><Pressable accessibilityRole="button" accessibilityLabel="PerkDrop settings" onPress={()=>setSettings(true)} style={s.settings}><Text style={s.link}>Settings</Text></Pressable></View>
+ {tab==='Explore'&&<><View style={s.toolbar}><Button secondary disabled={nearBusy} onPress={useNearby}>{nearBusy?'Finding…':'◎ Near me'}</Button><Pressable accessibilityRole="button" style={{flex:1}} onPress={()=>setShowArea(!showArea)}><Text style={s.link}>{point?point.label+' · '+point.radius+' km':'Across Australia'} ▾</Text></Pressable></View>
+ {showArea&&<View style={s.area}><TextInput style={s.input} value={areaQuery} onChangeText={setAreaQuery} onSubmitEditing={findArea} placeholder="Suburb or postcode" placeholderTextColor="#a6a0b4" accessibilityLabel="Suburb or postcode"/><Button disabled={areaBusy} onPress={findArea}>{areaBusy?'Searching…':'Find my area'}</Button><ScrollView style={{maxHeight:140}} keyboardShouldPersistTaps="handled">{areas.map(a=><Button key={a.name+a.state+a.postcode} secondary onPress={()=>{setPoint({latitude:a.lat,longitude:a.lng,label:a.name+' '+a.state,radius:25});setAreas([]);setShowArea(false);}}>{a.name+' '+a.state+' '+a.postcode}</Button>)}</ScrollView><Button secondary onPress={()=>{setPoint(null);setShowArea(false);}}>Browse all Australia</Button></View>}
+ <TextInput style={[s.input,{marginHorizontal:20}]} value={query} onChangeText={setQuery} onSubmitEditing={()=>track('search',{search_term:query})} placeholder="Search places and plans" placeholderTextColor="#a6a0b4" accessibilityLabel="Search local listings"/>
+ <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.chips} contentContainerStyle={s.chipRow}>{DATES.map(([value,label])=><Pressable key={value} style={[s.chip,when===value&&s.chosen]} accessibilityRole="button" accessibilityState={{selected:when===value}} onPress={()=>setWhen(value)}><Text style={s.chipText}>{label}</Text></Pressable>)}</ScrollView>
+ <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.chips} contentContainerStyle={s.chipRow}>{CATEGORIES.map(name=><Pressable key={name} style={[s.chip,category===name&&s.chosen]} accessibilityRole="button" accessibilityState={{selected:category===name}} onPress={()=>setCategory(name)}><Text style={s.chipText}>{name}</Text></Pressable>)}</ScrollView>
+ {category==='Family'&&<View style={s.family}><TextInput style={[s.input,s.field]} value={adults} onChangeText={setAdults} keyboardType="number-pad" placeholder="Adults" placeholderTextColor="#a6a0b4" accessibilityLabel="Number of adults"/><TextInput style={[s.input,s.field]} value={childAges} onChangeText={setChildAges} placeholder="Ages: 5,8" placeholderTextColor="#a6a0b4" accessibilityLabel="Children ages separated by commas"/><TextInput style={[s.input,s.field]} value={budget} onChangeText={setBudget} keyboardType="decimal-pad" placeholder="Budget $" placeholderTextColor="#a6a0b4" accessibilityLabel="Total admission budget"/></View>}</>}
+ {error?<View style={s.notice}><Text accessibilityRole="alert" style={s.error}>{error}</Text><Button secondary onPress={()=>{load(true);loadSaved();setMapVersion(x=>x+1);}}>Retry</Button></View>:null}
+ {cachedAt?<Text style={s.cache}>Offline catalogue · downloaded {new Date(cachedAt).toLocaleString('en-AU')}. Dates may have changed. Refresh before claiming.</Text>:null}
+ {tab==='Map'?<WebView key={mapVersion} source={{uri:mapUrl}} style={{flex:1}} javaScriptEnabled geolocationEnabled startInLoadingState onShouldStartLoadWithRequest={webAllowed} renderLoading={()=><ActivityIndicator style={s.loader}/>} renderError={()=><View style={s.list}><Text style={s.muted}>The map could not load.</Text><Button onPress={()=>setMapVersion(x=>x+1)}>Retry map</Button><Button secondary onPress={()=>Linking.openURL(mapUrl).catch(()=>{})}>Open map in browser</Button></View>}/>:tab==='My perks'?<ScrollView contentContainerStyle={s.list} refreshControl={<RefreshControl refreshing={savedRefreshing} onRefresh={loadSaved}/>}><Text style={s.title}>Your claimed Drops</Text><Text style={s.muted}>Private device links connect your saves, plans and passes. Never post them publicly.</Text><Button secondary onPress={shareDevice}>Connect another device</Button>{!passes.length?<Text style={s.empty}>Eligible Drops you claim will appear here.</Text>:passes.map(pass=><Pressable key={pass.id} style={s.cardBody} onPress={()=>showPass(pass.pass_reference)}><Text style={s.accent}>{pass.status}</Text><Text style={s.offerTitle}>{pass.metadata?.offer_title||'Your Drop'}</Text><Text style={s.link}>View pass →</Text></Pressable>)}</ScrollView>:tab==='Updates'?<ScrollView contentContainerStyle={s.list}><NotificationControls/><Text style={s.title}>In-app updates</Text>{!updates.length?<Text style={s.empty}>No updates yet.</Text>:updates.map(update=><Pressable key={update.id} style={s.cardBody} onPress={()=>{if(update.href)open(update.href);if(!update.read_at)marketplace('updates_read',{id:update.id}).then(()=>setUpdates(previous=>previous.map(row=>row.id===update.id?{...row,read_at:new Date().toISOString()}:row))).catch(()=>{});}}><Text style={s.offerTitle}>{update.title}</Text><Text style={s.body}>{update.body}</Text></Pressable>)}</ScrollView>:loading&&!items.length?<LoadingCards/>:<FlatList data={groups} keyExtractor={group=>group.key} contentContainerStyle={s.list} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={()=>{load(true);loadSaved();}}/>} ListHeaderComponent={<Text style={s.count}>{groups.length} {tab==='Saved'?'saved places':'places to explore'}</Text>} ListEmptyComponent={<View><Text style={s.empty}>{tab==='Saved'?'Save a current offer to find it here.':'No current listings match your area and filters.'}</Text>{tab==='Explore'&&<><Button secondary onPress={()=>{setQuery('');setCategory('All');setWhen('any');setBudget('');setChildAges('');}}>Clear filters</Button><Button secondary onPress={()=>setShowArea(true)}>Choose another area</Button></>}</View>} renderItem={({item:group})=><View style={s.card}><Photo item={group.offers[0]}/>{creditText(group.offers[0].imageCredit)?<Text style={s.credit}>{creditText(group.offers[0].imageCredit)}</Text>:null}<View style={s.cardBody}><Text style={s.title}>{group.name}</Text><Text style={s.muted}>{group.location}</Text><ScrollView horizontal showsHorizontalScrollIndicator={false} style={{marginTop:12}}>{group.offers.map((offer,index)=><Pressable key={offer.id+'-'+index} accessibilityRole="button" style={s.offer} onPress={()=>{setQuantity(1);setSelected(offer);track('deal_open',{deal_id:offer.id});}}><Text style={s.accent}>{offer.category}</Text><Text numberOfLines={3} style={s.offerTitle}>{offer.title}</Text><Text style={s.muted}>{scheduleLabel(offer)}</Text><Text style={s.body}>{offer.price||'Price to confirm'}</Text><Text style={s.link}>View details →</Text></Pressable>)}</ScrollView></View></View>}/>} 
+ <View style={s.tabs}>{TABS.map(name=><Pressable key={name} accessibilityRole="tab" accessibilityState={{selected:tab===name}} style={s.tab} onPress={()=>setTab(name)}><Text style={[s.tabText,tab===name&&s.accent]}>{name}</Text></Pressable>)}</View>
+ <Sheet visible={!!selected} onClose={()=>setSelected(null)}><ScrollView><Photo item={selected} detail/>{creditText(selected?.imageCredit)?<Text style={s.credit}>{creditText(selected.imageCredit)}</Text>:null}<View style={s.list}><Text style={s.accent}>{selected?.category}</Text><Text style={s.detailTitle}>{selected?.title}</Text><Text style={s.title}>{selected?.merchant}</Text><Text style={s.muted}>{selected?.location||selected?.city}</Text>{selected?.publicLabel?<Text style={s.accent}>{selected.publicLabel}</Text>:null}<Text style={s.body}>{selected?.price||'Price to confirm'}</Text><Text style={s.body}>{selected?scheduleLabel(selected):''}</Text>{selected?.suitability?.warning?<Text style={s.cache}>{selected.suitability.warning}</Text>:null}<Text style={s.body}>{selected?.description}</Text>{selected?.conditions?<Text style={s.body}>Conditions: {selected.conditions}</Text>:null}
+ {!cachedAt&&selected?.redemptionAvailable&&selected.capacityRemaining>0&&selected.merchantOfferId?<View><Text style={s.body}>Available: {selected.capacityRemaining}</Text><View style={s.quantity}><Button secondary onPress={()=>setQuantity(Math.max(1,quantity-1))}>−</Button><Text style={s.title}>{quantity}</Text><Button secondary onPress={()=>setQuantity(Math.min(6,selected.capacityRemaining,quantity+1))}>+</Button></View><Button disabled={claiming} onPress={()=>confirmClaim(selected)}>{claiming?'Claiming…':'Claim for '+quantity}</Button></View>:null}
+ <Button onPress={()=>open(selected?.detail)}>View current details</Button><Button secondary disabled={saving} onPress={()=>toggleSaved(selected)}>{saved.has(selected?.id)?'♥ Saved — tap to remove':'♡ Save this offer'}</Button><Button secondary onPress={()=>openPlan(selected)}>Add to a plan & calendar</Button>{selected?.directions?<Button secondary onPress={()=>open(selected.directions)}>Get directions</Button>:null}{selected?.official?<Button secondary onPress={()=>open(selected.official)}>Open official source</Button>:null}<Button secondary onPress={()=>{const route=parseIncomingLink(selected?.detail);if(route?.kind==='deal')Share.share({message:selected.title+' — '+SITE+route.path}).then(result=>{if(result.action===Share.sharedAction)track('share',{deal_id:selected.id});}).catch(()=>setError('Could not share this listing.'));}}>Share this listing</Button>
+ </View></ScrollView></Sheet>
+ <Sheet visible={!!activePass} onClose={()=>setActivePass(null)}><ScrollView contentContainerStyle={s.list}><Text style={s.accent}>{activePass?.state||'PASS'}</Text><Text style={s.detailTitle}>{activePass?.title}</Text><Text style={s.title}>{activePass?.merchant}</Text><Text selectable style={s.body}>Reference: {activePass?.reference}</Text>{activePass?.state==='pending'?<Text style={s.cache}>Waiting for the venue to confirm. Check again before attending.</Text>:null}{activePass?.code&&['active','redeemed'].includes(activePass.state)?<Text selectable style={s.code}>{activePass.code}</Text>:null}{activePass?.quantity?<Text style={s.body}>{activePass.quantity} {activePass.unit}{activePass.quantity===1?'':'s'}</Text>:null}{activePass?.service_start?<Text style={s.body}>Valid from: {passTime(activePass.service_start,activePass.timezone)}</Text>:null}{activePass?.service_end?<Text style={s.body}>Valid until: {passTime(activePass.service_end,activePass.timezone)}</Text>:null}<Text style={s.body}>{activePass?.location}</Text><Text style={s.body}>{activePass?.terms}</Text></ScrollView></Sheet>
+ <Sheet visible={!!webUrl} onClose={()=>setWebUrl(null)}>{webUrl?<WebView source={{uri:webUrl+(internal?(webUrl.includes('?')?'&':'?')+'internal=1':'')}} style={{flex:1}} onShouldStartLoadWithRequest={webAllowed} startInLoadingState renderLoading={()=><ActivityIndicator style={s.loader}/>} renderError={()=><View style={s.list}><Text style={s.muted}>This page could not load. Close it and retry when connected.</Text></View>}/>:null}</Sheet>
+ <SettingsSheet visible={settings} onClose={()=>setSettings(false)} onDeleted={()=>{setSaved(new Set());setPasses([]);setActivePass(null);setUpdates([]);setSelected(null);setTab('Explore');}}/>
+ <WelcomeSheet visible={welcome} onChoose={()=>dismissWelcome('area')} onNearby={()=>dismissWelcome('near')} onAdelaide={()=>dismissWelcome('adelaide')}/>
+ </SafeAreaView>;
 }
-const clean = value => String(value ?? '').trim();
-const safeUrl = value => {
-  if (!clean(value)) return null;
-  try { const url = new URL(value, SITE); return ['https:', 'http:'].includes(url.protocol) ? url.href : null; }
-  catch { return null; }
-};
-const creditText = credit => credit ? [credit.caption || credit.source, credit.license].filter(Boolean).join(' · ') : '';
-function normalize(item) {
-  return {
-    ...item,
-    id: clean(item.id || item.slug), merchantId: clean(item.merchantId || item.merchant_id), merchant: clean(item.merchant),
-    title: clean(item.title), category: clean(item.category),
-    description: clean(item.description), location: clean(item.location),
-    city: clean(item.city), timing: clean(item.timing),
-    conditions: clean(item.conditions), end: clean(item.end),
-    image: safeUrl(item.imageUrl || item.image_url || item.image), imageCredit: item.imageCredit || null,
-    price: clean(item.price), publicLabel: clean(item.publicLabel || item.public_label),
-    merchantOfferId: clean(item.merchantOfferId || item.merchant_offer_id),
-    redemptionAvailable: Boolean(item.redemptionAvailable || item.redemption_available),
-    capacityRemaining: Number(item.capacityRemaining ?? item.capacity_remaining ?? 0),
-    detail: safeUrl(item.detailUrl || item.detail_url || (item.slug && '/deals/' + encodeURIComponent(item.slug))),
-    official: safeUrl(item.goUrl || item.go_url || item.officialSource || item.official_source),
-    directions: safeUrl(item.navigationUrl || item.navigation_url),
-    latitude: item.latitude==null?null:Number(item.latitude), longitude: item.longitude==null?null:Number(item.longitude)
-  };
-}
-function groupListings(items) {
-  const groups = new Map();
-  for (const item of items) {
-    const key = venueKey(item);
-    if (!groups.has(key)) groups.set(key, { key, name: item.merchant || 'Local listing', location: item.location || item.city, offers: [] });
-    groups.get(key).offers.push(item);
-  }
-  return [...groups.values()];
-}
-function categoryMatch(item, category) {
-  if (category === 'All') return true;
-  if (category === 'Free') return isUnconditionallyFree(item);
-  const text = (item.category + ' ' + item.title).toLowerCase();
-  const terms = { Food: ['food', 'dining', 'restaurant', 'cafe'], Drinks: ['drink', 'bar'], Events: ['event', 'festival'], Beauty: ['beauty', 'hair', 'wellness'], Experiences: ['experience', 'activity', 'tour'], Family: ['family', 'kids'], Free: ['free'] };
-  return terms[category].some(term => text.includes(term));
-}
-function OfferImage({ uri, title, detail = false, thumbnail = false }) {
-  const [failed, setFailed] = useState(false);
-  useEffect(() => setFailed(false), [uri]);
-  const imageStyle = thumbnail ? styles.thumbnail : detail ? styles.detailImage : styles.image;
-  if (!uri || failed) return <View style={[styles.imageFallback, imageStyle]}><Text style={styles.fallbackText}>PerkDrop</Text></View>;
-  return <Image source={{ uri }} style={imageStyle} resizeMode="cover" accessibilityLabel={title || 'Place photo'} onError={() => setFailed(true)} />;
-}
-export default function App() {
-  const [items, setItems] = useState([]);
-  const handledConnect=useRef('');
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState('');
-  const [query, setQuery] = useState('');
-  const [category, setCategory] = useState('All');
-  const [selected, setSelected] = useState(null);
-  const [tab, setTab] = useState('Explore');
-  const [saved, setSaved] = useState(new Set());
-  const [point, setPoint] = useState({latitude:-34.9285,longitude:138.6007,label:'Adelaide',radius:50});
-  const [when,setWhen]=useState('any'),[budget,setBudget]=useState(''),[adults,setAdults]=useState('1'),[childAges,setChildAges]=useState('');
-  const [areaQuery,setAreaQuery]=useState(''),[areas,setAreas]=useState([]),[areaLoaded,setAreaLoaded]=useState(false),[showArea,setShowArea]=useState(false);
-  const [nearBusy, setNearBusy] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [passes, setPasses] = useState([]);
-  const [activePass, setActivePass] = useState(null);
-  const [updates, setUpdates] = useState([]);
-  const [quantity, setQuantity] = useState(1);
-  const [claiming, setClaiming] = useState(false);
-  const load = useCallback(async (refresh = false) => {
-    if (refresh) setRefreshing(true); else setLoading(true);
-    try {
-      const response = await fetch(API, { headers: { accept: 'application/json' } });
-      if (!response.ok) throw new Error('Catalogue unavailable');
-      const payload = await response.json();
-      const rows = Array.isArray(payload) ? payload : payload.deals;
-      if (!Array.isArray(rows)) throw new Error('Invalid catalogue response');
-      setItems(rows.map(normalize).filter(item => item.title && item.id));
-      setError('');
-    } catch {
-      setError('Could not refresh listings. Pull down to try again.');
-    } finally { setLoading(false); setRefreshing(false); }
-  }, []);
-  const loadSaved = useCallback(async () => {
-    try {
-      const data = await marketplace('my_perks');
-      setSaved(new Set((data.saves || []).filter(x => x.kind === 'drop' && x.href).map(x => String(x.target))));
-      setPasses(data.redemptions || []);
-    } catch { setError('Saved offers could not be loaded. Pull down to retry.'); }
-  }, []);
-  useEffect(() => { load(); loadSaved();SecureStore.getItemAsync('perkdrop_area_v1').then(v=>{if(v){const a=JSON.parse(v);if(a===null||Number.isFinite(a.latitude)&&Number.isFinite(a.longitude))setPoint(a);}}).catch(()=>{}).finally(()=>setAreaLoaded(true)); }, [load, loadSaved]);
-  useEffect(()=>{if(areaLoaded)SecureStore.setItemAsync('perkdrop_area_v1',JSON.stringify(point)).catch(()=>{});},[point,areaLoaded]);
-  useEffect(()=>{track('page_view',{path:'app/'+tab});},[tab]);
-  useEffect(()=>{const handle=({url})=>{try{const u=new URL(url);if(u.protocol==='perkdrop:'&&u.hostname==='connect'&&/^[a-f0-9]{64}$/.test(u.hash.slice(1))){const token=u.hash.slice(1);if(handledConnect.current===token)return;handledConnect.current=token;Alert.alert('Connect this app?', 'Only continue if you created this private link. It replaces this app’s current access; the original device stays connected.',[{text:'Cancel',style:'cancel'},{text:'Connect',onPress:()=>connectDevice(token).then(loadSaved).catch(()=>setError('This device link has expired or was already used.'))}]);return;}const path=u.protocol==='perkdrop:'?'/'+u.hostname+u.pathname:u.hostname==='perkdrop.au'?u.pathname:'';if(path.startsWith('/deals/')){const item=items.find(d=>new URL(d.detail||SITE).pathname===path);if(item)setSelected(item);}}catch{}};Linking.getInitialURL().then(url=>url&&handle({url}));const listener=Linking.addEventListener('url',handle);return()=>listener.remove();},[items,loadSaved]);
-  async function findArea(){try{const r=await fetch(SITE+'/api/areas?q='+encodeURIComponent(areaQuery));if(!r.ok)throw Error();const d=await r.json();setAreas(d.areas);if(!d.areas.length)setError('No suburb found. Try another suburb or postcode.');}catch{setError('Area search unavailable. Try again or use Near me.');}}
-  async function openPlan(item){try{const link=await marketplace('device_link');const u=new URL(link.url);u.searchParams.set('next','/plans?add='+encodeURIComponent(item.id)+'&date='+suggestedDate(item)+(item.locationId?'&branch='+encodeURIComponent(item.locationId):''));open(u.toString());}catch{setError('Could not connect your plan. Please try again.');}}
-  async function shareDevice(){try{const link=await marketplace('device_link');await Share.share({message:'Private PerkDrop device link. Keep it secret. Expires in 10 minutes. '+link.url});}catch{setError('Could not create a device link.');}}
-
-  useEffect(() => {
-    if (tab !== 'Updates') return;
-    marketplace('updates').then(data => setUpdates(data.updates || [])).catch(() => setError('Updates could not be loaded.'));
-  }, [tab]);
-  async function showPass(reference) {
-    try {
-      const result = await marketplace('pass', { reference });
-      setActivePass(result.pass);
-    } catch { setError('Could not load this pass. Please try again.'); }
-  }
-  function confirmClaim(item) {
-    if (!item?.merchantOfferId || !item.redemptionAvailable || item.capacityRemaining < quantity || claiming) return;
-    Alert.alert('Claim this Drop?', `Reserve ${quantity} ${quantity === 1 ? 'place' : 'places'} at ${item.merchant}. Check the conditions and service time before confirming.`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Claim', onPress: async () => {
-        setClaiming(true);
-        try {
-          const result = await marketplace('claim', { offer_id: item.merchantOfferId, quantity });
-          const reference = result.redemption?.pass_reference;
-          await loadSaved();
-          await load(true);
-          setSelected(null);
-          if (reference) await showPass(reference);
-        } catch (cause) { Alert.alert('Could not claim', cause?.message || 'Please check availability and try again.'); }
-        finally { setClaiming(false); }
-      } },
-    ]);
-  }
-  async function useNearby() {
-    setNearBusy(true);
-    try {
-      const permission = await Location.requestForegroundPermissionsAsync();
-      if (!permission.granted) { setError('Location permission is off. Choose a suburb or postcode instead.'); return; }
-      const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      if(position.coords.latitude < -44||position.coords.latitude > -10||position.coords.longitude < 112||position.coords.longitude > 154){setError('PerkDrop covers Australia. Choose a suburb or postcode.');return;}
-      setPoint({latitude:Number(position.coords.latitude.toFixed(3)),longitude:Number(position.coords.longitude.toFixed(3)),label:'Your area',radius:25});
-      setError('');
-    } catch { setError('Could not find your location. Try again or search by place.'); }
-    finally { setNearBusy(false); }
-  }
-  async function toggleSaved(item) {
-    if (!item || saving) return;
-    setSaving(true);
-    const remove = saved.has(item.id);
-    try {
-      await marketplace('save', { kind: 'drop', target: item.id, remove });
-      track('save_toggle',{deal_id:item.id,saved_state:!remove});
-      setSaved(previous => { const next = new Set(previous); if (remove) next.delete(item.id); else next.add(item.id); return next; });
-    } catch { setError('Could not update saved offers. Please try again.'); }
-    finally { setSaving(false); }
-  }
-  const groups = useMemo(() => groupListings(items.filter(item => {
-    if (tab === 'Saved') return saved.has(item.id);
-    if (when!=='any'&&!availabilityMatches(item,when))return false;
-    if(!matchesOuting(item,{budget,adults:Number(adults)||1,ages:childAges.split(',').filter(a=>a.trim()!=='').map(Number)}))return false;
-    if (point && distance(point.latitude, point.longitude, item.latitude, item.longitude) > (point.radius||25)) return false;
-    const search = [item.title, item.merchant, item.location, item.city].join(' ').toLowerCase();
-    return categoryMatch(item, category) && search.includes(query.trim().toLowerCase());
-  }).sort((a, b) => point ? distance(point.latitude, point.longitude, a.latitude, a.longitude) - distance(point.latitude, point.longitude, b.latitude, b.longitude) : 0)), [items, category, query, saved, tab, point, when, budget, adults, childAges]);
-  const open=async url=>{if(!url)return;try{const u=new URL(url);if(u.hostname==='khzpdyyywiucfhubxkev.supabase.co'&&/\/perkdrop-(go|nav)$/.test(u.pathname)){const c=await analyticsContext();u.searchParams.set('sid',c.sessionId);u.searchParams.set('vid',c.visitorId);if(c.internal)u.searchParams.set('internal','1');}await Linking.openURL(u.toString());}catch{setError('Could not open this link.');}};
-  return <SafeAreaView style={styles.page}>
-    <StatusBar barStyle="light-content" backgroundColor="#08090e" />
-    <View style={styles.header}><View style={styles.brandRow}><Text style={styles.logo}>Perk<Text style={styles.logoAccent}>Drop</Text></Text><Pressable onPress={() => open(SITE + '/privacy')} accessibilityRole="link"><Text style={styles.privacyLink}>Privacy</Text></Pressable></View><Text style={styles.headline}>What’s worth doing near you?</Text></View>
-    <View style={styles.toolbar}><Pressable onPress={useNearby} disabled={nearBusy} style={styles.nearButton} accessibilityRole="button"><Text style={styles.nearText}>{nearBusy ? 'Finding…' : '◎ Near me'}</Text></Pressable><Pressable onPress={()=>setPoint(point?null:{latitude:-34.9285,longitude:138.6007,label:'Adelaide',radius:50})}><Text style={styles.toolbarText}>{point?`${point.label} · ${point.radius} km · All Australia →`:'Across Australia · Adelaide →'}</Text></Pressable></View>
-    <Pressable onPress={()=>setShowArea(!showArea)} style={styles.areaToggle}><Text style={styles.nearText}>{showArea?'Close area search':'Choose suburb or postcode'}</Text></Pressable>
-    {showArea&&<View style={styles.toolbar}><TextInput style={[styles.search,{flex:1,marginHorizontal:0}]} value={areaQuery} onChangeText={setAreaQuery} placeholder="Suburb or postcode" placeholderTextColor="#888694" accessibilityLabel="Suburb or postcode"/><Pressable onPress={findArea} style={styles.nearButton}><Text style={styles.nearText}>Set area</Text></Pressable></View>}
-    {areas.length>0&&<ScrollView style={{maxHeight:160}}>{areas.map(a=><Pressable key={a.name+a.state+a.postcode} style={styles.nearButton} onPress={()=>{setPoint({latitude:a.lat,longitude:a.lng,label:a.name+' '+a.state,radius:25});setAreas([]);setShowArea(false);}}><Text style={styles.nearText}>{a.name} {a.state} {a.postcode}</Text></Pressable>)}</ScrollView>}
-    <ScrollView horizontal style={styles.categories} contentContainerStyle={styles.categoryContent}>{[['any','Any date'],['now','Now'],['tonight','Tonight'],['weekend','Weekend'],['week','Next 7 days']].map(([v,label])=><Pressable key={v} onPress={()=>setWhen(v)} accessibilityState={{selected:when===v}} style={[styles.chip,when===v&&styles.chipActive]}><Text style={styles.chipText}>{label}</Text></Pressable>)}</ScrollView>
-    {category==='Family'&&<View style={styles.toolbar}><TextInput value={adults} onChangeText={setAdults} keyboardType="numeric" style={[styles.search,{flex:1,marginHorizontal:0}]} placeholder="Adults" accessibilityLabel="Adults"/><TextInput value={childAges} onChangeText={setChildAges} style={[styles.search,{flex:1,marginHorizontal:0}]} placeholder="Ages: 5,8" placeholderTextColor="#aaa" accessibilityLabel="Children ages separated by commas"/><TextInput value={budget} onChangeText={setBudget} keyboardType="numeric" style={[styles.search,{flex:1,marginHorizontal:0}]} placeholder="Budget $" placeholderTextColor="#aaa" accessibilityLabel="Total group admission budget"/></View>}
-    <TextInput style={styles.search} value={query} onChangeText={setQuery} onSubmitEditing={()=>track('search',{search_term:query})} placeholder="Search places and plans" placeholderTextColor="#888694" accessibilityLabel="Search listings" />
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categories} contentContainerStyle={styles.categoryContent}>
-      {CATEGORIES.map(name => <Pressable key={name} accessibilityRole="button" accessibilityState={{ selected: category === name }} onPress={() => setCategory(name)} style={[styles.chip, category === name && styles.chipActive]}><Text style={[styles.chipText, category === name && styles.chipTextActive]}>{name}</Text></Pressable>)}
-    </ScrollView>
-    {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
-    {tab === 'Map' ? <WebView source={{ uri: SITE + '/map'+(point?'?lat='+point.latitude.toFixed(3)+'&lng='+point.longitude.toFixed(3)+'&area='+encodeURIComponent(point.label||'Your area'):'') }} style={styles.map} javaScriptEnabled geolocationEnabled startInLoadingState renderLoading={() => <ActivityIndicator style={styles.loader} size="large" color={PURPLE} />}
-      renderError={() => <View style={styles.mapError}><Text style={styles.empty}>Map unavailable. Check your connection and try again.</Text><Pressable onPress={() => open(SITE + '/map')}><Text style={styles.view}>Open map in browser</Text></Pressable></View>}
-      onShouldStartLoadWithRequest={request => {
-        if (request.url.startsWith(SITE + '/')) return true;
-        open(safeUrl(request.url));
-        return false;
-      }} /> : tab === 'My perks' ? <ScrollView contentContainerStyle={styles.list} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadSaved} tintColor={PURPLE} />}>
-      <Text style={styles.count}>Your claimed Drops</Text>
-      <Text style={styles.deviceNote}>Connect this app to another browser or device to keep the same saved Drops, plans and passes.</Text><Pressable style={styles.secondary} onPress={shareDevice}><Text style={styles.secondaryText}>Create private device link</Text></Pressable>
-      {!passes.length ? <Text style={styles.empty}>Any Drops you claim in this app will appear here.</Text> : passes.map(pass => <Pressable key={pass.id} style={styles.passCard} onPress={() => showPass(pass.pass_reference)} accessibilityRole="button">
-        <Text style={styles.offerCategory}>{pass.status}</Text><Text style={styles.offerTitle}>{pass.metadata?.offer_title || 'Your Drop'}</Text><Text style={styles.view}>View pass  →</Text>
-      </Pressable>)}
-    </ScrollView> : tab === 'Updates' ? <ScrollView contentContainerStyle={styles.list}>
-      <Text style={styles.count}>Your updates</Text>
-      {!updates.length ? <Text style={styles.empty}>No updates yet.</Text> : updates.map(update => <Pressable key={update.id} style={styles.passCard} accessibilityRole="button" onPress={() => {
-        if (update.href) open(safeUrl(update.href));
-        if (!update.read_at) marketplace('updates_read', { id: update.id }).then(() => setUpdates(previous => previous.map(row => row.id === update.id ? { ...row, read_at: new Date().toISOString() } : row))).catch(() => {});
-      }}><Text style={styles.offerTitle}>{update.title}</Text><Text style={styles.body}>{update.body}</Text></Pressable>)}
-    </ScrollView> : loading ? <ActivityIndicator style={styles.loader} size="large" color={PURPLE} /> :
-      <FlatList data={groups} keyExtractor={group => group.key} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { load(true); loadSaved(); }} tintColor={PURPLE} />} contentContainerStyle={styles.list}
-        ListHeaderComponent={<Text style={styles.count}>{groups.length} {tab === 'Saved' ? 'saved places' : 'places to explore'}</Text>}
-        ListEmptyComponent={<Text style={styles.empty}>{tab === 'Saved' ? 'Save an offer to find it here.' : 'No current listings match. Try another search or category.'}</Text>}
-        renderItem={({ item: group }) => <View style={styles.card}>
-          <OfferImage uri={group.offers[0].image} title={group.offers[0].title} />
-          {creditText(group.offers[0].imageCredit) ? <Text style={styles.photoCredit}>{creditText(group.offers[0].imageCredit)}</Text> : null}
-          <View style={styles.cardBody}><Text style={styles.venue}>{group.name}</Text><Text style={styles.location}>{group.location}</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.offerStrip}>
-              {group.offers.map((offer, index) => <Pressable key={offer.id + '-' + index} onPress={() => { setQuantity(1); setSelected(offer);track('deal_open',{deal_id:offer.id}); }} style={styles.offer} accessibilityRole="button">
-                <OfferImage uri={offer.image} title={offer.title} thumbnail />
-                {creditText(offer.imageCredit) ? <Text numberOfLines={1} style={styles.photoCredit}>{creditText(offer.imageCredit)}</Text> : null}
-                <Text style={styles.offerCategory}>{offer.category || 'DROP'}</Text><Text numberOfLines={2} style={styles.offerTitle}>{offer.title}</Text><Text style={styles.location}>{scheduleLabel(offer)}</Text><Text style={styles.location}>{offer.price||'Price to confirm'}</Text><Text style={styles.view}>View details  →</Text>
-              </Pressable>)}
-            </ScrollView>
-          </View>
-        </View>} />}
-    <View style={styles.tabs}>{['Explore', 'Map', 'Saved', 'My perks', 'Updates'].map(name => <Pressable key={name} onPress={() => setTab(name)} accessibilityRole="tab" accessibilityState={{ selected: tab === name }} style={styles.tab}><Text style={[styles.tabText, tab === name && styles.tabActive]}>{name}</Text></Pressable>)}</View>
-    <Modal visible={!!activePass} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setActivePass(null)}><SafeAreaView style={styles.modal}>
-      <Pressable style={styles.close} onPress={() => setActivePass(null)}><Text style={styles.closeText}>Close</Text></Pressable>
-      <ScrollView contentContainerStyle={styles.detailBody}><Text style={styles.offerCategory}>{activePass?.state || 'PASS'}</Text>
-        <Text style={styles.detailTitle}>{activePass?.title}</Text><Text style={styles.venue}>{activePass?.merchant}</Text>
-        <Text selectable style={styles.body}>Reference: {activePass?.reference}</Text>
-        {activePass?.state === 'pending' ? <Text style={styles.body}>Waiting for the venue to confirm. Check this pass again before attending.</Text> : null}
-        {activePass?.code && ['active', 'redeemed'].includes(activePass.state) ? <Text selectable style={styles.passCode}>{activePass.code}</Text> : null}
-        {activePass?.quantity ? <Text style={styles.body}>{activePass.quantity} {activePass.unit}{activePass.quantity === 1 ? '' : 's'}</Text> : null}
-        {activePass?.service_start ? <Text style={styles.body}>Valid from: {activePass.service_start}</Text> : null}
-        {activePass?.service_end ? <Text style={styles.body}>Valid until: {activePass.service_end}</Text> : null}
-        {activePass?.location ? <Text style={styles.body}>{activePass.location}</Text> : null}
-        {activePass?.terms ? <Text style={styles.conditions}>{activePass.terms}</Text> : null}
-      </ScrollView>
-    </SafeAreaView></Modal>
-    <Modal visible={!!selected} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setSelected(null)}>
-      <SafeAreaView style={styles.modal}><Pressable style={styles.close} onPress={() => setSelected(null)}><Text style={styles.closeText}>Close</Text></Pressable>
-        <ScrollView><OfferImage uri={selected?.image} title={selected?.title} detail />
-          {creditText(selected?.imageCredit) ? <Text style={styles.photoCredit}>{creditText(selected.imageCredit)}</Text> : null}
-          <View style={styles.detailBody}><Text style={styles.offerCategory}>{selected?.category}</Text><Text style={styles.detailTitle}>{selected?.title}</Text>
-            <Text style={styles.venue}>{selected?.merchant}</Text><Text style={styles.location}>{selected?.location || selected?.city}</Text>
-            {selected?.publicLabel ? <Text style={styles.badge}>{selected.publicLabel}</Text> : null}
-            {selected?.price ? <Text style={styles.body}>{selected.price}</Text> : null}
-            {selected ? <Text style={styles.body}>{scheduleLabel(selected)}</Text> : null}
-            {selected?.suitability?.warning ? <Text style={styles.conditions}>Before you go: {selected.suitability.warning}</Text> : null}
-            {selected?.description ? <Text style={styles.body}>{selected.description}</Text> : null}
-            {selected?.conditions ? <Text style={styles.conditions}>Conditions: {selected.conditions}</Text> : null}
-            {selected?.redemptionAvailable && selected.capacityRemaining > 0 && selected.merchantOfferId ? <View>
-              <Text style={styles.body}>Available: {selected.capacityRemaining}</Text>
-              <View style={styles.quantityRow}><Pressable onPress={() => setQuantity(Math.max(1, quantity - 1))} style={styles.quantityButton}><Text style={styles.quantityText}>−</Text></Pressable><Text style={styles.quantityText}>{quantity}</Text><Pressable onPress={() => setQuantity(Math.min(6, selected.capacityRemaining, quantity + 1))} style={styles.quantityButton}><Text style={styles.quantityText}>+</Text></Pressable></View>
-              <Pressable disabled={claiming} style={styles.primary} onPress={() => confirmClaim(selected)}><Text style={styles.primaryText}>{claiming ? 'Claiming…' : `Claim for ${quantity}`}</Text></Pressable>
-            </View> : null}
-            <Pressable style={styles.secondary} onPress={() => openPlan(selected)}><Text style={styles.secondaryText}>Add to a plan & calendar</Text></Pressable><Pressable style={styles.primary} onPress={() => open(selected?.detail)}><Text style={styles.primaryText}>View current details</Text></Pressable>
-            <Pressable disabled={saving} style={styles.secondary} onPress={() => toggleSaved(selected)}><Text style={styles.secondaryText}>{saved.has(selected?.id) ? '♥ Saved — tap to remove' : '♡ Save this offer'}</Text></Pressable>
-            {selected?.directions ? <Pressable style={styles.secondary} onPress={() => open(selected.directions)}><Text style={styles.secondaryText}>Get directions</Text></Pressable> : null}
-            {selected?.official ? <Pressable style={styles.secondary} onPress={() => open(selected.official)}><Text style={styles.secondaryText}>Open official source</Text></Pressable> : null}
-          </View>
-        </ScrollView>
-      </SafeAreaView>
-    </Modal>
-  </SafeAreaView>;
-}
-const styles = StyleSheet.create({
-  areaToggle:{paddingHorizontal:20,paddingBottom:12},
-  page: { flex: 1, backgroundColor: '#08090e' }, header: { paddingHorizontal: 20, paddingTop: 18 },
-  toolbar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, marginBottom: 15, gap: 12 },
-  nearButton: { backgroundColor: '#29213d', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 9 }, nearText: { color: '#d6b8ff', fontSize: 14, fontWeight: '700' }, toolbarText: { color: '#aaa8b6', fontSize: 14 },
-  tabs: { flexDirection: 'row', borderTopWidth: 1, borderTopColor: '#2b2932', paddingBottom: 8 }, tab: { flex: 1, paddingVertical: 14, alignItems: 'center' }, tabText: { color: '#aaa8b6', fontSize: 13, fontWeight: '700' }, tabActive: { color: '#d6b8ff' },
-  badge: { color: '#e8d4ff', fontSize: 14, fontWeight: '700', marginTop: 16 },
-  passCard: { backgroundColor: '#191923', padding: 18, borderRadius: 16, marginBottom: 12 }, passCode: { color: '#fff', backgroundColor: '#29213d', fontSize: 28, fontWeight: '800', textAlign: 'center', padding: 18, marginTop: 20, borderRadius: 14 },
-  deviceNote: { color: '#bcb9c8', fontSize: 14, lineHeight: 20, marginBottom: 18 },
-  map: { flex: 1, backgroundColor: '#08090e' },
-  mapError: { flex: 1, padding: 22, backgroundColor: '#08090e' },
-  quantityRow: { flexDirection: 'row', alignItems: 'center', gap: 20, marginTop: 16 }, quantityButton: { backgroundColor: '#29213d', borderRadius: 12, minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }, quantityText: { color: '#fff', fontSize: 22, fontWeight: '700' },
-  logo: { color: '#fff', fontSize: 27, fontWeight: '900' }, logoAccent: { color: PURPLE },
-  brandRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }, privacyLink: { color: '#bcb6ca', fontSize: 14 },
-  headline: { color: '#fff', fontSize: 24, fontWeight: '800', marginTop: 20, marginBottom: 16 },
-  search: { marginHorizontal: 20, backgroundColor: '#1b1b25', color: '#fff', borderRadius: 14, minHeight: 52, paddingHorizontal: 16, fontSize: 16 },
-  categories: { flexGrow: 0, marginTop: 15 }, categoryContent: { paddingHorizontal: 20, paddingBottom: 14, gap: 8 },
-  chip: { backgroundColor: '#1b1b25', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 22 },
-  chipActive: { backgroundColor: PURPLE }, chipText: { color: '#d5d3dc', fontSize: 15, fontWeight: '600' }, chipTextActive: { color: '#08090e' },
-  count: { color: '#aaa8b6', fontSize: 14, marginBottom: 14 }, list: { padding: 20, paddingBottom: 55 },
-  card: { backgroundColor: '#191923', borderRadius: 20, overflow: 'hidden', marginBottom: 19 },
-  image: { height: 185, width: '100%' }, imageFallback: { height: 100, justifyContent: 'center', alignItems: 'center', backgroundColor: '#242134' }, fallbackText: { color: PURPLE, fontSize: 24, fontWeight: '800' },
-  thumbnail: { height: 96, width: '100%', borderRadius: 9, marginBottom: 12 },
-  photoCredit: { color: '#aaa8b6', fontSize: 12, paddingHorizontal: 12, paddingVertical: 5 },
-  cardBody: { padding: 16 }, venue: { color: '#fff', fontSize: 19, fontWeight: '800' }, location: { color: '#bbb9c6', fontSize: 14, marginTop: 3 },
-  offerStrip: { marginTop: 15 }, offer: { backgroundColor: '#292634', borderRadius: 14, padding: 14, marginRight: 10, width: 220, minHeight: 120 },
-  offerCategory: { color: '#c8a1ff', fontSize: 13, fontWeight: '800', textTransform: 'uppercase' },
-  offerTitle: { color: '#fff', fontSize: 16, fontWeight: '700', marginTop: 6 }, view: { color: '#d5b6ff', fontSize: 14, marginTop: 10 },
-  error: { color: '#ffb3b3', marginHorizontal: 20, marginBottom: 4 }, empty: { color: '#bbb9c6', fontSize: 16, paddingTop: 40 },
-  loader: { flex: 1 }, modal: { flex: 1, backgroundColor: '#08090e' }, close: { padding: 18, alignSelf: 'flex-end' },
-  closeText: { color: '#d5b6ff', fontSize: 16 }, detailImage: { width: '100%', height: 245 }, detailBody: { padding: 22 },
-  detailTitle: { color: '#fff', fontSize: 28, fontWeight: '800', marginVertical: 12 }, body: { color: '#e5e2ea', fontSize: 16, lineHeight: 24, marginTop: 20 },
-  conditions: { color: '#bbb9c6', fontSize: 14, lineHeight: 21, marginTop: 20 }, primary: { backgroundColor: PURPLE, padding: 17, borderRadius: 14, alignItems: 'center', marginTop: 28 },
-  primaryText: { color: '#08090e', fontSize: 16, fontWeight: '800' }, secondary: { padding: 17, alignItems: 'center' }, secondaryText: { color: '#d5b6ff', fontSize: 15 }
-});
+export default function App(){return <AppErrorBoundary><PerkDropApp/></AppErrorBoundary>;}
+const s=StyleSheet.create({page:{flex:1,backgroundColor:'#08090e'},header:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',paddingHorizontal:20,paddingTop:12,paddingBottom:10},logo:{color:'#fff',fontSize:27,fontWeight:'900'},accent:{color:'#d6b8ff',fontWeight:'700'},settings:{minHeight:44,padding:10,justifyContent:'center'},toolbar:{flexDirection:'row',alignItems:'center',paddingHorizontal:12,gap:8},area:{paddingHorizontal:20,paddingBottom:8},input:{minHeight:48,paddingHorizontal:14,borderRadius:14,backgroundColor:'#211e2b',color:'#fff',fontSize:16},chips:{flexGrow:0,marginTop:10},chipRow:{gap:8,paddingHorizontal:20,paddingBottom:2},chip:{paddingHorizontal:15,paddingVertical:10,borderRadius:22,backgroundColor:'#211e2b'},chosen:{borderWidth:1,borderColor:'#b783ff',backgroundColor:'#332447'},chipText:{color:'#f2ebff',fontWeight:'600'},family:{flexDirection:'row',gap:8,paddingHorizontal:20,paddingTop:10},field:{flex:1,minWidth:0},notice:{paddingHorizontal:20},error:{color:'#ffb3b3',fontSize:14,lineHeight:20},cache:{color:'#e9c889',fontSize:13,lineHeight:19,padding:12},tabs:{flexDirection:'row',borderTopWidth:1,borderTopColor:'#2b2932',paddingBottom:6},tab:{flex:1,paddingVertical:15,alignItems:'center',minHeight:48},tabText:{color:'#aaa8b6',fontSize:12,fontWeight:'700'},list:{padding:20,paddingBottom:36,gap:10},count:{color:'#aaa8b6',marginBottom:12},empty:{color:'#bbb9c6',fontSize:16,lineHeight:24,paddingVertical:20},card:{backgroundColor:'#191923',borderRadius:20,overflow:'hidden',marginBottom:20},cardBody:{padding:17,borderRadius:16,backgroundColor:'#191923',marginBottom:8},title:{color:'#fff',fontSize:19,fontWeight:'800'},offer:{width:230,borderRadius:14,padding:15,marginRight:10,gap:8,backgroundColor:'#292634'},offerTitle:{color:'#fff',fontSize:17,fontWeight:'700',lineHeight:23},muted:{color:'#bbb9c6',fontSize:14,lineHeight:21},body:{color:'#e5e2ea',fontSize:16,lineHeight:24,marginTop:8},link:{color:'#d5b6ff',fontSize:14,fontWeight:'700',textAlign:'center'},image:{height:185,width:'100%'},detailImage:{height:235,width:'100%'},imageFallback:{alignItems:'center',justifyContent:'center',backgroundColor:'#242134'},credit:{color:'#bbb9c6',fontSize:12,lineHeight:17,padding:10},detailTitle:{color:'#fff',fontSize:27,fontWeight:'800',lineHeight:34},primary:{backgroundColor:'#a45cff',borderRadius:14,padding:16,minHeight:48,marginTop:16,justifyContent:'center'},primaryText:{color:'#08090e',fontSize:16,fontWeight:'800',textAlign:'center'},secondary:{padding:12,minHeight:44,justifyContent:'center'},loader:{flex:1},quantity:{flexDirection:'row',alignItems:'center',gap:18,justifyContent:'center'},code:{color:'#fff',backgroundColor:'#29213d',padding:20,borderRadius:14,fontSize:28,fontWeight:'800',textAlign:'center'}});

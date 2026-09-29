@@ -1,27 +1,16 @@
 name: Mobile release checks
-
 on:
   pull_request:
-    paths:
-      - 'mobile/**'
-      - 'public/availability.mjs'
-      - 'public/outing-rules.mjs'
-      - 'public/venue-identity.mjs'
-      - 'public/discovery-rules.mjs'
-      - '.github/workflows/mobile.yml'
+    paths: ['mobile/**', 'lib/mobile-association.mjs', 'public/availability.mjs', 'public/outing-rules.mjs', 'public/venue-identity.mjs', 'public/discovery-rules.mjs', '.github/workflows/mobile.yml']
   push:
     branches: [main]
-    paths:
-      - 'mobile/**'
-      - 'public/availability.mjs'
-      - 'public/outing-rules.mjs'
-      - 'public/venue-identity.mjs'
-      - 'public/discovery-rules.mjs'
-      - '.github/workflows/mobile.yml'
-
+    paths: ['mobile/**', 'lib/mobile-association.mjs', 'public/availability.mjs', 'public/outing-rules.mjs', 'public/venue-identity.mjs', 'public/discovery-rules.mjs', '.github/workflows/mobile.yml']
+permissions:
+  contents: read
 jobs:
   mobile:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: mobile
@@ -30,8 +19,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-          cache: npm
-          cache-dependency-path: mobile/package-lock.json
       - run: npm ci --no-audit --no-fund
+      - run: node --test tests/*.test.mjs
       - run: npx expo-doctor@latest
       - run: npx expo export --platform all --output-dir dist
