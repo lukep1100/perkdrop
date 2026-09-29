@@ -2,6 +2,14 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {randomBytes} from 'node:crypto';
 export async function runMobileReleaseChecks(pool,check) {
+  // The historical isolated export omits optional membership billing. This minimal
+  // fixture preserves the live columns/FK used by deletion; it is NOT a billing test.
+  await pool.query(`create table if not exists public.consumer_memberships (
+    id uuid primary key default gen_random_uuid(),
+    consumer_id uuid not null references public.marketplace_consumers(id) on delete cascade,
+    tier text not null default 'free',status text not null default 'active',
+    provider_subscription_id text
+  )`);
   await pool.query(await readFile(new URL('../../supabase/release/mobile-release.sql',import.meta.url),'utf8'));
   const a=randomBytes(32).toString('hex'),b=randomBytes(32).toString('hex');
   const token='ExponentPushToken['+randomBytes(16).toString('hex')+']';
@@ -38,6 +46,12 @@ export async function runMobileReleaseChecks(pool,check) {
   await check('public roles cannot read notification tokens or call destructive RPCs',async()=>{
     const result=(await pool.query("select has_table_privilege('anon','mobile_push_subscriptions','SELECT') as token_read,has_function_privilege('anon','mobile_delete_consumer(text)','EXECUTE') as can_delete,has_function_privilege('authenticated','mobile_register_push(text,text,text,jsonb)','EXECUTE') as can_register")).rows[0];
     assert.equal(result.token_read,false);assert.equal(result.can_delete,false);assert.equal(result.can_register,false);
+  });
+  await check('unexpected paid billing cannot be silently orphaned by deletion',async()=>{
+    await pool.query("insert into consumer_memberships(consumer_id,provider_subscription_id) values($1,'isolated-not-a-real-subscription')",[ca]);
+    await assert.rejects(pool.query('select mobile_delete_consumer($1)',[a]),/subscription_requires_cancellation/);
+    assert.equal((await pool.query('select count(*)::int as n from marketplace_consumers where id=$1',[ca])).rows[0].n,1);
+    await pool.query('delete from consumer_memberships where consumer_id=$1',[ca]);
   });
   await check('deleting one device account removes its push data but not another account',async()=>{
     const result=(await pool.query('select mobile_delete_consumer($1) as result',[a])).rows[0].result;
