@@ -1,27 +1,17 @@
 import React from 'react';
 import Head from 'next/head';
-
 export default function Privacy() {
-  const h = React.createElement;
-  const sections = [
-    ['Information we use', 'PerkDrop uses a randomly generated app identifier to keep your saved offers and claimed Drops together on your device. When you save or claim an offer, we store that action and the details needed to display and validate your pass. We receive technical request information and may collect usage and referral information when you use the website or its embedded map. If you contact us, we receive the information you choose to send.'],
-    ['Location', 'The app asks for location access only when you select Near me. It uses your foreground location to find nearby listings. You can deny or turn off permission in your device settings and still search listings. The embedded website map may also request location while you use it.'],
-    ['How we use information', 'We use this information to provide current listings, saved offers, passes and updates, improve the service, prevent misuse and respond to enquiries. Opening an official venue link or directions may take you to a third-party site or mapping app with its own privacy practices.'],
-    ['Service providers', 'Supabase hosts PerkDrop catalogue and consumer data. Vercel hosts the website and website analytics. These providers may process information outside Australia. We do not sell your personal information.'],
-    ['Your choices and requests', 'You can remove saved offers in the app and revoke location permission in your device settings. To request access, correction or deletion of app data linked to your device identity, email perkdropofficial@gmail.com. We may need information that lets us identify the correct record. Some transaction records may need to be retained for legal or operational reasons.'],
-    ['Security and retention', 'We use a device-stored credential to access your saved offers and passes and limit access to service data. We keep information while needed to operate PerkDrop and meet applicable obligations. No internet service can guarantee absolute security.'],
-    ['Contact', 'For privacy questions or requests, email perkdropofficial@gmail.com.'],
+  const h=React.createElement;
+  const sections=[
+    ['Information we use','PerkDrop uses a randomly generated, device-held guest credential for private saved offers, plans, connected-device access and eligible passes. The credential is stored securely on the device and represented by a hash on the server. Usage records can include pseudonymous browser or app identifiers, visits, viewed listings, searches, saves, referral/campaign information and technical request information. These identifiers do not necessarily identify a unique person. If you contact us, we receive the information you choose to send.'],
+    ['Location','The native app asks for location only when you choose Near me. Foreground coordinates are used to find local listings; the selected point is rounded to three decimals before local persistence and the embedded map URL. The website map and its providers may receive that selected point and technical request information. No background location is requested by the native app. You can deny permission and choose a suburb or postcode instead.'],
+    ['Offline information','A temporary device cache may keep public listings for up to 24 hours. It does not contain private credentials, saves or pass records. Cached listings are labelled and cannot issue claims. You can clear the downloaded catalogue in Settings.'],
+    ['Optional notifications','Where notification delivery is enabled, you may explicitly opt in to local event picks. PerkDrop stores the device notification token, chosen city and timezone, consent and limited delivery information. Expo and the Apple or Google notification service process the token and notification payload to deliver it. You can disable alerts in the app or your phone settings. Builds that say remote alerts are unavailable do not provide remote delivery.'],
+    ['How we use information','We use information to provide listings, private saves/plans/passes, permitted notifications, service improvement, abuse prevention and support. An official link, booking destination or directions action may take you to a third-party service with its own privacy practices.'],
+    ['Service providers','Supabase hosts catalogue and consumer data. Vercel hosts the website and website analytics. Expo and Apple/Google notification services are used for opted-in remote notifications when enabled. Providers may process information outside Australia. PerkDrop does not sell your personal information.'],
+    ['Deletion and your choices','In a native release supporting deletion, Settings → Delete PerkDrop data removes private account saves, plans, notification registration and connected-device access after server confirmation. Necessary transaction records may remain without the consumer, session and pass-access links. External venue bookings are not cancelled. Service logs and pseudonymous analytics are separate records and may remain for service integrity and reporting. To request access, correction or deletion assistance, contact perkdropofficial@gmail.com. We may need to verify which device-held account is yours; do not email a private credential, device link or pass code.'],
+    ['Security and retention','We restrict access to private data and keep credentials on the device rather than in a public catalogue cache. Information is retained while needed to provide the service, address disputes, prevent misuse and meet applicable obligations. No internet service can guarantee absolute security.'],
+    ['Contact','For privacy questions and requests, email perkdropofficial@gmail.com. Deletion assistance is also described at perkdrop.au/delete-account.'],
   ];
-  return h(React.Fragment, null,
-    h(Head, null, h('title', null, 'Privacy Policy | PerkDrop'), h('meta', { name: 'description', content: 'How the PerkDrop app and website handle information.' }), h('meta', { name: 'viewport', content: 'width=device-width,initial-scale=1' })),
-    h('main', { style: { background: '#08090e', color: '#f7f4fb', minHeight: '100vh', padding: '48px 22px', fontFamily: 'system-ui,sans-serif' } },
-      h('article', { style: { maxWidth: 720, margin: '0 auto', lineHeight: 1.6, fontSize: 16 } },
-        h('a', { href: '/', style: { color: '#d1a8ff' } }, '← PerkDrop'),
-        h('h1', { style: { fontSize: 34, lineHeight: 1.2 } }, 'Privacy Policy'),
-        h('p', { style: { color: '#bbb5c5' } }, 'Last updated 25 September 2026'),
-        h('p', null, 'This policy explains how PerkDrop handles information when you use perkdrop.au and the PerkDrop mobile app.'),
-        ...sections.map(([title, body]) => h('section', { key: title, style: { marginTop: 30 } }, h('h2', { style: { fontSize: 21 } }, title), h('p', null, body)))
-      )
-    )
-  );
+  return h(React.Fragment,null,h(Head,null,h('title',null,'Privacy Policy | PerkDrop'),h('meta',{name:'description',content:'How the PerkDrop app and website handle information.'})),h('main',{style:{background:'#08090e',color:'#f7f4fb',minHeight:'100vh',padding:'48px 22px',fontFamily:'system-ui,sans-serif'}},h('article',{style:{maxWidth:720,margin:'0 auto',lineHeight:1.6,fontSize:16}},h('a',{href:'/',style:{color:'#d1a8ff'}},'← PerkDrop'),h('h1',null,'Privacy Policy'),h('p',{style:{color:'#bbb5c5'}},'Last updated 29 September 2026'),...sections.map(([title,body])=>h('section',{key:title,style:{marginTop:30}},h('h2',null,title),h('p',null,body))))));
 }

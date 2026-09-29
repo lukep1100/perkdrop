@@ -1,0 +1,25 @@
+name: App Store public prerequisites
+on:
+  pull_request:
+    paths: ['pages/app-support.js', 'pages/privacy.js', 'pages/delete-account.js', 'pages/.well-known/**', 'lib/mobile-association.mjs', 'tests/mobile-association.test.mjs', 'scripts/app-store-public-smoke.mjs', '.github/workflows/app-store-public.yml']
+  push:
+    branches: [main]
+    paths: ['pages/app-support.js', 'pages/privacy.js', 'pages/delete-account.js', 'pages/.well-known/**', 'lib/mobile-association.mjs', 'tests/mobile-association.test.mjs', 'scripts/app-store-public-smoke.mjs', '.github/workflows/app-store-public.yml']
+permissions:
+  contents: read
+jobs:
+  public-pages:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm ci --no-audit --no-fund
+      - run: node --test tests/mobile-association.test.mjs
+      - run: npm run lint
+      - run: npm run build
+      - run: node scripts/app-store-public-smoke.mjs
