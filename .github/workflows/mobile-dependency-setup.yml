@@ -27,15 +27,16 @@ jobs:
       - name: Install the existing locked dependencies
         working-directory: mobile
         run: npm ci --no-audit --no-fund
-      - name: Resolve only SDK-compatible notification and public-cache packages
+      - name: Apply the Expo patch required by Doctor and resolve compatible modules
         working-directory: mobile
         run: |
+          npm install --save-exact --no-audit --no-fund expo@57.0.26
           NOTIFICATIONS=$(node -p "require('./node_modules/expo/bundledNativeModules.json')['expo-notifications']")
           FILESYSTEM=$(node -p "require('./node_modules/expo/bundledNativeModules.json')['expo-file-system']")
           test "$NOTIFICATIONS" != undefined
           test "$FILESYSTEM" != undefined
           npm install --save-exact --no-audit --no-fund "expo-notifications@$NOTIFICATIONS" "expo-file-system@$FILESYSTEM"
-          node -e "const p=require('./package.json'); console.log(JSON.stringify({notifications:p.dependencies['expo-notifications'],fileSystem:p.dependencies['expo-file-system']}))"
+          node -e "const p=require('./package.json'); console.log(JSON.stringify({expo:p.dependencies.expo,notifications:p.dependencies['expo-notifications'],fileSystem:p.dependencies['expo-file-system']}))"
       - name: Check compatibility before committing the generated lockfile
         working-directory: mobile
         run: npx expo-doctor@latest
@@ -46,7 +47,7 @@ jobs:
             exit 0
           fi
           git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git config user.email '4189828282+github-actions[bot]@users.noreply.github.com'
           git add mobile/package.json mobile/package-lock.json
           git commit -m 'Lock SDK-compatible notification and public catalogue cache dependencies'
           git push origin HEAD:refs/heads/feature/native-app
