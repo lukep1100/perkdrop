@@ -4,10 +4,12 @@ App name: PerkDrop
 Apple subtitle: Local deals worth knowing
 Google short description: Find local offers, events and things to do across Australia.
 Suggested category: Lifestyle; final selection must match store review.
-Support: https://perkdrop.au/contact
+Support: https://perkdrop.au/app-support
 Privacy: https://perkdrop.au/privacy
 Deletion information: https://perkdrop.au/delete-account
 Contact: perkdropofficial@gmail.com
+
+Structured, length-checked Apple copy is in `app-store.en-AU.json`. It is a preparation file, not a submitted App Store Connect record. Unverified signing/build IDs and screenshots intentionally remain empty.
 
 ## Full description
 
@@ -47,9 +49,9 @@ Remote push is disabled in the committed release candidate. The Updates tab says
 - WebView/external destinations: website request, referral and third-party processing can occur under their policies.
 - Deletion: native Settings removes private account content and account-linked notification registration after server confirmation. Necessary transaction evidence can remain without account/session/pass-reference links. Technical logs/analytics are a separate retention category; do not state that all historical logs are erased by this action.
 
-## Screenshots to capture from the signed release build
+## Screenshots to capture from the release candidate
 
-Discover; manual Near Me/area selection; family/free filters with accurate live results; map; listing details; saved items. Use genuine current inventory and truthful feature captions. Exclude private pass codes, device links and personal data. Capture required store/device sizes after physical-device QA. The existing feature graphic is not a substitute for screenshots.
+Discover; manual Near Me/area selection; family/free filters with accurate live results; map; listing details; saved items. Use genuine current inventory and truthful feature captions. Exclude private pass codes, device links and personal data. Capture required store/device sizes from the actual app, not a generated marketing mock-up, and verify against the signed build. The existing feature graphic is not a substitute for screenshots.
 
 ## Owner/store gates
 
