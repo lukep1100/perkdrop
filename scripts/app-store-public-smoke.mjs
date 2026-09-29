@@ -32,7 +32,8 @@ try {
     assert.equal(response.status, 200, path);
     assert.match(response.headers.get('content-type') || '', /text\/html/);
     const html = await response.text();
-    assert.ok(html.includes(`<title>${title}</title>`), `Missing title at ${path}`);
+    const renderedTitles = [...html.matchAll(/<title\b[^>]*>([\s\S]*?)<\/title>/gi)].map(match => match[1]);
+    assert.deepEqual(renderedTitles, [title], `Missing, duplicate or wrong title at ${path}`);
     for (const text of required) assert.ok(html.includes(text), `Missing ${text} at ${path}`);
     console.log(`PUBLIC PAGE PASS: ${path} renders useful support without client JavaScript`);
   }
