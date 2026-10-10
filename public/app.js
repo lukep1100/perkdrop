@@ -5,7 +5,7 @@ import { analyticsContext } from '/analytics.mjs';
 import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfilmentLabel, localDate, searchMatches } from '/discovery-rules.mjs?v=v39-venue-rails';
 (() => {
   "use strict";
-  const VERSION = "v46-simple-offers";
+  const VERSION = "v47-premium-guide";
   const API =
     "https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-catalogue-api?limit=500";
   const SUBMIT =
@@ -682,7 +682,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     const primary=[
       ['/food', 'food', 'Food & drink'],
       ['/events', 'events', 'Events'],
-      ['/free', 'free', 'Freebies'],
+      ['/free', 'free', 'Free plans'],
       ['/family', 'family', 'Family'],
       ['/beauty', 'beauty', 'Beauty'],
       ['/wellness', 'beauty', 'Wellness'],
@@ -737,7 +737,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
   function photoFallback(d) {
     const t = type(d);
     const initial = clean(d.merchant || d.title).charAt(0).toUpperCase() || "P";
-    return `<div class="card-image card-image--no-photo"><div class="card-image-fallback"><span class="fallback-orbit" aria-hidden="true"></span><span class="fallback-mark">${esc(initial)}</span><span class="fallback-type">${esc(t[2])}</span><span class="fallback-note">Photo being sourced</span></div><div class="shade"></div></div>`;
+    return `<div class="card-image card-image--no-photo"><div class="card-image-fallback"><span class="fallback-orbit" aria-hidden="true"></span><span class="fallback-mark">${esc(initial)}</span><span class="fallback-type">${esc(t[2])}</span><span class="fallback-note">Local guide</span></div><div class="shade"></div></div>`;
   }
   function photoFrame(d) {
     const photo=displayPhoto(d);
@@ -797,7 +797,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
   }
   function venueRailCard(group){
     const d=group.primary,t=type(d),count=group.offers.length;
-    const more=count>1?'<div class="venue-offer-lines"><span>+'+(count-1)+' more offer'+(count===2?'':'s')+' at this place</span></div>':'';
+    const more=count>1?'<div class="venue-offer-lines"><span>+'+(count-1)+' more offer'+(count===2?'':'s')+' at this place</span>'+group.offers.slice(1,3).map(o=>'<span>'+esc(o.title)+'</span>').join('')+'</div>':'';
     return `<article class="deal-card venue-rail-card ${d.imageFit==='contain'?'poster-card':''}"><a class="card-link" data-internal href="${esc(venueHref(d,group))}">${photoFrame(d)}<span class="badge">${esc(badge(d))}</span><span class="type-pill type-${t[0]}">${t[1]} ${t[2]}</span><div class="card-body"><div class="merchant-line"><span>${esc(d.merchant)}</span><span class="distance">${esc(distLabel(d))}</span></div><h3>${esc(d.title)}</h3><div class="meta">${esc(scheduleLabel(d))}</div><div class="meta">${esc(d.price||"Price to confirm")} · ${esc(d.location||d.city)}</div>${more}</div></a>${photoCredit(d)}${photoCredit(d,true)}<button class="save" aria-label="Save ${esc(d.title)}" aria-pressed="${state.saved.includes(d.id)}" data-save="${esc(d.id)}">${state.saved.includes(d.id)?'♥':'♡'}</button></article>`;
   }
   function dealRail(title, items, href, eyebrow = "DISCOVER") {
@@ -901,7 +901,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
       saved = state.saved.includes(d.id),
       cap = Boolean(d.redemptionAvailable),
       photo = displayPhoto(d),
-      visual = photo ? `<img src="${esc(photo.src)}" alt="${esc(photo.alt)}">` : '<div class="detail-photo-pending"><span>Photo unavailable</span><small>PerkDrop only shows venue and event imagery that has been cleared for use.</small></div>';
+      visual = photo ? `<img src="${esc(photo.src)}" alt="${esc(photo.alt)}">` : '<div class="detail-photo-pending"><span>Local guide listing</span><small>Imagery is added only when it is cleared for PerkDrop use.</small></div>';
     document.title = `${d.title} | PerkDrop`;
     return `<div class="app-shell"><main class="detail"><section class="detail-hero ${d.imageFit==='contain'?'poster-hero':''}"><button id="back-btn" class="back" aria-label="Go back">←</button>${visual}<div class="detail-title"><span class="badge static">${esc(badge(d))}</span><span class="detail-type type-${t[0]}">${t[1]} ${t[2]}</span><h1>${esc(d.title)}</h1><div>${esc(d.merchant)}</div></div></section><div class="detail-body">${photoCredit(d)}<div class="detail-tools"><button class="tool-btn" data-save="${esc(d.id)}">${saved ? "♥ Saved" : "♡ Save"}</button><a class="tool-btn" href="/plans?add=${encodeURIComponent(d.id)}&date=${suggestedDate(d)}${d.locationId?'&branch='+encodeURIComponent(d.locationId):''}">＋ Add to plan</a><button id="share-drop" class="tool-btn">↗ Share</button></div><div class="facts">📍 ${esc(d.location || "Check venue location")}<br>◷ ${esc(scheduleLabel(d))}<br>${esc(freshness(d).label)}</div>${d.merchantSlug?'<p><a data-internal href="/venues/'+encodeURIComponent(d.merchantSlug)+'">View '+esc(d.merchant)+' business profile →</a></p>':''}${reportLink(d.id,d.merchantId)}${d.suitability?.warning?`<p class="availability-note"><b>Before you go:</b> ${esc(d.suitability.warning)}</p>`:""}${d.availability?.notes?`<p class="availability-note">${esc(d.availability.notes)}</p>`:""}${cap ? capacity(d) : trust(d)}<p>${esc(d.description)}</p><div class="catch"><b>THE CATCH</b><br>${esc(d.conditions || "Check the official source before travelling, booking or paying.")}</div>${mapped(d) ? '<div id="detail-map" class="detail-map"></div>' : ""}${cap ? "" : `<div class="detail-cta"><a id="official-cta" class="btn primary" target="_blank" rel="noopener" href="${esc(d.goUrl || d.source || d.officialSource)}">${d.offerVerification==='business_approved'?'View approved offer →':'View offer at source →'}</a><a id="nav-cta" class="btn secondary" target="_blank" rel="noopener" href="${esc(navUrl(d))}">⌖ Navigate</a></div>`}</div></main>${footer()}${nav("explore")}</div>`;
   }
@@ -948,7 +948,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
   function popup(d) {
     const t = type(d);
     const photo=displayPhoto(d);
-    const visual=photo?`<img loading="lazy" src="${esc(photo.src)}" alt="${esc(photo.alt)}">`:'<div class="popup-photo-pending">Photo unavailable</div>';
+    const visual=photo?`<img loading="lazy" src="${esc(photo.src)}" alt="${esc(photo.alt)}">`:'<div class="popup-photo-pending">Local guide</div>';
     return `<div class="popup ${d.imageFit==='contain'?'poster-popup':''}">${visual}<span class="type-${t[0]}">${t[1]} ${t[2]}</span><h3>${esc(d.title)}</h3><b>${esc(d.merchant)}</b>${photoCredit(d)}<p>${esc(d.timing || "")}</p><a data-internal href="${esc(route(d))}">View Drop</a> · <a target="_blank" href="${esc(navUrl(d))}">Navigate</a></div>`;
   }
   function mapPopup(entry) {
@@ -1010,7 +1010,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
       const photo=displayPhoto(d);
       const showPhoto=photo&&!seenPhotos.has(photo.src);
       if(photo)seenPhotos.add(photo.src);
-      const visual=showPhoto?`<img loading="lazy" src="${esc(photo.src)}" alt="${esc(photo.alt)}">`:!photo?'<div class="offer-choice-fallback">Photo unavailable</div>':'';
+      const visual=showPhoto?`<img loading="lazy" src="${esc(photo.src)}" alt="${esc(photo.alt)}">`:!photo?'<div class="offer-choice-fallback">Local guide</div>':'';
       // A direct claim needs its conditions and capacity screen. External
       // offers can take the visitor straight to the reviewed booking link.
       const direct=d.fulfilmentMode==='external_booking'&&d.goUrl;
@@ -1306,7 +1306,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     if(detailHero&&!detailHero.querySelector(".detail-photo-pending")){
       const pending=document.createElement("div");
       pending.className="detail-photo-pending";
-      pending.innerHTML="<span>Photo unavailable</span><small>PerkDrop only shows venue and event imagery that has been cleared for use.</small>";
+      pending.innerHTML="<span>Local guide listing</span><small>Imagery is added only when it is cleared for PerkDrop use.</small>";
       detailHero.append(pending);
     }
     const popupNode=img.closest(".map-popup");
@@ -1605,16 +1605,26 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
         .then((r) => r.update())
         .catch(() => {}),
     );
+  function spotlightPreview(groups) {
+    const cards = groups.slice(0, 3).map((group, index) => {
+      const d = group.primary, photo = displayPhoto(d);
+      if (!photo) return "";
+      return `<a class="hero-spotlight-card hero-spotlight-card-${index + 1}" data-internal href="${esc(venueHref(d, group))}"><img loading="lazy" decoding="async" src="${esc(photo.src)}" alt="${esc(photo.alt)}"><span>${esc(badge(d))}</span><b>${esc(d.merchant)}</b><small>${esc(d.title)}</small></a>`;
+    }).filter(Boolean).join("");
+    return cards ? `<div class="hero-spotlight" aria-label="Featured local picks">${cards}</div>` : "";
+  }
   function home() {
     const all=cityDeals().filter(d=>['A','B'].includes(d.qualityGrade)&&freshness(d).state==='recent');
-    const tonight=all.filter(d=>availabilityMatches(d,'tonight')),
-      food=all.filter(d=>isFood(d)||isDrink(d)),
-      free=all.filter(isFree),
-      events=all.filter(d=>isEvent(d)&&availabilityMatches(d,"week")),
-      weekendDrops=all.filter(weekend),
+    const photographed=all.filter(hasPhoto);
+    const imageFirst=photographed.length>=2?photographed:all;
+    const tonight=imageFirst.filter(d=>availabilityMatches(d,'tonight')),
+      food=imageFirst.filter(d=>isFood(d)||isDrink(d)),
+      free=imageFirst.filter(isFree),
+      events=imageFirst.filter(d=>isEvent(d)&&availabilityMatches(d,"week")),
+      weekendDrops=imageFirst.filter(weekend),
       city=CITIES[state.city]?.[0]||state.city,
-      primary=tonight.length?tonight:venueGroups(all).slice(0,8).flatMap(g=>g.offers);
-    const personal=personalisedDeals(all);
+      primary=tonight.length?tonight:venueGroups(imageFirst).slice(0,8).flatMap(g=>g.offers);
+    const personal=personalisedDeals(imageFirst);
     const primaryPlaces=new Set(venueGroups(primary).map(group=>placeKey(group.primary)));
     const foodPicks=food.filter(d=>!primaryPlaces.has(placeKey(d)));
     const foodPlaces=new Set(venueGroups(foodPicks).map(group=>placeKey(group.primary)));
@@ -1623,11 +1633,13 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     const weekendPicks=weekendDrops.filter(d=>!primaryPlaces.has(placeKey(d))&&!foodPlaces.has(placeKey(d))&&!freePlaces.has(placeKey(d)));
     const weekendPlaces=new Set(venueGroups(weekendPicks).map(group=>placeKey(group.primary)));
     const eventPicks=events.filter(d=>!primaryPlaces.has(placeKey(d))&&!foodPlaces.has(placeKey(d))&&!freePlaces.has(placeKey(d))&&!weekendPlaces.has(placeKey(d)));
-    const summary=`${venueGroups(all).length} places · ${all.length} current ${all.length===1?'perk':'perks'}`;
-    const planner=`<section class="discover-intro"><div class="discover-kicker"><span class="live-dot" aria-hidden="true"></span><span>${esc(city).toUpperCase()} LOCAL GUIDE</span><span class="kicker-divider" aria-hidden="true"></span><span>${esc(summary)}</span></div><div class="discover-copy"><div><h1>Find something <strong>worth doing.</strong></h1><p>Swipe current local perks by place. Food, free stuff, events and plans with the key details clear before you head out.</p></div><div class="plan-pills" aria-label="Quick ways to browse"><a data-internal href="/tonight"><span>✦</span>Tonight</a><a data-internal href="/weekend"><span>◷</span>This weekend</a><a data-internal href="/near-me"><span>⌖</span>Near me</a></div></div>${searchBox('',`Search ${city} — food, events, places or ideas`)}${chips()}</section>`;
-    const mapShortcut=`<a class="map-shortcut" data-internal href="/map"><span class="map-shortcut-icon">⌖</span><span><small>LOCAL MAP</small><b>See what is near you</b><em>Food, events, free plans and current offers in one view.</em></span><i aria-hidden="true">→</i></a>`;
-    const personalRail=hasPreferences()&&personal.length?dealRail('Picked for your local guide',personal,'/preferences','FOR YOU'):'<p class="personalise-link"><a href="/preferences">Personalise your local guide →</a></p>';
-    return shell(`<main class="page discover-page">${planner}${primary.length?dealRail(tonight.length?'Tonight in '+city:'Start here',primary,tonight.length?'/tonight':'/near-me',tonight.length?'AVAILABLE TONIGHT':'YOUR LOCAL SHORTLIST'):''}${foodPicks.length?dealRail('Food & drink picks',foodPicks,'/food','EAT & DRINK'):''}${freePicks.length?dealRail('Free and easy',freePicks,'/free','NO-COST PLANS'):''}${mapShortcut}${personalRail}${weekendPicks.length?dealRail('Make a weekend plan',weekendPicks,'/weekend','SAVE THIS FOR LATER'):''}${eventPicks.length?dealRail('Worth seeing this week',eventPicks,'/events','EVENTS & EXPERIENCES'):''}${!all.length?'<section class="empty"><h2>No local Drops yet</h2><p>Choose another city, or browse public offers across Australia.</p><a class="btn primary" data-internal href="/search">Explore all offers</a></section>':''}</main>`);
+    const allGroups=venueGroups(all);
+    const heroGroups=venueGroups(imageFirst);
+    const summary=`${allGroups.length} places · ${all.length} current ${all.length===1?'perk':'perks'}`;
+    const planner=`<section class="discover-intro"><div class="discover-kicker"><span class="live-dot" aria-hidden="true"></span><span>${esc(city).toUpperCase()} GUIDE</span><span class="kicker-divider" aria-hidden="true"></span><span>${esc(summary)}</span></div><div class="discover-copy"><div class="discover-message"><h1>Don’t make plans yet.</h1><p>Open PerkDrop first. Swipe real local places, see the catch upfront, save what looks good, then use the map when you are ready to go.</p><div class="hero-proof"><span>Grouped by place</span><span>Current picks first</span><span>Photos where cleared</span></div></div>${spotlightPreview(heroGroups)}</div><div class="plan-pills" aria-label="Quick ways to browse"><a data-internal href="/tonight"><span>✦</span>Tonight</a><a data-internal href="/weekend"><span>◷</span>This weekend</a><a data-internal href="/near-me"><span>⌖</span>Near me</a></div>${searchBox('',`Search ${city} — food, events, free plans or places`)}${chips()}</section>`;
+    const mapShortcut=`<a class="map-shortcut" data-internal href="/map"><span class="map-shortcut-icon">⌖</span><span><small>LOCAL MAP</small><b>Open the live local map</b><em>One tap to see nearby food, events, free plans and venue groups.</em></span><i aria-hidden="true">→</i></a>`;
+    const personalRail=hasPreferences()&&personal.length?dealRail('Picked for your local guide',personal,'/preferences','FOR YOU'):'';
+    return shell(`<main class="page discover-page">${planner}${primary.length?dealRail(tonight.length?'Tonight in '+city:'Current local picks',primary,tonight.length?'/tonight':'/near-me',tonight.length?'AVAILABLE TONIGHT':'CURRENT PICKS'):''}${foodPicks.length?dealRail('Food & drink picks',foodPicks,'/food','EAT & DRINK'):''}${freePicks.length?dealRail('Free plans',freePicks,'/free','NO-COST PLANS'):''}${mapShortcut}${personalRail}${weekendPicks.length?dealRail('Make a weekend plan',weekendPicks,'/weekend','SAVE THIS FOR LATER'):''}${eventPicks.length?dealRail('Worth seeing this week',eventPicks,'/events','EVENTS & EXPERIENCES'):''}${!all.length?'<section class="empty"><h2>No local Drops yet</h2><p>Choose another city, or browse public offers across Australia.</p><a class="btn primary" data-internal href="/search">Explore all offers</a></section>':''}</main>`);
   }
   const MARKET_PAGES = {
     beauty: ["beauty", "Beauty & wellness", "APPOINTMENTS & SELF-CARE"],
@@ -1643,7 +1655,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     shopping: ["shopping", "Shopping", "LOCAL FINDS"],
     family: ["kids", "Family & kids", "MAKE A FAMILY PLAN"],
     services: ["services", "Local services", "LOCAL HELP & PERKS"],
-    freebies: ["free", "Freebies", "CHECK DAYS, TIMES & CONDITIONS"],
+    freebies: ["free", "Free plans", "CHECK DAYS, TIMES & CONDITIONS"],
     today: ["free", "Free things to do", "CHECK EACH LISTING’S DAYS & TIMES"],
     "last-minute": [
       "last_minute",
@@ -1696,7 +1708,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
   };
   function business() {
     return shell(
-      `<main class="page"><section class="business-hero"><div class="eyebrow">FOR LOCAL BUSINESSES & ORGANISERS</div><h1>Put unused capacity to work.</h1><p><strong>Free standard listing.</strong> $0 setup, $0 monthly and no standard redemption fee. Add a genuine perk, choose when it runs and set your own conditions and capacity.</p><div class="business-points"><span>✓ Controlled capacity</span><span>✓ Direct bookings stay yours</span><span>✓ Free standard participation</span><span>✓ Mobile verification</span></div></section><form id="merchant-form" class="merchant-form"><label>What would you like to list?<select name="listing_type" id="listing-type"><option value="external">A perk customers book directly</option><option value="event">A public event or activity</option><option value="claim">A limited PerkDrop claim</option></select></label><div class="form-grid"><label>Business / organisation *<input name="business_name" required maxlength="160"></label><label>Your name *<input name="contact_name" required maxlength="160"></label><label>Email *<input name="contact_email" type="email" required maxlength="254"></label><label>Phone (optional)<input name="contact_phone" maxlength="80"></label><label>Category<select name="vertical"><option value="food">Food & drink</option><option value="beauty">Beauty & wellness</option><option value="experiences">Experiences</option><option value="events">Events</option><option value="shopping">Shopping</option><option value="family_kids">Family & kids</option><option value="fitness">Health & fitness</option><option value="travel_stays">Travel & stays</option><option value="freebies">Freebies</option><option value="services">Services</option></select></label><input type="hidden" name="fulfilment_mode" value="external_booking"><label>Availability<select name="drop_type"><option value="capacity">Planned capacity</option><option value="last_minute">Last minute</option><option value="cancellation">Cancellation / spare place</option></select></label><label data-claim-field hidden>Capacity *<input name="capacity_total" type="number" min="1" max="10000"></label><label data-claim-field hidden>Capacity unit<select name="inventory_unit"><option value="person">Guests / people</option><option value="appointment">Appointments</option><option value="ticket">Tickets</option><option value="class_spot">Class spots</option><option value="room">Rooms</option><option value="item">Items</option></select></label><label>Location *<input name="location" required></label><label>City / town *<input name="city" required maxlength="100"></label><label>State / territory *<select name="state" required><option value="">Select state or territory</option><option value="ACT">ACT</option><option value="NSW">NSW</option><option value="NT">NT</option><option value="QLD">QLD</option><option value="SA">SA</option><option value="TAS">TAS</option><option value="VIC">VIC</option><option value="WA">WA</option></select></label><label class="wide">Offer title *<input name="offer_title" required maxlength="180"></label><label class="wide">Customer benefit *<textarea name="description" required maxlength="2500" rows="4" placeholder="e.g. complimentary treatment add-on or value-add perk"></textarea></label><label>Starts (venue local time) *<input name="starts_at" required type="datetime-local"></label><label>Ends (venue local time) *<input name="ends_at" required type="datetime-local"></label><label>Booking / official event page<input name="booking_url" type="url" required placeholder="https://"><small>Required for external bookings and public events.</small></label><label>Photo for review (optional)<input name="media_url" type="url" placeholder="https://"><small>Only submit imagery you own or are authorised/licensed to use. It is not published automatically.</small></label><label class="wide">Conditions / minimum spend / booking instructions *<textarea name="conditions" required minlength="12" maxlength="1800" rows="3"></textarea></label><label data-claim-field hidden>Redemption verifier *<input name="redemption_verifier" maxlength="160"></label><label class="check wide"><input type="checkbox" name="authority_confirmed" required> I’m authorised to submit this offer. Any imagery supplied is owned, licensed or explicitly authorised for PerkDrop.</label><label class="check wide"><input type="checkbox" name="accuracy_confirmed" required> Details and offer conditions are accurate.</label><label class="check wide"><input type="checkbox" name="terms_accepted" required> I accept the PerkDrop merchant terms.</label></div><button type="button" class="btn secondary" id="preview-business">Preview listing</button><button class="btn primary submit-btn">Submit for review</button><section id="business-preview" hidden aria-live="polite"></section><div id="merchant-status" class="form-status"></div></form></main>`,
+      `<main class="page"><section class="business-hero"><div class="eyebrow">FOR LOCAL BUSINESSES & ORGANISERS</div><h1>Put unused capacity to work.</h1><p><strong>Free standard listing.</strong> $0 setup, $0 monthly and no standard redemption fee. Add a genuine perk, choose when it runs and set your own conditions and capacity.</p><div class="business-points"><span>✓ Controlled capacity</span><span>✓ Direct bookings stay yours</span><span>✓ Free standard participation</span><span>✓ Mobile verification</span></div></section><form id="merchant-form" class="merchant-form"><label>What would you like to list?<select name="listing_type" id="listing-type"><option value="external">A perk customers book directly</option><option value="event">A public event or activity</option><option value="claim">A limited PerkDrop claim</option></select></label><div class="form-grid"><label>Business / organisation *<input name="business_name" required maxlength="160"></label><label>Your name *<input name="contact_name" required maxlength="160"></label><label>Email *<input name="contact_email" type="email" required maxlength="254"></label><label>Phone (optional)<input name="contact_phone" maxlength="80"></label><label>Category<select name="vertical"><option value="food">Food & drink</option><option value="beauty">Beauty & wellness</option><option value="experiences">Experiences</option><option value="events">Events</option><option value="shopping">Shopping</option><option value="family_kids">Family & kids</option><option value="fitness">Health & fitness</option><option value="travel_stays">Travel & stays</option><option value="freebies">Free plans</option><option value="services">Services</option></select></label><input type="hidden" name="fulfilment_mode" value="external_booking"><label>Availability<select name="drop_type"><option value="capacity">Planned capacity</option><option value="last_minute">Last minute</option><option value="cancellation">Cancellation / spare place</option></select></label><label data-claim-field hidden>Capacity *<input name="capacity_total" type="number" min="1" max="10000"></label><label data-claim-field hidden>Capacity unit<select name="inventory_unit"><option value="person">Guests / people</option><option value="appointment">Appointments</option><option value="ticket">Tickets</option><option value="class_spot">Class spots</option><option value="room">Rooms</option><option value="item">Items</option></select></label><label>Location *<input name="location" required></label><label>City / town *<input name="city" required maxlength="100"></label><label>State / territory *<select name="state" required><option value="">Select state or territory</option><option value="ACT">ACT</option><option value="NSW">NSW</option><option value="NT">NT</option><option value="QLD">QLD</option><option value="SA">SA</option><option value="TAS">TAS</option><option value="VIC">VIC</option><option value="WA">WA</option></select></label><label class="wide">Offer title *<input name="offer_title" required maxlength="180"></label><label class="wide">Customer benefit *<textarea name="description" required maxlength="2500" rows="4" placeholder="e.g. complimentary treatment add-on or value-add perk"></textarea></label><label>Starts (venue local time) *<input name="starts_at" required type="datetime-local"></label><label>Ends (venue local time) *<input name="ends_at" required type="datetime-local"></label><label>Booking / official event page<input name="booking_url" type="url" required placeholder="https://"><small>Required for external bookings and public events.</small></label><label>Photo for review (optional)<input name="media_url" type="url" placeholder="https://"><small>Only submit imagery you own or are authorised/licensed to use. It is not published automatically.</small></label><label class="wide">Conditions / minimum spend / booking instructions *<textarea name="conditions" required minlength="12" maxlength="1800" rows="3"></textarea></label><label data-claim-field hidden>Redemption verifier *<input name="redemption_verifier" maxlength="160"></label><label class="check wide"><input type="checkbox" name="authority_confirmed" required> I’m authorised to submit this offer. Any imagery supplied is owned, licensed or explicitly authorised for PerkDrop.</label><label class="check wide"><input type="checkbox" name="accuracy_confirmed" required> Details and offer conditions are accurate.</label><label class="check wide"><input type="checkbox" name="terms_accepted" required> I accept the PerkDrop merchant terms.</label></div><button type="button" class="btn secondary" id="preview-business">Preview listing</button><button class="btn primary submit-btn">Submit for review</button><section id="business-preview" hidden aria-live="polite"></section><div id="merchant-status" class="form-status"></div></form></main>`,
     );
   }
   // Re-evaluate visible time-sensitive views at minute boundaries without fetching the directory.

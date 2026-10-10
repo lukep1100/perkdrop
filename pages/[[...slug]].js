@@ -23,8 +23,8 @@ async function fetchCatalogue(url, init = {}) {
 const SITE = "https://perkdrop.au";
 const routeMeta = {
   "/": [
-    "PerkDrop — What's worth doing near you",
-    "Find food, drinks, events, experiences, family plans and genuine local perks worth knowing about before you decide where to go.",
+    "PerkDrop — Don’t make plans yet",
+    "Open PerkDrop before you make plans. Find local food, events, free things to do and genuine perks with the key details clear before you go.",
   ],
   "/food": [
     "Food Drops | PerkDrop",
@@ -156,13 +156,16 @@ export default function Shell({ deal, venue, collection=[], collectionCity="Adel
       h("link", { rel: "manifest", href: "/manifest.webmanifest" }),
       h("link", { rel: "icon", href: "/icon.svg" }),
       h("title", null, title),
+      h("link", { rel: "preconnect", href: "https://fonts.googleapis.com" }),
+      h("link", { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "" }),
+      h("link", { rel: "preconnect", href: "https://khzpdyyywiucfhubxkev.supabase.co" }),
       h("link", {
         href: "https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap",
         rel: "stylesheet",
       }),
       h("link", {
         rel: "stylesheet",
-        href: "/styles.css?v=v46-simple-offers",
+        href: "/styles.css?v=v47-premium-guide",
       }),
     ),
     h(
@@ -173,14 +176,14 @@ export default function Shell({ deal, venue, collection=[], collectionCity="Adel
         { className: "boot" },
         h("img", { src: "/icon.svg", className: "boot-icon", alt: "" }),
         h("div", { className: "boot-logo" }, "Perk", h("span", null, "Drop")),
-        h("h1", null, expiredDeal ? "This offer has ended" : missing ? "Page not found" : unavailable ? "Temporarily unavailable" : deal?.title || venue?.name || "What’s worth doing near you?"),
+        h("h1", null, expiredDeal ? "This offer has ended" : missing ? "Page not found" : unavailable ? "Temporarily unavailable" : deal?.title || venue?.name || "Don’t make plans yet"),
         h("p", null, deal?.description || (deal || venue ? description : "Food, events, things to do and genuine local perks — before you make plans.")),
         h("a", {href:"/"}, "Explore current deals"),
         collection.length ? h("section",{className:"ssr-collection"},h("h2",null,`Current choices around ${collectionCity}`),h("ul",null,...collection.map(item=>h("li",{key:item.id},h("a",{href:item.href},`${item.merchant} — ${item.title}`),h("p",null,`${item.timing} · ${item.price||'Price to confirm'}`))))) : null,
         h("p", {role:"status"}, "Loading your local guide…"),
       ),
     ),
-    h("script", { src: "/app.js?v=v46-simple-offers", type:"module" }),
+    h("script", { src: "/app.js?v=v47-premium-guide", type:"module" }),
   );
 }
 export async function getServerSideProps({ params, resolvedUrl, req, res }) {
