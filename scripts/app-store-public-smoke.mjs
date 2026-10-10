@@ -6,7 +6,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 // page JavaScript, accounts, notifications, bookings or analytics are executed.
 const port = 3198;
 const base = `http://127.0.0.1:${port}`;
-const child = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'start', '--port', String(port)], {
+const child = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'start', '--hostname', '127.0.0.1', '--port', String(port)], {
   stdio: ['ignore', 'pipe', 'pipe'],
   env: { ...process.env, PERKDROP_APPLE_APP_ID_PREFIX: '', PERKDROP_ANDROID_APP_SIGNING_SHA256: '' },
 });
