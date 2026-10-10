@@ -1,0 +1,58 @@
+name: Mobile release checks
+on:
+  pull_request:
+    paths: ['mobile/**', 'lib/mobile-association.mjs', 'public/availability.mjs', 'public/outing-rules.mjs', 'public/venue-identity.mjs', 'public/discovery-rules.mjs', '.github/workflows/mobile.yml']
+  push:
+    branches: [main]
+    paths: ['mobile/**', 'lib/mobile-association.mjs', 'public/availability.mjs', 'public/outing-rules.mjs', 'public/venue-identity.mjs', 'public/discovery-rules.mjs', '.github/workflows/mobile.yml']
+permissions:
+  contents: read
+concurrency:
+  group: mobile-release-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  mobile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm ci --no-audit --no-fund
+      - run: node --test tests/*.test.mjs
+      - run: npx expo-doctor@latest
+      - run: npx expo export --platform all --output-dir dist
+      - name: Generate both native projects without signing or installing pods
+        run: npx expo prebuild --no-install
+  android-compile:
+    needs: mobile
+    if: github.event_name == 'pull_request' && github.event.pull_request.number == 14
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      EXPO_PUBLIC_TRAFFIC_TYPE: internal
+      EXPO_PUBLIC_PUSH_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - run: npm ci --no-audit --no-fund
+        working-directory: mobile
+      - run: npx expo prebuild --platform android --no-install
+        working-directory: mobile
+      - name: Compile a bundled Android QA binary, not a store-signed release
+        working-directory: mobile/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon --max-workers=2 -PreactNativeArchitectures=arm64-v8a -Dorg.gradle.jvmargs='-Xmx3g -XX:MaxMetaspaceSize=1g'
+          sha256sum app/build/outputs/apk/release/*.apk
+          echo 'Compilation evidence only. Uses generated test signing; no store signing, publishing or artifact storage.'

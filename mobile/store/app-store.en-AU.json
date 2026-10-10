@@ -1,0 +1,21 @@
+{
+  "status": "DRAFT_NOT_SUBMITTED",
+  "locale": "en-AU",
+  "bundleIdentifier": "au.perkdrop.app",
+  "version": "1.0.0",
+  "name": "PerkDrop",
+  "subtitle": "Local deals worth knowing",
+  "keywords": "deals,events,food,activities,experiences,local,family,offers",
+  "promotionalText": "Food, events, experiences and genuine local perks — before you make plans.",
+  "description": "Know what’s worth doing before you make plans.\n\nPerkDrop brings local offers, events, food, experiences and family activities into one place. Choose a suburb or postcode, use Near me, or browse across Australia. Explore current listings and verified date filters, check the price and conditions, then open the official source or directions.\n\nSee offers grouped by place, save useful finds and share a public listing with friends. Connect your own devices with a private one-time link to use the same saves, plans and passes. Add an outing to the website planner and export it to your calendar.\n\nWhere a business supports a PerkDrop claim, check its availability and conditions before claiming. Not all listings support booking or claiming in the app. A listing is not a booking confirmation.\n\nListings, dates and availability can change. Always check the current source, booking requirements and any exclusions before you go. Cached offline listings are labelled and cannot issue claims.",
+  "supportUrl": "https://perkdrop.au/app-support",
+  "privacyPolicyUrl": "https://perkdrop.au/privacy",
+  "deletionUrl": "https://perkdrop.au/delete-account",
+  "marketingUrl": "https://perkdrop.au/",
+  "reviewNotes": "Browsing does not require login. Saves, private plans and eligible passes use a guest device credential. Location is optional and requested only after Near me is selected; manual area search remains available. The map/current web details use a WebView, and the planner uses an explicit private device pairing. Settings includes Delete PerkDrop data with typed confirmation. Remote push is disabled in this V1 configuration. Claims appear only for eligible, genuinely available offers; a listing view is not a booking. No native in-app payments or subscriptions are configured.",
+  "appStoreConnectAppId": null,
+  "signedBuildId": null,
+  "screenshots": [],
+  "privacyQuestionnaireStatus": "REQUIRES_FINAL_BINARY_REVIEW",
+  "ageRatingStatus": "REQUIRES_CURRENT_CATALOGUE_REVIEW"
+}
