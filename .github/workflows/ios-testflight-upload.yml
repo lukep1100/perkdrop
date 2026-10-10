@@ -55,17 +55,21 @@ jobs:
             -authenticationKeyID "$APP_STORE_CONNECT_API_KEY_ID" \
             -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID" \
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
-            CODE_SIGN_IDENTITY="Apple Distribution" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
             CURRENT_PROJECT_VERSION="$PERKDROP_BUILD_NUMBER" \
             archive
       - name: Export IPA
         run: |
           set -euo pipefail
+          export_options="$RUNNER_TEMP/ExportOptions.plist"
+          cp ios/ExportOptions.plist "$export_options"
+          /usr/libexec/PlistBuddy -c "Add :teamID string $APPLE_TEAM_ID" "$export_options"
           xcodebuild \
             -exportArchive \
             -archivePath build/PerkDrop.xcarchive \
             -exportPath build/export \
-            -exportOptionsPlist ios/ExportOptions.plist \
+            -exportOptionsPlist "$export_options" \
             -allowProvisioningUpdates \
             -authenticationKeyPath "$HOME/.appstoreconnect/private_keys/AuthKey_${APP_STORE_CONNECT_API_KEY_ID}.p8" \
             -authenticationKeyID "$APP_STORE_CONNECT_API_KEY_ID" \
