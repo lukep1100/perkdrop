@@ -1,0 +1,14 @@
+{
+  "appId": "au.perkdrop.app",
+  "appName": "PerkDrop",
+  "webDir": "mobile/www",
+  "server": {
+    "url": "https://perkdrop.au",
+    "cleartext": false
+  },
+  "ios": {
+    "contentInset": "automatic",
+    "preferredContentMode": "mobile",
+    "scheme": "PerkDrop"
+  }
+}

@@ -6,6 +6,10 @@
     "lint": "eslint pages public lib scripts tests *.config.js *.config.mjs --max-warnings=0",
     "build": "next build",
     "start": "next start",
+    "mobile:sync:ios": "capacitor sync ios",
+    "mobile:open:ios": "capacitor open ios",
+    "mobile:doctor": "capacitor doctor",
+    "test:app-store-public": "node scripts/app-store-public-smoke.mjs",
     "test:smoke": "node scripts/smoke.mjs",
     "test:harness": "node scripts/marketplace-harness.mjs",
     "test:discovery": "node --test tests/discovery-rules.test.mjs tests/notification-worker.test.mjs",
@@ -13,10 +17,13 @@
     "test:analytics": "node --test tests/analytics-contract.test.mjs",
     "test:saves": "node --test tests/saved-listings.test.mjs tests/deal-path.test.mjs",
     "test:availability": "node --test tests/availability.test.mjs tests/selected-availability.test.mjs",
+    "test:native-ios": "node --test tests/native-ios-config.test.mjs",
     "test:database": "node scripts/database-integration.mjs",
     "test": "npm run test:harness && npm run test:discovery && npm run test:availability && npm run test:inline-scripts && npm run test:analytics && npm run test:saves && npm run test:database && npm run test:smoke"
   },
   "dependencies": {
+    "@capacitor/core": "8.5.3",
+    "@capacitor/ios": "8.5.3",
     "@supabase/supabase-js": "^2.57.4",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
@@ -26,6 +33,7 @@
     "react-dom": "19.2.3"
   },
   "devDependencies": {
+    "@capacitor/cli": "8.5.3",
     "embedded-postgres": "18.4.0-beta.17",
     "eslint": "10.10.0",
     "pg": "8.16.3"

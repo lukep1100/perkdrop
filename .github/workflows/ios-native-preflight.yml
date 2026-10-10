@@ -1,0 +1,40 @@
+name: iOS native preflight
+
+on:
+  pull_request:
+    paths:
+      - 'capacitor.config.json'
+      - 'mobile/**'
+      - 'ios/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/ios-native-preflight.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'capacitor.config.json'
+      - 'mobile/**'
+      - 'ios/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/ios-native-preflight.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  ios:
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run test:native-ios
+      - run: npm run mobile:sync:ios
+      - run: xcodebuild -list -project ios/App/App.xcodeproj
