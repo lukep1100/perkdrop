@@ -10,7 +10,7 @@ Status: iOS source is prepared, production web deployment is live, and App Store
 | Bundle ID | `au.perkdrop.app` |
 | Platform | iPhone |
 | Version | `1.0` |
-| Build | `1` |
+| Build | `1` locally, GitHub run number for TestFlight workflow uploads |
 | Production URL | `https://perkdrop.au` |
 | Support URL | `https://perkdrop.au/app-support` |
 | Privacy URL | `https://perkdrop.au/privacy` |
@@ -94,10 +94,26 @@ Use real production data only. Do not use fake deals, fake venue claims or unapp
 7. Run device QA: launch, location denied, location allowed, search, map, save, directions, offline/retry.
 8. Submit for App Review.
 
+## GitHub TestFlight upload path
+
+The repo also includes a manual workflow: `.github/workflows/ios-testflight-upload.yml`.
+
+Create a protected GitHub environment named `app-store-connect`, then add these secrets:
+
+| Secret | Purpose |
+| --- | --- |
+| `APPLE_TEAM_ID` | Apple Developer Team ID for signing |
+| `APP_STORE_CONNECT_API_KEY_ID` | App Store Connect API key ID |
+| `APP_STORE_CONNECT_ISSUER_ID` | App Store Connect issuer ID |
+| `APP_STORE_CONNECT_API_KEY_P8` | Full private `.p8` key contents |
+
+After the App Store Connect app record exists for `au.perkdrop.app`, run the **iOS TestFlight upload** workflow manually. It runs the native config test, syncs Capacitor, archives the iPhone app on macOS, exports an IPA and uploads it to TestFlight. The workflow uses the GitHub run number as the iOS build number so each upload can be accepted as a new build.
+
 ## Current external blockers
 
 - Apple Developer Program must be paid/active.
 - App Store Connect app record must be created under the correct Apple account.
 - Signing requires the Apple team in Xcode.
+- GitHub TestFlight upload requires the four `app-store-connect` environment secrets above.
 - App Store screenshots require a real simulator/device capture from the signed app.
 - Apple review can still reject a web-wrapper app under minimum-functionality rules if live supply, native polish or data quality is weak.
