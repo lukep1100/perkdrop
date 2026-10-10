@@ -680,18 +680,20 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
   function chips() {
     const current = state.route;
     const primary=[
-      ['/food', 'food', 'Eat & drink'],
-      ['/experiences', 'do', 'Things to do'],
+      ['/food', 'food', 'Food & drink'],
       ['/events', 'events', 'Events'],
+      ['/free', 'free', 'Freebies'],
       ['/family', 'family', 'Family'],
       ['/beauty', 'beauty', 'Beauty'],
-      ['/free', 'free', 'Free'],
+      ['/wellness', 'beauty', 'Wellness'],
+      ['/activities', 'do', 'Activities'],
+      ['/shopping', 'shopping', 'Shopping'],
     ];
     const more=[
       ['/near-me', 'nearby', 'Nearby'],
       ['/tonight', 'tonight', 'Tonight'],
-      ['/drinks', 'drinks', 'Drinks'],
-      ['/shopping', 'shopping', 'Shopping'],
+      ['/weekend', 'events', 'Weekend'],
+      ['/experiences', 'do', 'Experiences'],
       ['/stay', 'travel', 'Travel'],
     ];
     const options = state.route === "/" ? [...primary, ['/search', 'more', 'Explore']] : [...primary, ...more];
@@ -1606,18 +1608,26 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
   function home() {
     const all=cityDeals().filter(d=>['A','B'].includes(d.qualityGrade)&&freshness(d).state==='recent');
     const tonight=all.filter(d=>availabilityMatches(d,'tonight')),
+      food=all.filter(d=>isFood(d)||isDrink(d)),
+      free=all.filter(isFree),
       events=all.filter(d=>isEvent(d)&&availabilityMatches(d,"week")),
       weekendDrops=all.filter(weekend),
       city=CITIES[state.city]?.[0]||state.city,
       primary=tonight.length?tonight:venueGroups(all).slice(0,8).flatMap(g=>g.offers);
     const personal=personalisedDeals(all);
     const primaryPlaces=new Set(venueGroups(primary).map(group=>placeKey(group.primary)));
-    const weekendPicks=weekendDrops.filter(d=>!primaryPlaces.has(placeKey(d)));
+    const foodPicks=food.filter(d=>!primaryPlaces.has(placeKey(d)));
+    const foodPlaces=new Set(venueGroups(foodPicks).map(group=>placeKey(group.primary)));
+    const freePicks=free.filter(d=>!primaryPlaces.has(placeKey(d))&&!foodPlaces.has(placeKey(d)));
+    const freePlaces=new Set(venueGroups(freePicks).map(group=>placeKey(group.primary)));
+    const weekendPicks=weekendDrops.filter(d=>!primaryPlaces.has(placeKey(d))&&!foodPlaces.has(placeKey(d))&&!freePlaces.has(placeKey(d)));
     const weekendPlaces=new Set(venueGroups(weekendPicks).map(group=>placeKey(group.primary)));
-    const eventPicks=events.filter(d=>!primaryPlaces.has(placeKey(d))&&!weekendPlaces.has(placeKey(d)));
-    const planner=`<section class="discover-intro"><div class="discover-kicker"><span class="live-dot" aria-hidden="true"></span><span>${esc(city).toUpperCase()} SHORTLIST</span></div><div class="discover-copy"><div><h1>Find something <strong>worth doing.</strong></h1><p>Deals, events and local perks with the key details clear.</p></div><div class="plan-pills" aria-label="Quick ways to browse"><a data-internal href="/tonight"><span>✦</span>Tonight</a><a data-internal href="/weekend"><span>◷</span>This weekend</a><a data-internal href="/near-me"><span>⌖</span>Near me</a></div></div>${searchBox('',`Search ${city} — food, events, places or ideas`)}${chips()}</section>`;
+    const eventPicks=events.filter(d=>!primaryPlaces.has(placeKey(d))&&!foodPlaces.has(placeKey(d))&&!freePlaces.has(placeKey(d))&&!weekendPlaces.has(placeKey(d)));
+    const summary=`${venueGroups(all).length} places · ${all.length} current ${all.length===1?'perk':'perks'}`;
+    const planner=`<section class="discover-intro"><div class="discover-kicker"><span class="live-dot" aria-hidden="true"></span><span>${esc(city).toUpperCase()} LOCAL GUIDE</span><span class="kicker-divider" aria-hidden="true"></span><span>${esc(summary)}</span></div><div class="discover-copy"><div><h1>Find something <strong>worth doing.</strong></h1><p>Swipe current local perks by place. Food, free stuff, events and plans with the key details clear before you head out.</p></div><div class="plan-pills" aria-label="Quick ways to browse"><a data-internal href="/tonight"><span>✦</span>Tonight</a><a data-internal href="/weekend"><span>◷</span>This weekend</a><a data-internal href="/near-me"><span>⌖</span>Near me</a></div></div>${searchBox('',`Search ${city} — food, events, places or ideas`)}${chips()}</section>`;
+    const mapShortcut=`<a class="map-shortcut" data-internal href="/map"><span class="map-shortcut-icon">⌖</span><span><small>LOCAL MAP</small><b>See what is near you</b><em>Food, events, free plans and current offers in one view.</em></span><i aria-hidden="true">→</i></a>`;
     const personalRail=hasPreferences()&&personal.length?dealRail('Picked for your local guide',personal,'/preferences','FOR YOU'):'<p class="personalise-link"><a href="/preferences">Personalise your local guide →</a></p>';
-    return shell(`<main class="page discover-page">${planner}${primary.length?dealRail(tonight.length?'Tonight in '+city:'Worth checking out near you',primary,tonight.length?'/tonight':'/near-me',tonight.length?'AVAILABLE TONIGHT':'YOUR LOCAL SHORTLIST'):''}${personalRail}${weekendPicks.length?dealRail('Make a weekend plan',weekendPicks,'/weekend','SAVE THIS FOR LATER'):''}${eventPicks.length?dealRail('Worth seeing this week',eventPicks,'/events','EVENTS & EXPERIENCES'):''}${!all.length?'<section class="empty"><h2>No local Drops yet</h2><p>Choose another city, or browse public offers across Australia.</p><a class="btn primary" data-internal href="/search">Explore all offers</a></section>':''}</main>`);
+    return shell(`<main class="page discover-page">${planner}${primary.length?dealRail(tonight.length?'Tonight in '+city:'Start here',primary,tonight.length?'/tonight':'/near-me',tonight.length?'AVAILABLE TONIGHT':'YOUR LOCAL SHORTLIST'):''}${foodPicks.length?dealRail('Food & drink picks',foodPicks,'/food','EAT & DRINK'):''}${freePicks.length?dealRail('Free and easy',freePicks,'/free','NO-COST PLANS'):''}${mapShortcut}${personalRail}${weekendPicks.length?dealRail('Make a weekend plan',weekendPicks,'/weekend','SAVE THIS FOR LATER'):''}${eventPicks.length?dealRail('Worth seeing this week',eventPicks,'/events','EVENTS & EXPERIENCES'):''}${!all.length?'<section class="empty"><h2>No local Drops yet</h2><p>Choose another city, or browse public offers across Australia.</p><a class="btn primary" data-internal href="/search">Explore all offers</a></section>':''}</main>`);
   }
   const MARKET_PAGES = {
     beauty: ["beauty", "Beauty & wellness", "APPOINTMENTS & SELF-CARE"],
