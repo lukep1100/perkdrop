@@ -2,7 +2,7 @@
 
 Inspected directly in the owner's signed-in App Store Connect account on 11 October 2026 UTC (the delivered build's account-local date is 12 October). This document includes the native repair/signing progress log and the review-response draft. No review reply, App Review Notes save, resubmission or customer-data deletion was performed. The repaired build has uploaded, processed and been assigned to the existing internal test group; physical-device acceptance is still required.
 
-## Current release status — 11 October 2026
+## Current release status — 12 October 2026 Adelaide time
 
 The historical progress entries below describe earlier states. This section supersedes them.
 
@@ -15,7 +15,7 @@ The historical progress entries below describe earlier states. This section supe
 | Build/upload | Native build `1.0.0 (9)` compiled, passed archive inspection, exported with Apple distribution signing, passed final signed-IPA checks and uploaded successfully with no errors at 20:38:50 UTC on 11 October. Corrected run `38172753214` is SUCCESS, pinned to repair-branch commit `4db4b5772e5eb4b0b096b1a331a26d993e280198`. It includes filter/media repair `7de19b46288bc6d68d622e09e9baeadbb57591ca`. No EAS build was started. |
 | TestFlight delivery | App Store Connect confirms `1.0.0 (9)`, binary state Validated, bundle `au.perkdrop.app`, iPhone/arm64, minimum iOS 16.4, no non-exempt encryption and the expected associated-domain entitlement with no APNs. Build ID `697436e5-6213-4d99-a9de-a085ac8c76dd` is assigned to the existing PerkDrop Internal Test group (one existing tester). The 880-character What to Test instructions were saved and visibly confirmed as Saved. No new tester or group was created. |
 | Website app links | Production now defines the Apple App ID prefix confirmed from Apple's signed build. Deployment `dpl_5iN2AW7vBPJpNdNwJoi17VK2do6j` is READY and serves the same website source `12731026d58acea5efe3595fcd150564abf3ee59`. The previously failing Apple association endpoint now returns HTTP 200 JSON for `9RUYYFS5NJ.au.perkdrop.app`, limited to public `/deals/*` links. A physical-device universal-link opening has not been demonstrated. |
-| Apple evidence | The six-part reply/Notes draft and recording guide remain prepared but unsent. A new complete physical-device recording of the actual selected repaired binary and applicable image permission evidence are still required. |
+| Catalogue correction | The approved Botanic Garden seasonal-hours correction is committed and verified on the live public listing. Source checked 12 October Adelaide time; bounded verification until 31 October, with a November recheck note. |\n| Apple evidence | The six-part reply/Notes draft and recording guide remain prepared but unsent. A new complete physical-device recording of the actual selected repaired binary and applicable image permission evidence are still required. |
 
 Signing material is kept out of this report, repository commits, screenshots and downloadable artifacts. The encrypted signing bundle has only been attached to the expressly approved Expo wizard; no final credential-save success is claimed.
 
@@ -37,24 +37,28 @@ Build 8 is currently the highest available build in App Store Connect, so this c
 
 Verified live build page: https://github.com/lukep1100/perkdrop/actions/runs/38172753214
 
-### Website verification and remaining catalogue correction
+### Website verification and completed catalogue correction
 
 After the production app-link configuration was deployed, the homepage, privacy page, app-support page and Adelaide suburb-search endpoint returned HTTP 200. The homepage also rendered in the browser with its place groups, category links, featured cards and visible licence credits. The deployment-specific error/fatal log count was empty in the inspected recent window. The drain-list API returned 404, so no claim is made that external log drains or continuous monitoring are configured.
 
-The live Botanic Garden card still shows an expired September availability label. The record's broader timing text already contains both seasons, but its structured availability windows close at 5:30pm and expired on 30 September. The official visit page, checked on 11 October, lists October–March closing at 6:30pm; weekday opening is 7:15am and weekend/public-holiday opening is 9am. A narrowly guarded correction was attempted but the database tool was aborted by the user. Read-back confirmed the old label and validity date remain. No alternative write or retry was attempted. This remains an unresolved accuracy issue, not a completed repair.
+The owner renewed approval for the prepared Botanic Garden correction on 12 October 2026 Adelaide time. After rechecking the official visit page, the narrowly guarded update completed at 2026-10-11T21:44:46.375Z. It changed exactly one record, `PD-2026-0005`: the structured seasonal label and weekday/weekend windows now close at 6:30pm, with weekday opening at 7:15am and weekend/public-holiday opening at 9am. The verification window is 11–31 October, with an explicit November recheck note. Schedule and source-check timestamps were refreshed.
 
 Official source: https://www.botanicgardens.sa.gov.au/visit/adelaide-botanic-garden/plan-your-visit
 
-Pending correction for record `PD-2026-0005`:
+Completed correction:
 
-| Field | Current value | Prepared correction |
+| Field | Previous value | Verified corrected value |
 | --- | --- | --- |
 | Availability label | September hours ending 5:30pm | October–March hours ending 6:30pm; weekday opening 7:15am, weekend/public-holiday opening 9am |
 | Recurring window close | 17:30 | 18:30 |
 | Validity | Expired 30 September 2026 | 11–31 October 2026, then recheck the official source |
-| Price / images / permissions | Existing values | Preserve; no new price, media or permission claim |
+| Price / images / permissions | Existing values | Preserved; no new price, media or permission claim |
 
-The proposed write checks both the record ID and the exact old September label/validity date, so a concurrently corrected record is not overwritten. Its public-holiday note remains explicit; the bounded October validity avoids implying an unverified long-term holiday calendar. The owner's aborted database update is respected. No other method will be used to apply it without renewed authorization.
+The write required the exact record ID, old September label, old validity date and previously observed update timestamp. An in-query comparison confirmed every field outside availability and verification/update timestamps was preserved. A separate database read-back confirmed the committed values. The live public listing then rendered the new October–March label, the public-holiday note and “Source checked 12 Oct 2026”; its page returned HTTP 200. No new app binary or website source deployment was needed for this catalogue-only correction.
+
+Verified public listing: https://perkdrop.au/deals/pd-2026-0005-free-entry-every-day
+
+The earlier aborted database update was not bypassed. This correction was only applied after renewed explicit approval. Physical-iPhone acceptance and complete Apple review evidence remain pending.
 
 The App Store Connect browser session expired before the second build's processing verification. The owner completed Apple's secure sign-in flow, and the account now visibly shows Luke Pranter on the PerkDrop TestFlight page. No browser authentication state or credential value was extracted into CI or local commands.
 
