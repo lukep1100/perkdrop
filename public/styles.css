@@ -1199,3 +1199,17 @@ body{background:radial-gradient(900px 520px at 50% -220px,rgba(126,70,255,.19),t
 .offer-choice--plain{grid-template-columns:1fr}
 .offer-choice--plain .offer-choice-copy{padding:17px 20px}
 .offer-choice--plain .offer-choice-actions{padding-top:7px}
+
+/* v48 — native navigation owns the frame; poster labels stay over the image. */
+html[data-native-shell] .topbar,
+html[data-native-shell] .bottom-nav,
+html[data-native-shell] .site-footer{display:none!important}
+html[data-native-shell] .page{padding-bottom:24px}
+html[data-native-shell] .detail{padding-bottom:24px}
+html[data-native-shell="map"] #map-location,
+html[data-native-shell="map"] #search-form,
+html[data-native-shell] [data-save-kind="merchant"]{display:none!important}
+html[data-native-shell="map"] .map-heading{margin-top:12px}
+.deal-card.poster-card .badge{position:absolute;top:12px;left:12px;bottom:auto;margin:0;z-index:5}
+.deal-card.poster-card .type-pill{position:absolute;top:64px;right:12px;left:auto;bottom:auto;margin:0;z-index:5}
+.deal-rail .poster-card .type-pill{top:13px;right:13px}
