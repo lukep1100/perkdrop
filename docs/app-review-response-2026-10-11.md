@@ -1,6 +1,6 @@
 # PerkDrop — Apple review diagnosis and response draft
 
-Inspected directly in the owner's signed-in App Store Connect account on 11 October 2026. This document is a draft and includes the native repair/signing progress log. No review reply, metadata save, resubmission, repaired signed build or customer-data deletion was performed.
+Inspected directly in the owner's signed-in App Store Connect account on 11 October 2026. This document is a draft and includes the native repair/signing progress log. No review reply, review metadata save, resubmission or customer-data deletion was performed. Repaired TestFlight delivery is not yet confirmed.
 
 ## Current release status — 11 October 2026
 
@@ -12,7 +12,8 @@ The historical progress entries below describe earlier states. This section supe
 | Verification | All 73 mobile tests pass, including 15 new image/credit tests. iOS JavaScript/Hermes export succeeds: 681 modules, approximately 1.7 MB. `git diff --check` passes. This is not a signed native build or device QA. |
 | Apple signing | With the owner's explicit signing approval, Apple issued a distribution certificate expiring 11 October 2027 and an App Store profile for `9RUYYFS5NJ.au.perkdrop.app`. The downloaded profile matches the generated private key/certificate, has associated domains and no APNs entitlement, and is not a development profile. Existing certificates/profiles were not revoked or changed. |
 | Expo setup | GitHub remains connected with `/mobile` as base directory. The encrypted certificate attachment/password were accepted at credential-wizard step 4, but the credentials have not been finalized. The correctly named `.mobileprovision` upload at step 5 was repeatedly rejected by the cloud-browser permission control as declined, despite the owner's chat approvals. No workaround or alternate upload mechanism was attempted. |
-| Build/upload | Native build `1.0.0 (9)` is now running through the repository's existing Apple CI environment, run `38123255472`, pinned to repair-branch commit `752fca3fe094335a02c3d5e61d3616ce84586882`. This includes the filter/media repair `7de19b46288bc6d68d622e09e9baeadbb57591ca`. Dependency installation, 73 tests and Expo iOS project generation passed; signing/upload success is not yet established. No EAS build was started. |
+| Build/upload | Native build `1.0.0 (9)` is running through the existing Apple CI environment, corrected run `38172753214`, pinned to repair-branch commit `4db4b5772e5eb4b0b096b1a331a26d993e280198`. The earlier run compiled and exported successfully but failed the final associated-domain entitlement check, so its upload was skipped. This candidate includes filter/media repair `7de19b46288bc6d68d622e09e9baeadbb57591ca`. No EAS build was started. |
+| Website app links | Production now defines the Apple App ID prefix confirmed from Apple's signed build. Deployment `dpl_5iN2AW7vBPJpNdNwJoi17VK2do6j` is READY and serves the same website source `12731026d58acea5efe3595fcd150564abf3ee59`. The previously failing Apple association endpoint now returns HTTP 200 JSON for `9RUYYFS5NJ.au.perkdrop.app`, limited to public `/deals/*` links. A physical-device universal-link opening has not been demonstrated. |
 | Apple evidence | The six-part reply/Notes draft and recording guide remain prepared but unsent. A new complete physical-device recording of the actual selected repaired binary and applicable image permission evidence are still required. |
 
 Signing material is kept out of this report, repository commits, screenshots and downloadable artifacts. The encrypted signing bundle has only been attached to the expressly approved Expo wizard; no final credential-save success is claimed.
@@ -21,11 +22,21 @@ Signing material is kept out of this report, repository commits, screenshots and
 
 The existing `iOS TestFlight upload` workflow on `main` successfully archived, exported and uploaded legacy build 4 on 10 October (run `38016523057`). Its existing `app-store-connect` environment already contains the owner's Apple API key/team configuration. A native version of that same workflow path has been saved on the repair branch only; the production branch and legacy workflow were not overwritten.
 
-Run `38123255472` uses the existing environment without creating an API key, changing access permissions, copying secrets into the repository, or uploading the browser-denied Expo profile/P12 by another mechanism. It generates the Expo iOS project on macOS 26, compiles the iPhone archive, checks embedded JavaScript and privacy manifests, exports with existing Apple automatic signing, verifies signed entitlements, and only then uploads to TestFlight. It does not retain a binary or credential as a GitHub artifact. The temporary API-key file is removed in an always-run cleanup step.
+The workflow uses the existing environment without creating an API key, changing access permissions, copying secrets into the repository, or uploading the browser-denied Expo profile/P12 by another mechanism. It generates the Expo iOS project on macOS 26, compiles the iPhone archive, checks embedded JavaScript and privacy manifests, exports with existing Apple automatic signing, verifies signed entitlements, and only then uploads to TestFlight. It does not retain a binary or credential as a GitHub artifact. The temporary API-key file is removed in an always-run cleanup step.
+
+First run `38123255472` passed compilation, archive inspection and Apple distribution export. Its final check found that the exported IPA had lost the associated-domain capability from the unsigned archive; the upload was correctly skipped, and cleanup succeeded. The corrected workflow retains the reviewed source entitlements in a temporary ad-hoc archive signature before Apple's actual distribution export. This temporary archive is not distributable. All final signed-IPA checks remain mandatory, including correct team/application identity, disabled development debugging, no APNs and the associated domain. Corrected run `38172753214` started on the exact workflow-fix commit; build 9 was not consumed by the first attempt.
 
 Build 8 is currently the highest available build in App Store Connect, so this candidate is build 9. If Apple accepts an upload, never rerun with the same number; use a higher unused number for subsequent candidates and align the EAS remote build counter before returning to EAS. Successful CI upload alone does not establish Apple processing, installed-device quality or review approval.
 
-Verified live build page: https://github.com/lukep1100/perkdrop/actions/runs/38123255472
+Verified live build page: https://github.com/lukep1100/perkdrop/actions/runs/38172753214
+
+### Website verification and remaining catalogue correction
+
+After the production app-link configuration was deployed, the homepage, privacy page, app-support page and Adelaide suburb-search endpoint returned HTTP 200. The homepage also rendered in the browser with its place groups, category links, featured cards and visible licence credits. The deployment-specific error/fatal log count was empty in the inspected recent window. The drain-list API returned 404, so no claim is made that external log drains or continuous monitoring are configured.
+
+The live Botanic Garden card still shows an expired September availability label. The record's broader timing text already contains both seasons, but its structured availability windows close at 5:30pm and expired on 30 September. The official visit page, checked on 11 October, lists October–March closing at 6:30pm; weekday opening is 7:15am and weekend/public-holiday opening is 9am. A narrowly guarded correction was attempted but the database tool was aborted by the user. Read-back confirmed the old label and validity date remain. No alternative write or retry was attempted. This remains an unresolved accuracy issue, not a completed repair.
+
+Official source: https://www.botanicgardens.sa.gov.au/visit/adelaide-botanic-garden/plan-your-visit
 
 ### Live catalogue and image check
 
