@@ -38,6 +38,19 @@ The live Botanic Garden card still shows an expired September availability label
 
 Official source: https://www.botanicgardens.sa.gov.au/visit/adelaide-botanic-garden/plan-your-visit
 
+Pending correction for record `PD-2026-0005`:
+
+| Field | Current value | Prepared correction |
+| --- | --- | --- |
+| Availability label | September hours ending 5:30pm | October–March hours ending 6:30pm; weekday opening 7:15am, weekend/public-holiday opening 9am |
+| Recurring window close | 17:30 | 18:30 |
+| Validity | Expired 30 September 2026 | 11–31 October 2026, then recheck the official source |
+| Price / images / permissions | Existing values | Preserve; no new price, media or permission claim |
+
+The proposed write checks both the record ID and the exact old September label/validity date, so a concurrently corrected record is not overwritten. Its public-holiday note remains explicit; the bounded October validity avoids implying an unverified long-term holiday calendar. The owner's aborted database update is respected. No other method will be used to apply it without renewed authorization.
+
+The App Store Connect browser session expired before the second build's upload/processing verification. Its sign-in form is open with Apple's Email or Phone Number and Password method. Secure sign-in is required to inspect processing, manage the existing internal test group, or change review metadata. Build CI continues using its independently configured Apple credentials; no browser authentication state is extracted.
+
 ### Live catalogue and image check
 
 A read-only call to the same public catalogue endpoint used by the native app returned HTTP 200 and 216 offers. Of those, 32 had no image URL and 149 referenced `venue-unavailable.svg`; an image URL alone is not a genuine, decoded or permission-cleared photo. Within 50 km straight-line distance of the native Adelaide default, 32 offers were returned across 21 merchant identities; 20 offers had no non-placeholder image. These are metadata counts at inspection time, not an availability, rights or complete image-download certification.
