@@ -1,6 +1,37 @@
 # PerkDrop — Apple review diagnosis and response draft
 
-Inspected directly in the owner's signed-in App Store Connect account on 11 October 2026. This document is a draft. No review reply, metadata save, resubmission, new build or customer-data deletion was performed.
+Inspected directly in the owner's signed-in App Store Connect account on 11 October 2026. This document is a draft and includes the native repair/signing progress log. No review reply, metadata save, resubmission, repaired signed build or customer-data deletion was performed.
+
+## Current release status — 11 October 2026
+
+The historical progress entries below describe earlier states. This section supersedes them.
+
+| Stage | Confirmed current state |
+| --- | --- |
+| Native repair | Filter sizing is repaired in source. Venue-card image selection and source/licence links are also saved on `fix/ios-filter-sizing-20261011`, commit `7de19b46288bc6d68d622e09e9baeadbb57591ca`. Neither change has been verified on a physical iPhone. |
+| Verification | All 73 mobile tests pass, including 15 new image/credit tests. iOS JavaScript/Hermes export succeeds: 681 modules, approximately 1.7 MB. `git diff --check` passes. This is not a signed native build or device QA. |
+| Apple signing | With the owner's explicit signing approval, Apple issued a distribution certificate expiring 11 October 2027 and an App Store profile for `9RUYYFS5NJ.au.perkdrop.app`. The downloaded profile matches the generated private key/certificate, has associated domains and no APNs entitlement, and is not a development profile. Existing certificates/profiles were not revoked or changed. |
+| Expo setup | GitHub remains connected with `/mobile` as base directory. The encrypted certificate attachment/password were accepted at credential-wizard step 4, but the credentials have not been finalized. The correctly named `.mobileprovision` upload at step 5 was repeatedly rejected by the cloud-browser permission control as declined, despite the owner's chat approvals. No workaround or alternate upload mechanism was attempted. |
+| Build/upload | No repaired EAS build has started and no repaired TestFlight binary has been uploaded. The existing staged build still references the earlier commit `ab2199ad1c52449cd800f4eb7979e88d826d4e21`; update it to the repaired candidate above after signing is complete. App Store submission credentials have not yet been verified. |
+| Apple evidence | The six-part reply/Notes draft and recording guide remain prepared but unsent. A new complete physical-device recording of the actual selected repaired binary and applicable image permission evidence are still required. |
+
+Signing material is kept out of this report, repository commits, screenshots and downloadable artifacts. The encrypted signing bundle has only been attached to the expressly approved Expo wizard; no final credential-save success is claimed.
+
+### Live catalogue and image check
+
+A read-only call to the same public catalogue endpoint used by the native app returned HTTP 200 and 216 offers. Of those, 32 had no image URL and 149 referenced `venue-unavailable.svg`; an image URL alone is not a genuine, decoded or permission-cleared photo. Within 50 km straight-line distance of the native Adelaide default, 32 offers were returned across 21 merchant identities; 20 offers had no non-placeholder image. These are metadata counts at inspection time, not an availability, rights or complete image-download certification.
+
+Harry's Bar on Grenfell and The Reserve Social, shown in the owner's screenshots, still have no image in this API response. A frontend repair cannot supply rights to photos that are missing. Do not use random stock/AI images as though they depict these actual venues or advertise that every listing now has a cleared photo.
+
+The native repair selects an existing usable image from the same venue/branch within the displayed card group, rather than allowing its first placeholder to hide a later real photo. It does not borrow from other branches or fabricate missing media. Image attribution is coupled to the displayed photo, SVG placeholders are not represented as venue photographs, and visible Photo source/Licence controls link to safe public URLs. The Union exterior is labelled as the supplied venue photograph, not an uncropped meal poster. The original `public/images/pilot/CREDITS.md` records permission for that exact exterior. Actual source/licence and underlying permission evidence still need to be matched to final demonstration assets.
+
+### Read-only backend/security check
+
+Supabase lists PerkDrop as `ACTIVE_HEALTHY`. Its security advisor returned 78 informational RLS-without-policy findings and one warning: leaked-password protection is disabled. For the six inspected private tables (consumer/device/save/plan/API-credential/media ledger), RLS is enabled and both `anon` and `authenticated` lack direct SELECT privileges; no permissive policies were added merely to silence the advisor. This narrow check is not a complete security certification and does not prove every privileged API or database object is safe.
+
+The native guest identity uses SecureStore and backend-authorized operations. Existing private-access tests cover late responses across pairing/deletion, and deletion only clears access after server-confirmed success. No production guest/account deletion, database/schema mutation, authentication-setting change or customer-data modification was performed during these checks.
+
+Advisor references: [RLS without policies](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy) and [leaked-password protection](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection). Record the warning for a separately verified authentication hardening pass; do not claim it has been fixed.
 
 ## Confirmed rejection
 
