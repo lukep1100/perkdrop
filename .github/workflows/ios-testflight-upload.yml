@@ -1,0 +1,215 @@
+name: iOS TestFlight upload
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_number:
+        description: 'Unused iOS build number, greater than the latest TestFlight build'
+        required: true
+        default: '9'
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: perkdrop-testflight-upload
+  cancel-in-progress: false
+
+jobs:
+  upload:
+    if: github.repository == 'lukep1100/perkdrop'
+    runs-on: macos-26
+    timeout-minutes: 60
+    environment: app-store-connect
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      EXPO_PUBLIC_TRAFFIC_TYPE: public
+      EXPO_PUBLIC_PUSH_ENABLED: 'false'
+      PERKDROP_BUILD_NUMBER: ${{ inputs.build_number || '9' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - name: Verify revision, toolchain and build number
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+          python3 - <<'PY'
+          import os, subprocess
+          number = os.environ['PERKDROP_BUILD_NUMBER']
+          assert number.isascii() and number.isdecimal() and 9 <= int(number) <= 9999
+          sdk = subprocess.check_output(['xcrun', '--sdk', 'iphoneos', '--show-sdk-version'], text=True).strip()
+          assert int(sdk.split('.')[0]) >= 26, 'Use iOS 26 SDK or later.'
+          print('Candidate version: 1.0.0 (' + number + ')')
+          PY
+      - run: npm ci --no-audit --no-fund
+        working-directory: mobile
+      - run: node --test tests/*.test.mjs
+        working-directory: mobile
+      - name: Set the candidate build number and generate the native project
+        working-directory: mobile
+        run: |
+          set -euo pipefail
+          node - <<'JS'
+          const fs = require('node:fs');
+          const file = 'app.json';
+          const app = JSON.parse(fs.readFileSync(file, 'utf8'));
+          app.expo.ios.buildNumber = process.env.PERKDROP_BUILD_NUMBER;
+          fs.writeFileSync(file, JSON.stringify(app, null, 2) + '\n');
+          JS
+          npx expo prebuild --platform ios --no-install
+      - name: Resolve iOS dependencies
+        run: pod install
+        working-directory: mobile/ios
+      - name: Archive the repaired native app
+        working-directory: mobile/ios
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          test -n "$APPLE_TEAM_ID"
+          workspace=$(find . -maxdepth 1 -name '*.xcworkspace' -type d -print -quit)
+          test -n "$workspace"
+          xcodebuild -workspace "$workspace" -scheme PerkDrop -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/PerkDrop.xcarchive" \
+            -derivedDataPath "$RUNNER_TEMP/perkdrop-derived" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            CURRENT_PROJECT_VERSION="$PERKDROP_BUILD_NUMBER" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+            archive > "$RUNNER_TEMP/perkdrop-ios-build.log" 2>&1 || {
+              tail -n 220 "$RUNNER_TEMP/perkdrop-ios-build.log"
+              exit 1
+            }
+          tail -n 35 "$RUNNER_TEMP/perkdrop-ios-build.log"
+      - name: Inspect native archive before signing
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, pathlib, plistlib
+          archive = pathlib.Path(os.environ['RUNNER_TEMP']) / 'PerkDrop.xcarchive'
+          apps = list((archive / 'Products/Applications').glob('*.app'))
+          assert len(apps) == 1
+          app = apps[0]
+          with (app / 'Info.plist').open('rb') as f:
+              info = plistlib.load(f)
+          assert info['CFBundleIdentifier'] == 'au.perkdrop.app'
+          assert info['CFBundleShortVersionString'] == '1.0.0'
+          assert info['CFBundleVersion'] == os.environ['PERKDROP_BUILD_NUMBER']
+          assert (app / info['CFBundleExecutable']).stat().st_size > 0
+          assert (app / 'main.jsbundle').stat().st_size > 0
+          assert info.get('NSLocationWhenInUseUsageDescription')
+          assert 'location' not in info.get('UIBackgroundModes', [])
+          assert info.get('ITSAppUsesNonExemptEncryption') is False
+          assert int(str(info.get('DTSDKName', 'iphoneos0')).replace('iphoneos', '').split('.')[0]) >= 26
+          manifests = list(app.rglob('PrivacyInfo.xcprivacy'))
+          assert manifests
+          for path in manifests:
+              with path.open('rb') as f:
+                  plistlib.load(f)
+          print('NATIVE ARCHIVE VERIFIED:', info['CFBundleIdentifier'], info['CFBundleVersion'], info['DTSDKName'])
+          print('Privacy manifests:', len(manifests))
+          PY
+      - name: Prepare the existing App Store Connect key
+        env:
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_P8: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          test -n "$APP_STORE_CONNECT_API_KEY_ID"
+          test -n "$APP_STORE_CONNECT_ISSUER_ID"
+          test -n "$APP_STORE_CONNECT_API_KEY_P8"
+          test -n "$APPLE_TEAM_ID"
+          umask 077
+          mkdir -p "$HOME/.appstoreconnect/private_keys"
+          printf '%s' "$APP_STORE_CONNECT_API_KEY_P8" > "$HOME/.appstoreconnect/private_keys/AuthKey_${APP_STORE_CONNECT_API_KEY_ID}.p8"
+          python3 - <<'PY'
+          import os, pathlib, plistlib
+          options = {'method': 'app-store-connect', 'signingStyle': 'automatic',
+                     'teamID': os.environ['APPLE_TEAM_ID'], 'stripSwiftSymbols': True,
+                     'uploadSymbols': True, 'manageAppVersionAndBuildNumber': False}
+          with (pathlib.Path(os.environ['RUNNER_TEMP']) / 'ExportOptions.plist').open('wb') as f:
+              plistlib.dump(options, f)
+          PY
+      - name: Export the signed IPA through existing Apple automatic signing
+        env:
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/PerkDrop.xcarchive" \
+            -exportPath "$RUNNER_TEMP/perkdrop-export" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$HOME/.appstoreconnect/private_keys/AuthKey_${APP_STORE_CONNECT_API_KEY_ID}.p8" \
+            -authenticationKeyID "$APP_STORE_CONNECT_API_KEY_ID" \
+            -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID"
+      - name: Verify the signed distribution binary
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, pathlib, plistlib, subprocess, zipfile
+          root = pathlib.Path(os.environ['RUNNER_TEMP'])
+          ipas = list((root / 'perkdrop-export').glob('*.ipa'))
+          assert len(ipas) == 1
+          destination = root / 'perkdrop-signed-check'
+          with zipfile.ZipFile(ipas[0]) as ipa:
+              ipa.extractall(destination)
+          apps = list((destination / 'Payload').glob('*.app'))
+          assert len(apps) == 1
+          app = apps[0]
+          subprocess.run(['codesign', '--verify', '--deep', '--strict', str(app)], check=True)
+          with (app / 'Info.plist').open('rb') as f:
+              info = plistlib.load(f)
+          assert info['CFBundleIdentifier'] == 'au.perkdrop.app'
+          assert info['CFBundleVersion'] == os.environ['PERKDROP_BUILD_NUMBER']
+          assert (app / 'main.jsbundle').stat().st_size > 0
+          raw = subprocess.check_output(['codesign', '-d', '--entitlements', ':-', str(app)], stderr=subprocess.DEVNULL)
+          entitlements = plistlib.loads(raw)
+          team = os.environ['APPLE_TEAM_ID']
+          assert entitlements['application-identifier'] == team + '.au.perkdrop.app'
+          assert entitlements.get('get-task-allow') is False
+          assert entitlements.get('com.apple.developer.team-identifier') == team
+          assert 'aps-environment' not in entitlements, 'Remote push is disabled.'
+          assert 'applinks:perkdrop.au' in entitlements.get('com.apple.developer.associated-domains', [])
+          print('SIGNED IPA VERIFIED:', info['CFBundleIdentifier'], info['CFBundleShortVersionString'], info['CFBundleVersion'])
+          PY
+      - name: Upload the repaired native build to TestFlight
+        env:
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          ipa=$(find "$RUNNER_TEMP/perkdrop-export" -maxdepth 1 -name '*.ipa' -print -quit)
+          test -n "$ipa"
+          xcrun altool --upload-app --type ios --file "$ipa" \
+            --apiKey "$APP_STORE_CONNECT_API_KEY_ID" --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID"
+          {
+            echo '## Repaired native app uploaded to TestFlight'
+            echo "Revision: $GITHUB_SHA"
+            echo "Version: 1.0.0 ($PERKDROP_BUILD_NUMBER)"
+            echo 'Signed identity, embedded JavaScript, privacy manifests and disabled APNs were verified before upload.'
+            echo 'Apple processing, physical-device testing and App Review remain separate steps.'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Remove the temporary API key
+        if: always()
+        env:
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+        run: |
+          if [ -n "$APP_STORE_CONNECT_API_KEY_ID" ]; then
+            rm -f "$HOME/.appstoreconnect/private_keys/AuthKey_${APP_STORE_CONNECT_API_KEY_ID}.p8"
+          fi
