@@ -119,6 +119,32 @@ jobs:
           print('NATIVE ARCHIVE VERIFIED:', info['CFBundleIdentifier'], info['CFBundleVersion'], info['DTSDKName'])
           print('Privacy manifests:', len(manifests))
           PY
+      - name: Preserve native capabilities for automatic distribution export
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, pathlib, plistlib, subprocess
+          root = pathlib.Path(os.environ['RUNNER_TEMP'])
+          apps = list((root / 'PerkDrop.xcarchive/Products/Applications').glob('*.app'))
+          assert len(apps) == 1
+          app = apps[0]
+          sources = list(pathlib.Path('mobile/ios').glob('*/*.entitlements'))
+          assert len(sources) == 1
+          with sources[0].open('rb') as f:
+              entitlements = plistlib.load(f)
+          assert 'aps-environment' not in entitlements
+          assert 'applinks:perkdrop.au' in entitlements.get('com.apple.developer.associated-domains', [])
+          # An unsigned archive has no signed entitlement payload for the exporter.
+          # Temporary ad-hoc signatures preserve the reviewed native capabilities.
+          # This archive cannot be distributed; Apple signs the exported IPA next.
+          for framework in sorted(app.rglob('*.framework'), key=lambda p: len(p.parts), reverse=True):
+              subprocess.run(['codesign', '--force', '--sign', '-', str(framework)], check=True)
+          subprocess.run(['codesign', '--force', '--sign', '-', '--entitlements', str(sources[0]), str(app)], check=True)
+          raw = subprocess.check_output(['codesign', '-d', '--entitlements', ':-', str(app)], stderr=subprocess.DEVNULL)
+          retained = plistlib.loads(raw)
+          assert retained == entitlements
+          print('Native associated-domain capability retained for distribution export.')
+          PY
       - name: Prepare the existing App Store Connect key
         env:
           APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
@@ -185,7 +211,7 @@ jobs:
           assert entitlements.get('get-task-allow') is False
           assert entitlements.get('com.apple.developer.team-identifier') == team
           assert 'aps-environment' not in entitlements, 'Remote push is disabled.'
-          assert 'applinks:perkdrop.au' in entitlements.get('com.apple.developer.associated-domains', [])
+          assert 'applinks:perkdrop.au' in entitlements.get('com.apple.developer.associated-domains', []), 'The signed IPA must preserve associated domains.'
           print('SIGNED IPA VERIFIED:', info['CFBundleIdentifier'], info['CFBundleShortVersionString'], info['CFBundleVersion'])
           PY
       - name: Upload the repaired native build to TestFlight
