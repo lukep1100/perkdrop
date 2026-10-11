@@ -6,7 +6,7 @@ on:
       build_number:
         description: 'Unused iOS build number, greater than the latest TestFlight build'
         required: true
-        default: '9'
+        default: '10'
         type: string
 
 permissions:
@@ -27,7 +27,8 @@ jobs:
       EXPO_NO_TELEMETRY: '1'
       EXPO_PUBLIC_TRAFFIC_TYPE: public
       EXPO_PUBLIC_PUSH_ENABLED: 'false'
-      PERKDROP_BUILD_NUMBER: ${{ inputs.build_number || '9' }}
+      EXPO_PUBLIC_BUILD_NUMBER: ${{ inputs.build_number || '10' }}
+      PERKDROP_BUILD_NUMBER: ${{ inputs.build_number || '10' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -46,7 +47,7 @@ jobs:
           python3 - <<'PY'
           import os, subprocess
           number = os.environ['PERKDROP_BUILD_NUMBER']
-          assert number.isascii() and number.isdecimal() and 9 <= int(number) <= 9999
+          assert number.isascii() and number.isdecimal() and 10 <= int(number) <= 9999
           sdk = subprocess.check_output(['xcrun', '--sdk', 'iphoneos', '--show-sdk-version'], text=True).strip()
           assert int(sdk.split('.')[0]) >= 26, 'Use iOS 26 SDK or later.'
           print('Candidate version: 1.0.0 (' + number + ')')
@@ -55,6 +56,8 @@ jobs:
         working-directory: mobile
       - run: node --test tests/*.test.mjs
         working-directory: mobile
+      - name: Verify the embedded map navigation and save contract
+        run: node --test tests/native-shell.test.mjs
       - name: Set the candidate build number and generate the native project
         working-directory: mobile
         run: |
