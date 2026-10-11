@@ -8,7 +8,7 @@ import {analyticsContext,setCampaign,track} from './src/analytics';
 import {fetchJson} from './src/http.mjs';
 import {readCatalogueCache,writeCatalogueCache} from './src/catalogue-cache';
 import {safeWebUrl,parseIncomingLink,listingEnded,passTime,SITE} from './src/release-rules.mjs';
-import {observeNotificationOpens,reconcileNotificationPermission} from './src/notifications';
+import {observeNotificationOpens,reconcileNotificationPermission,observePushTokenChanges} from './src/notifications';
 import {AppErrorBoundary,LoadingCards,WelcomeSheet,SettingsSheet,NotificationControls} from './src/ReleaseUI';
 import {availabilityMatches,scheduleLabel} from '../public/availability.mjs';
 import {venueKey} from '../public/venue-identity.mjs';
@@ -72,7 +72,7 @@ function PerkDropApp(){
  };
  useEffect(()=>{let disposed=false;Linking.getInitialURL().then(url=>{if(!disposed&&url)receiveLink.current(url);}).catch(()=>{});const listener=Linking.addEventListener('url',({url})=>receiveLink.current(url));const stop=observeNotificationOpens(url=>receiveLink.current(url),()=>setError('That notification has expired. Check the current listings.'));return()=>{disposed=true;listener.remove();stop();};},[]);
  useEffect(()=>{if(!pendingLink||loading)return;const route=pendingLink;setPendingLink(null);const item=currentItems.current.find(d=>{try{return new URL(d.detail||SITE).pathname===route.path;}catch{return false;}});if(item){setQuantity(1);setSelected(item);track('deal_open',{deal_id:item.id});}else{setSelected(null);setWebUrl(SITE+route.path);}},[pendingLink,loading,items]);
- useEffect(()=>{const listener=AppState.addEventListener('change',state=>{if(state==='active'){reconcileNotificationPermission().catch(()=>{});load(true);}});reconcileNotificationPermission().catch(()=>{});return()=>listener.remove();},[load]);
+ useEffect(()=>{const stopTokens=observePushTokenChanges();const listener=AppState.addEventListener('change',state=>{if(state==='active'){reconcileNotificationPermission().catch(()=>{});load(true);}});reconcileNotificationPermission().catch(()=>{});return()=>{listener.remove();stopTokens();};},[load]);
  useEffect(()=>{if(!selected)return;const next=items.find(item=>item.id===selected.id);if(next&&next!==selected)setSelected(next);else if(!next&&!loading){setSelected(null);setError('This listing is no longer in the current catalogue.');}},[items,selected,loading]);
  async function dismissWelcome(action){setWelcome(false);await SecureStore.setItemAsync('perkdrop_welcome_v1','seen').catch(()=>{});if(action==='area')setShowArea(true);if(action==='near')useNearby();if(action==='adelaide')setPoint(ADELAIDE);}
  async function findArea(){if(areaBusy)return;setAreaBusy(true);try{const data=await fetchJson(SITE+'/api/areas?q='+encodeURIComponent(areaQuery));if(!Array.isArray(data.areas))throw Error();setAreas(data.areas);setError(data.areas.length?'':'No matching suburb. Try a suburb name or postcode.');}catch{setError('Area search is unavailable. Retry or use Near me.');}finally{setAreaBusy(false);}}

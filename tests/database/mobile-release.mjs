@@ -48,6 +48,27 @@ export async function runMobileReleaseChecks(pool,check) {
     const result=(await pool.query("select has_table_privilege('anon','mobile_push_subscriptions','SELECT') as token_read,has_function_privilege('anon','mobile_delete_consumer(text)','EXECUTE') as can_delete,has_function_privilege('authenticated','mobile_register_push(text,text,text,jsonb)','EXECUTE') as can_register")).rows[0];
     assert.equal(result.token_read,false);assert.equal(result.can_delete,false);assert.equal(result.can_register,false);
   });
+  const refresh=async(hash,consumer,nextToken)=>pool.query(`update mobile_push_subscriptions set expo_token=$3,updated_at=now()
+    where device_hash=$1 and consumer_id=$2 and enabled=true and platform='ios' returning id`,[hash,consumer,nextToken]);
+  await check('push token refresh preserves opt-in evidence, preferences and the weekly reservation',async()=>{
+    await pool.query('select mobile_register_push($1,$2,$3,$4)',[a,token,'ios',prefs]);
+    await pool.query("update mobile_push_subscriptions set last_sent_at=now()-interval '1 day' where device_hash=$1",[a]);
+    const before=(await pool.query('select * from mobile_push_subscriptions where device_hash=$1',[a])).rows[0];
+    assert.equal((await refresh(a,ca,'ExpoPushToken['+randomBytes(16).toString('hex')+']')).rowCount,1);
+    const after=(await pool.query('select * from mobile_push_subscriptions where device_hash=$1',[a])).rows[0];
+    assert.equal(after.enabled,true);assert.deepEqual(after.preferences,before.preferences);
+    assert.deepEqual(after.consent_at,before.consent_at);assert.deepEqual(after.last_sent_at,before.last_sent_at);
+  });
+  await check('push refresh cannot create a registration, steal another account or reverse opt-out',async()=>{
+    const nextToken='ExpoPushToken['+randomBytes(16).toString('hex')+']';
+    assert.equal((await refresh(a,cb,nextToken)).rowCount,0);
+    assert.equal((await refresh(randomBytes(32).toString('hex'),ca,nextToken)).rowCount,0);
+    await pool.query('update mobile_push_subscriptions set enabled=false where device_hash=$1',[a]);
+    assert.equal((await refresh(a,ca,nextToken)).rowCount,0);
+    assert.equal((await pool.query('select enabled from mobile_push_subscriptions where device_hash=$1',[a])).rows[0].enabled,false);
+    const access=(await pool.query("select has_table_privilege('anon','mobile_push_subscriptions','UPDATE') as anon_update,has_table_privilege('authenticated','mobile_push_subscriptions','UPDATE') as user_update")).rows[0];
+    assert.equal(access.anon_update,false);assert.equal(access.user_update,false);
+  });
   await check('web device revocation immediately disables native notifications',async()=>{
     await pool.query('select mobile_register_push($1,$2,$3,$4)',[a,token,'ios',prefs]);
     await pool.query("insert into marketplace_devices(credential_hash,consumer_id,label) values($1,$2,'isolated native test') on conflict(credential_hash) do update set revoked_at=null",[a,ca]);

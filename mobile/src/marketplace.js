@@ -35,16 +35,20 @@ export async function mobileService(action, body = {}) {
   if (action === 'capabilities') return request('perkdrop-mobile-device', action, body);
   return privateRequest('perkdrop-mobile-device', action, body);
 }
+// Protect the whole permission/token/network sequence, not just each request.
+export const withPrivateAccess = operation => access.run(operation);
 export async function connectDevice(token) {
   if (!/^[a-f0-9]{64}$/.test(token || '')) throw Error('Invalid device link.');
   const finish = access.beginChange();
   try {
+    await access.waitForPending();
     // Settle any previous SecureStore initialisation before replacing the key.
     const previous = await identity();
-    if (await SecureStore.getItemAsync('perkdrop_push_optin_v1') === 'true') {
-      await request('perkdrop-mobile-device', 'push_disable', {}, previous);
-      await SecureStore.deleteItemAsync('perkdrop_push_optin_v1');
-    }
+    // A registration may have reached the server before its local consent flag
+    // was written. Disable it after old requests settle, regardless of that flag.
+    await request('perkdrop-mobile-device', 'push_disable', {}, previous);
+    await SecureStore.deleteItemAsync('perkdrop_push_optin_v1');
+    await SecureStore.deleteItemAsync('perkdrop_push_disable_pending_v1');
     const value = newCredential();
     await request('perkdrop-marketplace', 'device_connect', { token, new_credential: value, label: 'PerkDrop app' });
     await SecureStore.setItemAsync(KEY, value);
@@ -54,6 +58,7 @@ export async function connectDevice(token) {
 export async function deleteAccount() {
   const finish = access.beginChange();
   try {
+    await access.waitForPending();
     const token = await identity();
     const result = await request('perkdrop-mobile-device', 'delete_account', { confirmation: 'DELETE' }, token);
     if (result.deleted !== true) throw Error('Deletion was not confirmed. Your app access has not been cleared.');

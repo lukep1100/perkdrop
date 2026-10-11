@@ -74,3 +74,13 @@ test('ordinary server failures remain failures and do not lock access', async ()
   await assert.rejects(guard.run(async () => { throw Error('network failure'); }), /network failure/);
   assert.equal(await guard.run(async () => 1), 1);
 });
+test('credential changes can drain old operations before disabling notifications or deleting data',async()=>{
+  const guard=createPrivateAccessGuard(),pending=deferred();
+  const old=guard.run(()=>pending.promise);const rejected=assert.rejects(old,/private access changed/);
+  const finish=guard.beginChange();let settled=false;
+  const drain=guard.waitForPending().then(()=>{settled=true;});
+  await new Promise(resolve=>setImmediate(resolve));assert.equal(settled,false);
+  pending.resolve();await rejected;await drain;assert.equal(settled,true);
+  await assert.rejects(guard.run(async()=>{}),/private access changed/);
+  finish();assert.equal(await guard.run(async()=>1),1);
+});

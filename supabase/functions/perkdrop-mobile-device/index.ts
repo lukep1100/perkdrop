@@ -31,6 +31,19 @@ Deno.serve(async req => {
       if (error) throw Error();
       return respond({ ok: true });
     }
+    if (body.action === 'push_refresh') {
+      if (!pushEnabled) return respond({ error: 'notification_delivery_not_configured' }, 503);
+      if (typeof body.token !== 'string' || !/^(ExponentPushToken|ExpoPushToken)\[[A-Za-z0-9_-]{10,200}\]$/.test(body.token) || !['ios','android'].includes(body.platform)) return respond({ error: 'invalid_registration' }, 400);
+      // A single conditional update preserves consent, preferences and rate caps.
+      // It cannot create a registration or re-enable one disabled concurrently.
+      const { data, error } = await db.from('mobile_push_subscriptions')
+        .update({ expo_token: body.token, updated_at: new Date().toISOString() })
+        .eq('device_hash', deviceHash).eq('consumer_id', consumerId)
+        .eq('enabled', true).eq('platform', body.platform).select('id').maybeSingle();
+      if (error?.code === '23505') return respond({ error: 'device_token_already_registered' }, 409);
+      if (error) throw Error();
+      return respond({ enabled: !!data, refreshed: !!data });
+    }
     if (body.action === 'push_register') {
       if (!pushEnabled) return respond({ error: 'notification_delivery_not_configured' }, 503);
       if (typeof body.token !== 'string' || !/^(ExponentPushToken|ExpoPushToken)\[[A-Za-z0-9_-]{10,200}\]$/.test(body.token) || !['ios','android'].includes(body.platform)) return respond({ error: 'invalid_registration' }, 400);

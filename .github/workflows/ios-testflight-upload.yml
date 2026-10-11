@@ -6,8 +6,13 @@ on:
       build_number:
         description: 'Unused iOS build number, greater than the latest TestFlight build'
         required: true
-        default: '10'
+        default: '11'
         type: string
+      push_enabled:
+        description: Enable opt-in iOS push only after Expo credentials and the backend are verified
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -26,9 +31,9 @@ jobs:
       CI: '1'
       EXPO_NO_TELEMETRY: '1'
       EXPO_PUBLIC_TRAFFIC_TYPE: public
-      EXPO_PUBLIC_PUSH_ENABLED: 'false'
-      EXPO_PUBLIC_BUILD_NUMBER: ${{ inputs.build_number || '10' }}
-      PERKDROP_BUILD_NUMBER: ${{ inputs.build_number || '10' }}
+      EXPO_PUBLIC_PUSH_ENABLED: ${{ inputs.push_enabled && 'true' || 'false' }}
+      EXPO_PUBLIC_BUILD_NUMBER: ${{ inputs.build_number || '11' }}
+      PERKDROP_BUILD_NUMBER: ${{ inputs.build_number || '11' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -47,10 +52,16 @@ jobs:
           python3 - <<'PY'
           import os, subprocess
           number = os.environ['PERKDROP_BUILD_NUMBER']
-          assert number.isascii() and number.isdecimal() and 10 <= int(number) <= 9999
+          assert number.isascii() and number.isdecimal() and 11 <= int(number) <= 9999
           sdk = subprocess.check_output(['xcrun', '--sdk', 'iphoneos', '--show-sdk-version'], text=True).strip()
           assert int(sdk.split('.')[0]) >= 26, 'Use iOS 26 SDK or later.'
           print('Candidate version: 1.0.0 (' + number + ')')
+          if os.environ.get('EXPO_PUBLIC_PUSH_ENABLED') == 'true':
+              import json, urllib.request
+              request = urllib.request.Request('https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-mobile-device', data=b'{\"action\":\"capabilities\"}', headers={'Content-Type':'application/json'})
+              with urllib.request.urlopen(request, timeout=15) as response:
+                  capabilities = json.load(response)
+              assert capabilities.get('push_enabled') is True, 'The backend must be configured before a push-enabled upload.'
           PY
       - run: npm ci --no-audit --no-fund
         working-directory: mobile
@@ -135,7 +146,10 @@ jobs:
           assert len(sources) == 1
           with sources[0].open('rb') as f:
               entitlements = plistlib.load(f)
-          assert 'aps-environment' not in entitlements
+          enabled = os.environ.get('EXPO_PUBLIC_PUSH_ENABLED') == 'true'
+          assert ('aps-environment' in entitlements) is enabled
+          if enabled:
+              assert entitlements['aps-environment'] in ('development', 'production')
           assert 'applinks:perkdrop.au' in entitlements.get('com.apple.developer.associated-domains', [])
           # An unsigned archive has no signed entitlement payload for the exporter.
           # Temporary ad-hoc signatures preserve the reviewed native capabilities.
@@ -146,7 +160,7 @@ jobs:
           raw = subprocess.check_output(['codesign', '-d', '--entitlements', ':-', str(app)], stderr=subprocess.DEVNULL)
           retained = plistlib.loads(raw)
           assert retained == entitlements
-          print('Native associated-domain capability retained for distribution export.')
+          print('Configured native capabilities retained for distribution export.')
           PY
       - name: Prepare the existing App Store Connect key
         env:
@@ -213,7 +227,10 @@ jobs:
           assert entitlements['application-identifier'] == team + '.au.perkdrop.app'
           assert entitlements.get('get-task-allow') is False
           assert entitlements.get('com.apple.developer.team-identifier') == team
-          assert 'aps-environment' not in entitlements, 'Remote push is disabled.'
+          if os.environ.get('EXPO_PUBLIC_PUSH_ENABLED') == 'true':
+              assert entitlements.get('aps-environment') == 'production', 'Store builds require production APNs.'
+          else:
+              assert 'aps-environment' not in entitlements, 'Remote push is disabled.'
           assert 'applinks:perkdrop.au' in entitlements.get('com.apple.developer.associated-domains', []), 'The signed IPA must preserve associated domains.'
           print('SIGNED IPA VERIFIED:', info['CFBundleIdentifier'], info['CFBundleShortVersionString'], info['CFBundleVersion'])
           PY
@@ -231,7 +248,7 @@ jobs:
             echo '## Repaired native app uploaded to TestFlight'
             echo "Revision: $GITHUB_SHA"
             echo "Version: 1.0.0 ($PERKDROP_BUILD_NUMBER)"
-            echo 'Signed identity, embedded JavaScript, privacy manifests and disabled APNs were verified before upload.'
+            echo 'Signed identity, embedded JavaScript, privacy manifests and the configured APNs mode were verified before upload.'
             echo 'Apple processing, physical-device testing and App Review remain separate steps.'
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Remove the temporary API key
