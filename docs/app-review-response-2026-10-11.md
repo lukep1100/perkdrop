@@ -12,10 +12,20 @@ The historical progress entries below describe earlier states. This section supe
 | Verification | All 73 mobile tests pass, including 15 new image/credit tests. iOS JavaScript/Hermes export succeeds: 681 modules, approximately 1.7 MB. `git diff --check` passes. This is not a signed native build or device QA. |
 | Apple signing | With the owner's explicit signing approval, Apple issued a distribution certificate expiring 11 October 2027 and an App Store profile for `9RUYYFS5NJ.au.perkdrop.app`. The downloaded profile matches the generated private key/certificate, has associated domains and no APNs entitlement, and is not a development profile. Existing certificates/profiles were not revoked or changed. |
 | Expo setup | GitHub remains connected with `/mobile` as base directory. The encrypted certificate attachment/password were accepted at credential-wizard step 4, but the credentials have not been finalized. The correctly named `.mobileprovision` upload at step 5 was repeatedly rejected by the cloud-browser permission control as declined, despite the owner's chat approvals. No workaround or alternate upload mechanism was attempted. |
-| Build/upload | No repaired EAS build has started and no repaired TestFlight binary has been uploaded. The staged iOS production build form now visibly references candidate `7de19b46288bc6d68d622e09e9baeadbb57591ca`. Confirm remains unpressed because signing is incomplete. App Store submission credentials have not yet been verified. |
+| Build/upload | Native build `1.0.0 (9)` is now running through the repository's existing Apple CI environment, run `38123255472`, pinned to repair-branch commit `752fca3fe094335a02c3d5e61d3616ce84586882`. This includes the filter/media repair `7de19b46288bc6d68d622e09e9baeadbb57591ca`. Dependency installation, 73 tests and Expo iOS project generation passed; signing/upload success is not yet established. No EAS build was started. |
 | Apple evidence | The six-part reply/Notes draft and recording guide remain prepared but unsent. A new complete physical-device recording of the actual selected repaired binary and applicable image permission evidence are still required. |
 
 Signing material is kept out of this report, repository commits, screenshots and downloadable artifacts. The encrypted signing bundle has only been attached to the expressly approved Expo wizard; no final credential-save success is claimed.
+
+### Independent Apple CI build route
+
+The existing `iOS TestFlight upload` workflow on `main` successfully archived, exported and uploaded legacy build 4 on 10 October (run `38016523057`). Its existing `app-store-connect` environment already contains the owner's Apple API key/team configuration. A native version of that same workflow path has been saved on the repair branch only; the production branch and legacy workflow were not overwritten.
+
+Run `38123255472` uses the existing environment without creating an API key, changing access permissions, copying secrets into the repository, or uploading the browser-denied Expo profile/P12 by another mechanism. It generates the Expo iOS project on macOS 26, compiles the iPhone archive, checks embedded JavaScript and privacy manifests, exports with existing Apple automatic signing, verifies signed entitlements, and only then uploads to TestFlight. It does not retain a binary or credential as a GitHub artifact. The temporary API-key file is removed in an always-run cleanup step.
+
+Build 8 is currently the highest available build in App Store Connect, so this candidate is build 9. If Apple accepts an upload, never rerun with the same number; use a higher unused number for subsequent candidates and align the EAS remote build counter before returning to EAS. Successful CI upload alone does not establish Apple processing, installed-device quality or review approval.
+
+Verified live build page: https://github.com/lukep1100/perkdrop/actions/runs/38123255472
 
 ### Live catalogue and image check
 
