@@ -3,9 +3,12 @@ import { venueKey, legacyVenueKey } from '/venue-identity.mjs';
 import { matchesOuting, suggestedDate } from '/outing-rules.mjs';
 import { analyticsContext } from '/analytics.mjs';
 import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfilmentLabel, localDate, searchMatches } from '/discovery-rules.mjs?v=v39-venue-rails';
+import {nativeShellMode,nativeNavigation,nativeSavedIds} from '/native-shell.mjs';
 (() => {
   "use strict";
-  const VERSION = "v47-premium-guide";
+  const VERSION = "v48-native-navigation";
+  const nativeMode=nativeShellMode(location.href,typeof window.ReactNativeWebView?.postMessage === 'function');
+  if(nativeMode)document.documentElement.dataset.nativeShell=nativeMode;
   const API =
     "https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-catalogue-api?limit=500";
   const SUBMIT =
@@ -87,8 +90,8 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     viewedDeal: "",
     viewedMap: "",
     city: CITIES[store.get("perkdrop_city")] ? store.get("perkdrop_city") : "adelaide",
-    user: validCoordinates(qs.get("lat"),qs.get("lng"))?{lat:Number(qs.get("lat")),lng:Number(qs.get("lng")),radius:25,label:qs.get("area")||"Selected area"}:store.json("perkdrop_area_v1", null),
-    saved: store.json("perkdrop_saved", []),
+    user: nativeMode==='map' && qs.get("scope")==="australia" ? null : validCoordinates(qs.get("lat"),qs.get("lng"))?{lat:Number(qs.get("lat")),lng:Number(qs.get("lng")),radius:Math.min(100,Math.max(1,Number(qs.get("radius"))||25)),label:qs.get("area")||"Selected area"}:store.json("perkdrop_area_v1", null),
+    saved: nativeMode ? nativeSavedIds(window.PerkDropNativeSaved) : store.json("perkdrop_saved", []),
     followed: store.json("perkdrop_followed_merchants", []),
     preferences: store.json("perkdrop_preferences_v1", {}),
     redemptions: store.json("perkdrop_redemptions", {}),
@@ -604,6 +607,11 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     setTimeout(() => n.remove(), 2200);
   }
   function go(href) {
+    const nativeAction=nativeMode==='map' && nativeNavigation(href);
+    if(nativeAction && nativeAction.kind!=='map'){
+      window.ReactNativeWebView.postMessage(JSON.stringify({type:'perkdrop:navigate',url:new URL(href,location.origin).href}));
+      return;
+    }
     if (/^\/(my-perks|perk|recover|radar|standby|plans|plan|preferences|updates|account|connect-device)(\/|#|\?|$)/.test(href)) {
       location.href = href;
       return;
@@ -613,6 +621,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
       return;
     }
     const u = new URL(href, location.origin);
+    if(nativeMode)u.searchParams.set("native",nativeMode);
     history.pushState({}, "", u.pathname + u.search);
     state.viewedDeal="";state.viewedMap="";
     state.route = u.pathname;
@@ -662,6 +671,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     return `<aside class="availability-note catalogue-notice" role="status" aria-live="polite"><strong>${heading}</strong><p>Showing the saved catalogue from ${esc(catalogueAge(state.catalogueStale.savedAt))}. Times, availability and offers may have changed—please confirm with the business before going.${retryNote}</p><button id="retry-catalogue" class="btn secondary"${state.catalogueRetrying ? " disabled" : ""}>${retry}</button></aside>`;
   }
   function shell(content, active = "") {
+    if(nativeMode)return `<div class="app-shell native-shell">${catalogueNotice()}${content}</div>`;
     const navActive =
       active ||
       (state.route === "/map"
@@ -979,8 +989,8 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
   }
   function mapEntries() {
     const near=d=>!state.user||(mapped(d)&&distance(state.user.lat,state.user.lng,d.latitude,d.longitude)<=(state.user.radius||25));
-    const deals = (state.user?state.deals.filter(near):cityDeals()).filter(d => mapped(d) && searchMatches(text(d), state.query));
-    const venues = state.businesses.filter(b => (state.user?near(b):cityKey(b.market) === state.city) && searchMatches([b.name,b.location,b.category,b.cuisine,b.venueType].join(' '),state.query));
+    const deals = (state.user?state.deals.filter(near):nativeMode==='map' && qs.get("scope")==="australia"?state.deals:cityDeals()).filter(d => mapped(d) && searchMatches(text(d), state.query));
+    const venues = state.businesses.filter(b => (state.user?near(b):nativeMode==='map' && qs.get("scope")==="australia" || cityKey(b.market) === state.city) && searchMatches([b.name,b.location,b.category,b.cuisine,b.venueType].join(' '),state.query));
     const entries = new Map();
     for (const group of venueGroups(deals)) {
       const d = group.primary;
@@ -1335,6 +1345,16 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
       else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus();}
     }
   });
+  function syncNativeSaved(){
+    if(!nativeMode)return;
+    state.saved=nativeSavedIds(window.PerkDropNativeSaved);
+    $$('[data-save]').filter(button=>button.dataset.saveKind!=='merchant').forEach(button=>{
+      const selected=state.saved.includes(button.dataset.save);
+      button.setAttribute('aria-pressed',String(selected));
+      button.textContent=button.classList.contains('save')?(selected?'♥':'♡'):(selected?'♥ Saved':'♡ Save');
+    });
+  }
+  window.addEventListener('perkdrop:native-saved',syncNativeSaved);
   document.addEventListener("click", async (e) => {
     const p = e.target.closest("[data-party]");
     if (p) {
@@ -1348,6 +1368,10 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
       e.stopPropagation();
       const id = s.dataset.save;
       const kind=s.dataset.saveKind==='merchant'?'merchant':'drop';
+      if(nativeMode && kind==='drop'){
+        window.ReactNativeWebView.postMessage(JSON.stringify({type:'perkdrop:save',id}));
+        return;
+      }
       const saved=kind==='merchant'?state.followed:state.saved;
       try {
         const { marketplace } = await import("/marketplace-client.js");
@@ -1494,6 +1518,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
     cacheCatalogue(rows);
   }
   async function loadConsumerState(){
+    if(nativeMode)return; // Private native identity never enters the web frame.
     const credential=store.get('perkdrop_consumer_credential_v1');
     if(!/^[a-f0-9]{64}$/.test(credential))return;
     try{
