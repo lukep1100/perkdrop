@@ -35,3 +35,16 @@ test('booking claims never trust a browser booking event as provider confirmatio
   assert.doesNotMatch(page, /request\(\{action:'confirm'/);
   assert.doesNotMatch(page, /confirmBooking|claim_issued|window\.addEventListener\('message'/);
 });
+
+test('native booking opens the provider once and restores with a visible continuation instead of an empty frame',async()=>{
+  const source=await readFile(new URL('../supabase/functions/perkdrop-booking-page/index.ts',import.meta.url),'utf8');
+  const html=vm.runInNewContext(source.match(/const PAGE\s*=\s*((?:String.raw)?`[^]*?`);/)[1]);
+  const helper=html.slice(html.indexOf('function showBookingProvider('),html.indexOf('function startBooking()'));
+  const elements={bookingFrame:{style:{}},bookingLink:{},bookingHandoff:{}};
+  const opened=[];const location={set href(value){opened.push(value);}};
+  const context={el:id=>elements[id],window:{ReactNativeWebView:{postMessage(){}},location},buildWidget:()=> 'https://bookings.nowbookit.com/?date=2026-10-13&covers=2'};
+  vm.runInNewContext(helper+'showBookingProvider(true);showBookingProvider(false);',context);
+  assert.equal(opened.length,1);assert.equal(elements.bookingFrame.hidden,true);assert.equal(elements.bookingFrame.src,'about:blank');assert.equal(elements.bookingHandoff.hidden,false);assert.equal(elements.bookingLink.href,opened[0]);assert.equal(elements.bookingLink.target,'_self');
+  context.window={location};vm.runInNewContext(helper+'showBookingProvider(true)',context);
+  assert.equal(opened.length,1);assert.equal(elements.bookingFrame.hidden,false);assert.equal(elements.bookingFrame.src,elements.bookingLink.href);assert.equal(elements.bookingLink.target,'_blank');
+});
