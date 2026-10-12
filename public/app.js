@@ -661,7 +661,9 @@ import {nativeShellMode,nativeNavigation,nativeSavedIds} from '/native-shell.mjs
     const offline = navigator.onLine === false;
     const heading = offline
       ? "You’re offline."
-      : "The live catalogue is temporarily unavailable.";
+      : state.catalogueRetrying
+        ? "Updating the live catalogue…"
+        : "The live catalogue is temporarily unavailable.";
     const retry = state.catalogueRetrying
       ? "Refreshing…"
       : "Retry live catalogue";
@@ -1547,11 +1549,13 @@ import {nativeShellMode,nativeNavigation,nativeSavedIds} from '/native-shell.mjs
     if(cached){
       applyCatalogue(cached.deals);
       state.catalogueStale={savedAt:cached.savedAt};
+      state.catalogueRetrying=true;
       state.loading=false;
       render();
     }
     try {
       await loadCatalogue();
+      state.catalogueRetrying = false;
       state.loading = false;
       state.catalogueStale = null;
       state.catalogueRetryError = false;
@@ -1563,6 +1567,7 @@ import {nativeShellMode,nativeNavigation,nativeSavedIds} from '/native-shell.mjs
       });
     } catch (e) {
       console.error(e);
+      state.catalogueRetrying = false;
       state.loading = false;
       if (cached) {
         applyCatalogue(cached.deals);

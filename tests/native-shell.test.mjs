@@ -57,3 +57,13 @@ test('nationwide native map includes offers outside the previous web city',()=>{
   assert.equal(vm.runInNewContext(code+'mapEntries().length',context),2);
   context.nativeMode='';assert.equal(vm.runInNewContext(code+'mapEntries().length',context),1);
 });
+test('cached catalogue shows refresh progress before reporting a live failure',async()=>{
+  const code=extract('  function catalogueNotice() {','  function shell(')+extract('  async function load() {','  async function retryCatalogue()');
+  let resolve,reject;const pending=new Promise((a,b)=>{resolve=a;reject=b;});
+  const messages=[];const state={route:'/map',catalogueRetrying:false,catalogueRetryError:false};
+  const context={state,navigator:{onLine:true},esc:String,catalogueAge:()=> 'two hours ago',cachedCatalogue:()=>({deals:[],savedAt:1}),applyCatalogue(){},loadCatalogue:()=>pending,cacheCatalogue(){},trackPage(){},loadConsumerState:async()=>{},document:{activeElement:null},console:{error(){}},render(){messages.push(vm.runInNewContext('catalogueNotice()',context));}};
+  const loading=vm.runInNewContext(code+'load()',context);
+  assert.match(messages[0],/Updating the live catalogue/);assert.doesNotMatch(messages[0],/temporarily unavailable/);assert.match(messages[0],/disabled/);
+  reject(Error('offline'));await loading;assert.match(messages.at(-1),/temporarily unavailable/);assert.equal(state.catalogueRetrying,false);
+  const next=vm.runInNewContext(code+'load()',{...context,loadCatalogue:async()=>{}});await next;assert.equal(state.catalogueStale,null);assert.equal(messages.at(-1),'');
+});
