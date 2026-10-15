@@ -19,6 +19,7 @@ module.exports = {
     return [{source:'/:path*',headers:[
       {key:'X-Content-Type-Options',value:'nosniff'},
       {key:'Referrer-Policy',value:'strict-origin-when-cross-origin'},
+      {key:'Permissions-Policy',value:'geolocation=(self), camera=(), microphone=(), payment=(), usb=()'},
     ]},{source:'/social-publishing',headers:[
       {key:'Cache-Control',value:'private, no-store'},
       {key:'X-Robots-Tag',value:'noindex, nofollow'},

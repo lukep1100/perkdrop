@@ -18,10 +18,7 @@ export default function Updates(){
       }:current);
     }catch(e){setError(e.message);}
   }
-  return <PrivateShell title="Updates"><p className="muted">Radar matches appear here in your PerkDrop access. We do not send email, SMS or browser notifications from this page.</p>
+  return <PrivateShell title="Updates"><p className="muted">Radar matches appear here in your PerkDrop access. If you use the iPhone app, you can enable device alerts in Settings; this page does not send email, SMS or browser notifications.</p>
     {error&&<p role="alert" className="error">{error} <button onClick={load}>Retry</button></p>}
     {!data&&!error&&<p role="status">Loading updatesâ€¦</p>}
-    {data&&<><div className="actions"><span className="status">{data.unread||0} unread</span><button disabled={busy||!data.unread} onClick={markAll}>Mark all read</button></div>{data.updates.length?data.updates.map(update=><section key={update.id}><span className="status">{update.read_at?'Read':'New'}</span><h2>{update.title}</h2><p>{update.body}</p><p className="muted">{new Date(update.created_at).toLocaleString('en-AU')}</p>{update.href?<a className="action" href={update.href} onClick={()=>open(update)}>View matching Drop</a>:<button onClick={()=>open(update)}>{update.read_at?'Read':'Mark read'}</button>}</section>):<section><h2>Nothing new yet</h2><p>Save an alert in Drop Radar and matching live Drops will appear here.</p><a className="action" href="/radar">Set up a Drop Radar</a></section>}</>}
-  </PrivateShell>;
-}
-export const getServerSideProps=privateResponse;
+    {data&&<><div className="actions"><span className="status">{data.unread||0} unr¶»§q«^
