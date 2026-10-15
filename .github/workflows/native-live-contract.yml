@@ -1,0 +1,17 @@
+name: Native live access contract
+on:
+  push:
+    branches: [feature/native-app]
+    paths: ['scripts/mobile-live-smoke.mjs', '.github/workflows/native-live-contract.yml']
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node scripts/mobile-live-smoke.mjs
