@@ -2,11 +2,11 @@ import { availabilityMatches, freshness, scheduleLabel, selectedAvailability, lo
 import { venueKey, legacyVenueKey } from '/venue-identity.mjs';
 import { matchesOuting, suggestedDate } from '/outing-rules.mjs';
 import { analyticsContext } from '/analytics.mjs';
-import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfilmentLabel, localDate, searchMatches } from '/discovery-rules.mjs?v=v39-venue-rails';
+import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfilmentLabel, localDate, searchMatches, listingEnded } from '/discovery-rules.mjs?v=v40-event-autopilot';
 import {nativeShellMode,nativeNavigation,nativeSavedIds} from '/native-shell.mjs';
 (() => {
   "use strict";
-  const VERSION = "v48-native-navigation";
+  const VERSION = "v49-event-autopilot";
   const nativeMode=nativeShellMode(location.href,typeof window.ReactNativeWebView?.postMessage === 'function');
   if(nativeMode)document.documentElement.dataset.nativeShell=nativeMode;
   const API =
@@ -241,7 +241,7 @@ import {nativeShellMode,nativeNavigation,nativeSavedIds} from '/native-shell.mjs
     return rows;
   }
   function applyCatalogue(rows) {
-    state.deals = norm(rows).map(enrich);
+    state.deals = norm(rows).map(enrich).filter(d=>!listingEnded(d));
   }
   function cacheCatalogue(rows) {
     if (!Array.isArray(rows) || rows.length > CATALOGUE_CACHE_MAX_ITEMS) return;
@@ -1741,7 +1741,19 @@ import {nativeShellMode,nativeNavigation,nativeSavedIds} from '/native-shell.mjs
       `<main class="page"><section class="business-hero"><div class="eyebrow">FOR LOCAL BUSINESSES & ORGANISERS</div><h1>Put unused capacity to work.</h1><p><strong>Free standard listing.</strong> $0 setup, $0 monthly and no standard redemption fee. Add a genuine perk, choose when it runs and set your own conditions and capacity.</p><div class="business-points"><span>✓ Controlled capacity</span><span>✓ Direct bookings stay yours</span><span>✓ Free standard participation</span><span>✓ Mobile verification</span></div></section><form id="merchant-form" class="merchant-form"><label>What would you like to list?<select name="listing_type" id="listing-type"><option value="external">A perk customers book directly</option><option value="event">A public event or activity</option><option value="claim">A limited PerkDrop claim</option></select></label><div class="form-grid"><label>Business / organisation *<input name="business_name" required maxlength="160"></label><label>Your name *<input name="contact_name" required maxlength="160"></label><label>Email *<input name="contact_email" type="email" required maxlength="254"></label><label>Phone (optional)<input name="contact_phone" maxlength="80"></label><label>Category<select name="vertical"><option value="food">Food & drink</option><option value="beauty">Beauty & wellness</option><option value="experiences">Experiences</option><option value="events">Events</option><option value="shopping">Shopping</option><option value="family_kids">Family & kids</option><option value="fitness">Health & fitness</option><option value="travel_stays">Travel & stays</option><option value="freebies">Free plans</option><option value="services">Services</option></select></label><input type="hidden" name="fulfilment_mode" value="external_booking"><label>Availability<select name="drop_type"><option value="capacity">Planned capacity</option><option value="last_minute">Last minute</option><option value="cancellation">Cancellation / spare place</option></select></label><label data-claim-field hidden>Capacity *<input name="capacity_total" type="number" min="1" max="10000"></label><label data-claim-field hidden>Capacity unit<select name="inventory_unit"><option value="person">Guests / people</option><option value="appointment">Appointments</option><option value="ticket">Tickets</option><option value="class_spot">Class spots</option><option value="room">Rooms</option><option value="item">Items</option></select></label><label>Location *<input name="location" required></label><label>City / town *<input name="city" required maxlength="100"></label><label>State / territory *<select name="state" required><option value="">Select state or territory</option><option value="ACT">ACT</option><option value="NSW">NSW</option><option value="NT">NT</option><option value="QLD">QLD</option><option value="SA">SA</option><option value="TAS">TAS</option><option value="VIC">VIC</option><option value="WA">WA</option></select></label><label class="wide">Offer title *<input name="offer_title" required maxlength="180"></label><label class="wide">Customer benefit *<textarea name="description" required maxlength="2500" rows="4" placeholder="e.g. complimentary treatment add-on or value-add perk"></textarea></label><label>Starts (venue local time) *<input name="starts_at" required type="datetime-local"></label><label>Ends (venue local time) *<input name="ends_at" required type="datetime-local"></label><label>Booking / official event page<input name="booking_url" type="url" required placeholder="https://"><small>Required for external bookings and public events.</small></label><label>Photo for review (optional)<input name="media_url" type="url" placeholder="https://"><small>Only submit imagery you own or are authorised/licensed to use. It is not published automatically.</small></label><label class="wide">Conditions / minimum spend / booking instructions *<textarea name="conditions" required minlength="12" maxlength="1800" rows="3"></textarea></label><label data-claim-field hidden>Redemption verifier *<input name="redemption_verifier" maxlength="160"></label><label class="check wide"><input type="checkbox" name="authority_confirmed" required> I’m authorised to submit this offer. Any imagery supplied is owned, licensed or explicitly authorised for PerkDrop.</label><label class="check wide"><input type="checkbox" name="accuracy_confirmed" required> Details and offer conditions are accurate.</label><label class="check wide"><input type="checkbox" name="terms_accepted" required> I accept the PerkDrop merchant terms.</label></div><button type="button" class="btn secondary" id="preview-business">Preview listing</button><button class="btn primary submit-btn">Submit for review</button><section id="business-preview" hidden aria-live="polite"></section><div id="merchant-status" class="form-status"></div></form></main>`,
     );
   }
-  // Re-evaluate visible time-sensitive views at minute boundaries without fetching the directory.
-  setInterval(()=>{if(!document.hidden&&!document.activeElement?.matches('input,textarea,select')&&!state.loading&&!state.error&&['/','/tonight','/today'].includes(state.route))render();},60000);
+  // Expiry also applies to cached/offline results and an already-open detail/map view.
+  let lastAutopilotRefresh=Date.now(),autopilotRefreshing=false;
+  async function refreshAutopilot(){
+    if(document.hidden||document.activeElement?.matches('input,textarea,select')||state.loading||autopilotRefreshing)return;
+    const live=state.deals.filter(d=>!listingEnded(d)),expired=live.length!==state.deals.length;
+    state.deals=live;
+    if(expired)render();
+    if(Date.now()-lastAutopilotRefresh<300000)return;
+    autopilotRefreshing=true;
+    try{await loadCatalogue();lastAutopilotRefresh=Date.now();render();}catch{/* Keep known valid listings; next tick retries. */}
+    finally{autopilotRefreshing=false;}
+  }
+  setInterval(refreshAutopilot,30000);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshAutopilot();});
   load();
 })();

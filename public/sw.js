@@ -1,6 +1,6 @@
-const VERSION='v47-premium-guide';
+const VERSION='v49-event-autopilot';
 const CACHE=`perkdrop-${VERSION}`;
-const STATIC=['/availability.mjs?v=v39-venue-rails','/availability.mjs','/venue-identity.mjs','/outing-rules.mjs','/analytics.mjs','/app.js?v=v47-premium-guide','/discovery-rules.mjs?v=v39-venue-rails','/styles.css?v=v47-premium-guide','/images/venue-unavailable.svg','/icon.svg','/manifest.webmanifest'];
+const STATIC=['/availability.mjs?v=v39-venue-rails','/availability.mjs','/venue-identity.mjs','/outing-rules.mjs','/analytics.mjs','/app.js?v=v49-event-autopilot','/discovery-rules.mjs?v=v40-event-autopilot','/styles.css?v=v47-premium-guide','/images/venue-unavailable.svg','/icon.svg','/manifest.webmanifest'];
 // Cache public assets only. Availability, authenticated screens and passes are never cached.
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(STATIC)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('perkdrop-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));

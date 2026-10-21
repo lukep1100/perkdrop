@@ -183,7 +183,7 @@ export default function Shell({ deal, venue, collection=[], collectionCity="Adel
         h("p", {role:"status"}, "Loading your local guide…"),
       ),
     ),
-    h("script", { src: "/app.js?v=v47-premium-guide", type:"module" }),
+    h("script", { src: "/app.js?v=v49-event-autopilot", type:"module" }),
   );
 }
 export async function getServerSideProps({ params, resolvedUrl, req, res }) {

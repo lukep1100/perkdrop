@@ -27,6 +27,12 @@ export function localDate(state, now = new Date()) {
   const parts = Object.fromEntries(new Intl.DateTimeFormat('en-AU',{timeZone:zone,year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(now).map(p=>[p.type,p.value]));
   return `${parts.year}-${parts.month}-${parts.day}`;
 }
+export function listingEnded(deal, now = new Date()) {
+  const end = deal.endsAt || deal.ends_at || deal.offerEndsAt || deal.offer_ends_at;
+  if (end && Number.isFinite(Date.parse(end))) return Date.parse(end) <= now.getTime();
+  const day = deal.end || deal.end_date;
+  return Boolean(day && /^\d{4}-\d{2}-\d{2}$/.test(day) && day < localDate(deal.state, now));
+}
 export function searchMatches(value, query) {
   const normalize = s => String(s || '').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
   const haystack = normalize(value);
