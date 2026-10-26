@@ -2,6 +2,8 @@ name: CI
 on:
   push:
   pull_request:
+permissions:
+  contents: read
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -23,4 +25,4 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - run: npx --yes deno check --node-modules-dir=none supabase/functions/perkdrop-catalogue-api/index.ts supabase/functions/perkdrop-marketplace/index.ts supabase/functions/perkdrop-merchant-submit/index.ts supabase/functions/perkdrop-track/index.ts supabase/functions/perkdrop-nav/index.ts supabase/functions/perkdrop-go/index.ts supabase/functions/perkdrop-owner-analytics/index.ts supabase/functions/perkdrop-event-watch/index.ts supabase/functions/perkdrop-event-watch-profiled/index.ts
+      - run: npx --yes deno check --node-modules-dir=none supabase/functions/perkdrop-catalogue-api/index.ts supabase/functions/perkdrop-marketplace/index.ts supabase/functions/perkdrop-merchant-submit/index.ts supabase/functions/perkdrop-track/index.ts supabase/functions/perkdrop-nav/index.ts supabase/functions/perkdrop-go/index.ts supabase/functions/perkdrop-owner-analytics/index.ts supabase/functions/perkdrop-event-watch/index.ts supabase/functions/perkdrop-event-watch-profiled/index.ts supabase/functions/perkdrop-mobile-device/index.ts supabase/functions/perkdrop-mobile-push/index.ts

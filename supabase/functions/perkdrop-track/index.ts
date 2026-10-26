@@ -30,6 +30,9 @@ Deno.serve(async req=>{
     const path=clean(m.path,1000);const qp=paramsFromPath(path);
     const metadata={
       visitor_id:UUID.test(clean(m.visitor_id,80))?clean(m.visitor_id,80):null,traffic_type:m.traffic_type==='internal'?'internal':'public',platform:m.platform==='native'?'native':'web',
+      os:m.platform==='native'&&['ios','android'].includes(m.os)?m.os:null,
+      app_first_open:m.platform==='native'&&event==='page_view'&&m.app_first_open===true,
+      utm_content:clean(m.utm_content,100)||clean(qp.get('utm_content'),100)||null,
       path:path||null,deal_slug:clean(m.deal_slug,160)||null,merchant:clean(m.merchant,160)||null,category:clean(m.category,80)||null,
       search_term:clean(m.search_term,80)||null,saved_state:typeof m.saved_state==='boolean'?m.saved_state:null,
       utm_source:clean(m.utm_source,60)||clean(qp.get('utm_source'),60)||null,

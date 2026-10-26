@@ -1,0 +1,110 @@
+name: iOS native release verification
+
+on:
+  pull_request:
+    paths:
+      - 'mobile/**'
+      - 'public/availability.mjs'
+      - 'public/outing-rules.mjs'
+      - 'public/venue-identity.mjs'
+      - 'public/discovery-rules.mjs'
+      - '.github/workflows/ios-release-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-native-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ios-archive:
+    if: github.repository == 'lukep1100/perkdrop'
+    runs-on: macos-26
+    timeout-minutes: 45
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      EXPO_PUBLIC_TRAFFIC_TYPE: internal
+      EXPO_PUBLIC_PUSH_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Record native toolchain and checked-out revision
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+          python3 - <<'PY'
+          import subprocess
+          version = subprocess.check_output(['xcrun', '--sdk', 'iphoneos', '--show-sdk-version'], text=True).strip()
+          assert int(version.split('.')[0]) >= 26, 'App Store submissions require iOS 26 SDK or later.'
+          PY
+      - run: npm ci --no-audit --no-fund
+        working-directory: mobile
+      - run: node --test tests/*.test.mjs
+        working-directory: mobile
+      - name: Generate the iOS project without credentials
+        run: npx expo prebuild --platform ios --no-install
+        working-directory: mobile
+      - name: Resolve native iOS dependencies
+        run: pod install
+        working-directory: mobile/ios
+      - name: Compile and archive for a real iPhone architecture, without distribution signing
+        working-directory: mobile/ios
+        run: |
+          set -euo pipefail
+          workspace=$(find . -maxdepth 1 -name '*.xcworkspace' -type d -print -quit)
+          test -n "$workspace"
+          xcodebuild -workspace "$workspace" -scheme PerkDrop -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/PerkDrop.xcarchive" \
+            -derivedDataPath "$RUNNER_TEMP/perkdrop-derived" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+            archive > "$RUNNER_TEMP/perkdrop-ios-build.log" 2>&1 || {
+              tail -n 220 "$RUNNER_TEMP/perkdrop-ios-build.log"
+              exit 1
+            }
+          tail -n 35 "$RUNNER_TEMP/perkdrop-ios-build.log"
+      - name: Inspect archive identity, embedded JavaScript and privacy manifests
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, pathlib, plistlib
+          archive = pathlib.Path(os.environ['RUNNER_TEMP']) / 'PerkDrop.xcarchive'
+          apps = list((archive / 'Products/Applications').glob('*.app'))
+          assert len(apps) == 1, 'Expected exactly one iPhone app.'
+          app = apps[0]
+          with (app / 'Info.plist').open('rb') as f:
+              info = plistlib.load(f)
+          assert info['CFBundleIdentifier'] == 'au.perkdrop.app'
+          assert (app / info['CFBundleExecutable']).stat().st_size > 0
+          assert (app / 'main.jsbundle').stat().st_size > 0, 'Release JavaScript must be embedded.'
+          assert info.get('NSLocationWhenInUseUsageDescription'), 'Foreground-location purpose required.'
+          assert 'location' not in info.get('UIBackgroundModes', []), 'Do not enable background tracking.'
+          assert int(str(info.get('DTSDKName', 'iphoneos0')).replace('iphoneos', '').split('.')[0]) >= 26
+          manifests = list(app.rglob('PrivacyInfo.xcprivacy'))
+          assert manifests, 'No privacy manifests found in the compiled app.'
+          for path in manifests:
+              with path.open('rb') as f:
+                  plistlib.load(f)
+          print('IOS ARCHIVE VERIFIED:', info['CFBundleIdentifier'], info['CFBundleShortVersionString'], info['DTSDKName'])
+          print('Privacy manifests:', len(manifests))
+          print('Unsigned native compilation only. No Apple account, provisioning, upload, device test or store approval is claimed.')
+          PY
+      - name: Record result without retaining a binary or consuming artifact storage
+        if: always()
+        run: |
+          {
+            echo '## iOS native release verification'
+            echo "Revision: $(git rev-parse HEAD)"
+            echo 'This job compiles an unsigned iPhone archive with production JavaScript.'
+            echo 'It does not create a distributable IPA, use Apple/Expo credentials, submit to TestFlight, or run on a physical phone.'
+            echo 'Binary artifacts and signing material are not uploaded.'
+          } >> "$GITHUB_STEP_SUMMARY"
