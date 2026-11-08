@@ -1,10 +1,11 @@
 name: Mobile release checks
 on:
+  workflow_dispatch:
   pull_request:
-    paths: ['mobile/**', 'lib/mobile-association.mjs', 'public/availability.mjs', 'public/outing-rules.mjs', 'public/venue-identity.mjs', 'public/discovery-rules.mjs', 'public/local-discovery.mjs', 'public/native-shell.mjs', 'public/offer-actions.mjs', '.github/workflows/mobile.yml']
+    paths: ['mobile/**', 'lib/mobile-association.mjs', 'public/availability.mjs', 'public/outing-rules.mjs', 'public/venue-identity.mjs', 'public/discovery-rules.mjs', 'public/local-discovery.mjs', 'public/native-shell.mjs', 'public/offer-actions.mjs', 'scripts/verify-android-build.py', 'tests/test_android_build.py', '.github/workflows/mobile.yml']
   push:
     branches: [main]
-    paths: ['mobile/**', 'lib/mobile-association.mjs', 'public/availability.mjs', 'public/outing-rules.mjs', 'public/venue-identity.mjs', 'public/discovery-rules.mjs', 'public/local-discovery.mjs', 'public/native-shell.mjs', 'public/offer-actions.mjs', '.github/workflows/mobile.yml']
+    paths: ['mobile/**', 'lib/mobile-association.mjs', 'public/availability.mjs', 'public/outing-rules.mjs', 'public/venue-identity.mjs', 'public/discovery-rules.mjs', 'public/local-discovery.mjs', 'public/native-shell.mjs', 'public/offer-actions.mjs', 'scripts/verify-android-build.py', 'tests/test_android_build.py', '.github/workflows/mobile.yml']
 permissions:
   contents: read
 concurrency:
@@ -24,13 +25,14 @@ jobs:
           node-version: '24'
       - run: npm ci --no-audit --no-fund
       - run: node --test tests/*.test.mjs ../tests/local-discovery.test.mjs
+      - run: python3 -m unittest discover -s ../tests -p test_android_build.py
       - run: npx expo-doctor@latest
       - run: npx expo export --platform all --output-dir dist
       - name: Generate both native projects without signing or installing pods
         run: npx expo prebuild --no-install
   android-compile:
     needs: mobile
-    if: github.event_name == 'pull_request' && github.event.pull_request.number == 14
+    if: github.event_name != 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
@@ -45,14 +47,47 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
       - run: npm ci --no-audit --no-fund
         working-directory: mobile
       - run: npx expo prebuild --platform android --no-install
         working-directory: mobile
-      - name: Compile a bundled Android QA binary, not a store-signed release
+      - name: Compile Android APK and App Bundle with QA signing only
         working-directory: mobile/android
         run: |
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon --max-workers=2 -PreactNativeArchitectures=arm64-v8a -Dorg.gradle.jvmargs='-Xmx3g -XX:MaxMetaspaceSize=1g'
-          sha256sum app/build/outputs/apk/release/*.apk
-          echo 'Compilation evidence only. Uses generated test signing; no store signing, publishing or artifact storage.'
+          ./gradlew assembleRelease bundleRelease --no-daemon --max-workers=2 -PreactNativeArchitectures=arm64-v8a -Dorg.gradle.jvmargs='-Xmx3g -XX:MaxMetaspaceSize=1g'
+      - name: Inspect actual Android permissions, identity, SDK and 16 KB libraries
+        working-directory: mobile/android
+        run: |
+          python3 - <<'PY'
+          import json, os, shutil, subprocess
+          from pathlib import Path
+          sdk = Path(os.environ['ANDROID_HOME'])
+          tools = sorted((p for p in (sdk / 'build-tools').iterdir() if (p / 'zipalign').exists()), key=lambda p: tuple(int(x) for x in p.name.split('.') if x.isdigit()))[-1]
+          analyzer = sdk / 'cmdline-tools/latest/bin/apkanalyzer'
+          apk = Path('app/build/outputs/apk/release/app-release.apk')
+          aab = Path('app/build/outputs/bundle/release/app-release.aab')
+          output = Path('../android-qa')
+          output.mkdir(exist_ok=True)
+          manifest = output / 'AndroidManifest.xml'
+          with manifest.open('w') as stream:
+              subprocess.run([str(analyzer), 'manifest', 'print', str(apk)], check=True, stdout=stream)
+          subprocess.run([str(tools / 'zipalign'), '-c', '-P', '16', '4', str(apk)], check=True)
+          subprocess.run([str(tools / 'apksigner'), 'verify', '--print-certs', str(apk)], check=True)
+          version = json.loads(Path('../app.json').read_text())['expo']['version']
+          subprocess.run(['python3', '../../scripts/verify-android-build.py', '--manifest', str(manifest), '--apk', str(apk), '--aab', str(aab), '--version', version, '--commit', os.environ['GITHUB_SHA'], '--output', str(output / 'verification.json')], check=True)
+          shutil.copyfile(apk, output / 'PerkDrop-QA-NOT-FOR-GOOGLE-PLAY.apk')
+          shutil.copyfile(aab, output / 'PerkDrop-QA-NOT-FOR-GOOGLE-PLAY.aab')
+          (output / 'READ-ME.txt').write_text('Android QA packages only. Generated test signing is NOT the existing Expo upload key or a Google Play app-signing key. Do not upload these files to Google Play. No store submission or physical-device acceptance is implied. See verification.json for the exact source and APK checks.\n')
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as stream:
+              stream.write('## Android QA verified\n\nAPK and AAB compiled with embedded app JavaScript. Actual APK checks passed: au.perkdrop.app identity, current target SDK, restricted permissions, backups disabled, non-debuggable release and 16 KB ELF/ZIP alignment. Generated QA signing only; not a Google Play release. No store or device acceptance is claimed.\n')
+          PY
+      - name: Retain the requested Android QA package for seven days
+        if: github.event_name == 'workflow_dispatch' || startsWith(github.head_ref, 'codex/google-play-')
+        uses: actions/upload-artifact@v4
+        with:
+          name: perkdrop-android-QA-NOT-FOR-GOOGLE-PLAY-${{ github.sha }}
+          path: mobile/android-qa/
+          retention-days: 7
+          if-no-files-found: error

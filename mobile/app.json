@@ -32,7 +32,17 @@
       "blockedPermissions": [
         "ACCESS_BACKGROUND_LOCATION",
         "SCHEDULE_EXACT_ALARM",
-        "USE_EXACT_ALARM"
+        "USE_EXACT_ALARM",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "SYSTEM_ALERT_WINDOW",
+        "READ_MEDIA_IMAGES",
+        "READ_MEDIA_VIDEO",
+        "READ_MEDIA_AUDIO",
+        "ACCESS_MEDIA_LOCATION",
+        "RECORD_AUDIO",
+        "CAMERA",
+        "com.google.android.gms.permission.AD_ID"
       ],
       "intentFilters": [
         {
@@ -50,7 +60,8 @@
             "DEFAULT"
           ]
         }
-      ]
+      ],
+      "allowBackup": false
     },
     "icon": "./assets/icon.png",
     "plugins": [
