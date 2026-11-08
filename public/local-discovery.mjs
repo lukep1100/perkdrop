@@ -66,6 +66,9 @@ export function discoveryTopic(item) {
   for(const [topic,pattern] of [['food',/food|drink|dining|restaurant|cafe/],['events',/event|festival|arts/],['family',/family|kids|children/],['beauty',/beauty|hair|wellness/],['experiences',/experience|activit|museum|gallery|tour/],['shopping',/shop|retail/]])if(pattern.test(value))return topic;
   return value;
 }
+export function quickPlanMatches(item,plan,now=new Date()) {
+  return ['A','B'].includes(item.qualityGrade)&&freshness(item,now).state==='recent'&&discoveryMatches(item,plan,now);
+}
 export function quickDiscoveryPlans(items, {origin=null} = {}, now = new Date()) {
   const local=items.filter(item=>inSearchArea(item,origin)&&currentListing(item,now)&&['A','B'].includes(item.qualityGrade)&&freshness(item,now).state==='recent');
   return [
@@ -73,7 +76,7 @@ export function quickDiscoveryPlans(items, {origin=null} = {}, now = new Date())
     {id:'tonight',title:'Make tonight count',icon:'☾',category:'All',when:'tonight',href:'/near-me?when=tonight',note:'Reviewed evening times'},
     {id:'weekend',title:'Sort the weekend',icon:'✦',category:'All',when:'weekend',href:'/weekend',note:'Checked weekend dates'},
     {id:'family',title:'Take the kids',icon:'☀',category:'Family',when:'week',href:'/family?when=week',note:'Check ages and admission details'},
-  ].map(plan=>({...plan,count:uniquePlaces(local.filter(item=>discoveryMatches(item,plan,now))).length}));
+  ].map(plan=>({...plan,count:uniquePlaces(local.filter(item=>quickPlanMatches(item,plan,now))).length}));
 }
 export function discoveryCollections(items, {origin=null, savedIds=[], catalogue=items, preferences={}} = {}, now = new Date()) {
   const eligible = items.filter(item => currentListing(item, now) && ['A','B'].includes(item.qualityGrade) && freshness(item,now).state === 'recent');

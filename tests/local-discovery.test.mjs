@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { quickDiscoveryPlans, searchRadius, distanceFrom, inSearchArea, widerArea, discoveryCollections, discoveryMatches, mergeDiscoveryListings } from '../public/local-discovery.mjs';
+import { quickPlanMatches, quickDiscoveryPlans, searchRadius, distanceFrom, inSearchArea, widerArea, discoveryCollections, discoveryMatches, mergeDiscoveryListings } from '../public/local-discovery.mjs';
 const now=new Date('2026-11-08T02:00:00Z');
 const origin={latitude:-34.9285,longitude:138.6007,radius:10};
 const listing=(id,latitude=-34.9285,extra={})=>({id,merchant:id,title:id,location:id,latitude,longitude:138.6007,qualityGrade:'A',state:'SA',kind:'event',price:'Free',source:'https://official.example/event',lastVerifiedAt:'2026-11-07T02:00:00Z',scheduleVerifiedAt:'2026-11-07T02:00:00Z',startsAt:'2026-11-09T01:00:00Z',endsAt:'2026-11-09T04:00:00Z',...extra});
@@ -36,6 +36,9 @@ test('quick plans count checked unique places in the selected circle, beyond the
   rows.push({...rows[0],id:'duplicate'},listing('far',-40),listing('conditional',-34.93,{title:'Kids free with a paying adult'}),listing('stale',-34.93,{lastVerifiedAt:'2025-01-01',scheduleVerifiedAt:''}),listing('expired',-34.93,{endsAt:'2026-11-07T02:00:00Z'}));
   const plans=quickDiscoveryPlans(rows,{origin},now);
   assert.equal(plans.find(plan=>plan.id==='free').count,12);
+  const needsReview=listing('needs-review',-34.93,{qualityGrade:'C'}),freePlan=plans.find(plan=>plan.id==='free');
+  assert.equal(quickPlanMatches(needsReview,freePlan,now),false);
+  assert.equal(quickDiscoveryPlans([...rows,needsReview],{origin},now).find(plan=>plan.id==='free').count,12);
   assert.equal(plans.find(plan=>plan.id==='tonight').count,0);
   assert.equal(origin.radius,10);
 });

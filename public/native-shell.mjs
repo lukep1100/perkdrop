@@ -31,7 +31,7 @@ export function nativeNavigation(value) {
       const query = (u.searchParams.get('q') || '').slice(0, 200),plan=({free:['Free','week'],tonight:['All','tonight'],weekend:['All','weekend'],family:['Family','week']})[u.searchParams.get('plan')];
       const category=plan?.[0]||(['Food','Drinks','Events','Beauty','Experiences','Family','Free'].includes(u.searchParams.get('category'))?u.searchParams.get('category'):null);
       const when=plan?.[1]||(['now','today','tonight','weekend','week'].includes(u.searchParams.get('when'))?u.searchParams.get('when'):null);
-      return {kind:'explore', query, category:category||({'/food':'Food','/drinks':'Drinks','/events':'Events','/free':'Free','/freebies':'Free','/kids':'Family','/family':'Family','/beauty':'Beauty','/hair':'Beauty','/experiences':'Experiences','/activities':'Experiences','/golf':'Experiences','/tourism':'Experiences'})[path] || 'All', when:when||({'/now':'now','/today':'today','/tonight':'tonight','/weekend':'weekend'})[path] || 'any'};
+      return {kind:'explore', query,...(plan?{planId:u.searchParams.get('plan')}:{}), category:category||({'/food':'Food','/drinks':'Drinks','/events':'Events','/free':'Free','/freebies':'Free','/kids':'Family','/family':'Family','/beauty':'Beauty','/hair':'Beauty','/experiences':'Experiences','/activities':'Experiences','/golf':'Experiences','/tourism':'Experiences'})[path] || 'All', when:when||({'/now':'now','/today':'today','/tonight':'tonight','/weekend':'weekend'})[path] || 'any'};
     }
     if (/^\/(deals|venues|places)\/[^/]+$/.test(path)) {
       const segment = decodeURIComponent(path.slice(path.lastIndexOf('/') + 1));

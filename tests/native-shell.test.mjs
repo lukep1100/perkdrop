@@ -64,7 +64,7 @@ test('native map honours the selected category and does not substitute unfiltere
   const code=extract('  function mapEntries() {','  function venueCard('),deals=[{id:'free',price:'Free'},{id:'paid',price:'$20'}];
   const context={searchOrigin:()=>null,activeDiscoveryFilters:()=>({category:'Free',when:'any'}),discoveryMatches,inSearchArea:()=>true,state:{deals,businesses:[{id:'unfiltered-directory'}],query:'',mapFilter:'all'},mapped:()=>true,searchMatches:()=>true,text:()=>'',venueGroups:rows=>rows.map(primary=>({primary,offers:[primary]})),placeKey:d=>d.id};
   assert.deepEqual([...vm.runInNewContext(code+'mapEntries().map(x=>x.id)',context)],['free']);
-  assert.deepEqual(nativeNavigation('/search?plan=free&credential=ignored'),{kind:'explore',query:'',category:'Free',when:'week'});
+  assert.deepEqual(nativeNavigation('/search?plan=free&credential=ignored'),{kind:'explore',query:'',planId:'free',category:'Free',when:'week'});
   assert.equal(nativeNavigation('/search?category=Free&when=weekend').when,'weekend');
 });
 test('cached catalogue shows refresh progress before reporting a live failure',async()=>{
