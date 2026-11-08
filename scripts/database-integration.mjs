@@ -380,6 +380,8 @@ try {
   await testOwnerPolicy(pool,check);
   const {testNotificationReadiness}=await import('../tests/database/notification-readiness.mjs');
   await testNotificationReadiness(pool,check);
+  const {testEventWatchMaintenance}=await import('../tests/database/event-watch-maintenance.mjs');
+  await testEventWatchMaintenance(pool,check);
   console.log(`REAL DATABASE: ${count} checks passed. No production connection or fixture writes.`);
 } finally {
   if (pool) await pool.end();
