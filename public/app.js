@@ -8,7 +8,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
 import {nativeShellMode,nativeNavigation,nativeSavedIds} from '/native-shell.mjs';
 (() => {
   "use strict";
-  const VERSION = "v52-easy-discovery";
+  const VERSION = "v53-easy-actions";
   const nativeMode=nativeShellMode(location.href,typeof window.ReactNativeWebView?.postMessage === 'function');
   if(nativeMode)document.documentElement.dataset.nativeShell=nativeMode;
   const API =
@@ -938,7 +938,7 @@ import {nativeShellMode,nativeNavigation,nativeSavedIds} from '/native-shell.mjs
     const action=offerAction(d),related=state.deals.filter(item=>item.id!==d.id&&placeKey(item)===placeKey(d)&&!listingEnded(item));
     const t = type(d),
       saved = state.saved.includes(d.id),
-      cap = Boolean(d.redemptionAvailable),
+      cap = Boolean(d.redemptionAvailable) && ["direct_claim","merchant_confirmation"].includes(d.fulfilmentMode),
       photo = displayPhoto(d),
       visual = photo ? `<img src="${esc(photo.src)}" alt="${esc(photo.alt)}">` : '<div class="detail-photo-pending"><span>Local guide listing</span><small>Imagery is added only when it is cleared for PerkDrop use.</small></div>';
     document.title = `${d.title} | PerkDrop`;
