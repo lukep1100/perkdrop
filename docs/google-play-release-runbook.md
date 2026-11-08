@@ -2,11 +2,11 @@
 
 Prepared 8 November 2026 for the current native React Native/Expo app, package `au.perkdrop.app`, version 1.1.0. Preserve the existing Expo project `luke1100s-team/perkdrop`, ID `3e46f3cc-15c9-40d2-8a4a-6a0c93d977b3`. Do not create a duplicate package/project or silently replace its existing Android upload key.
 
-## Current account evidence
+## Account prerequisites
 
-The official direct Play account setup route reaches Google's sign-in page. The saved Luke account is signed out. Current enrollment, payment, identity verification, app existence and production access cannot be verified until the owner signs in. Connected PerkDrop/personal Gmail searches found no Play registration receipt; absence of email is not proof that no account exists. Earlier project history records an Expo Android preview and an existing generated Android key, plus a blocked Google security challenge. No completed Play submission is evidenced.
+Verify the existing Play developer account and app record through the owner's authenticated Console before registration or app creation. This preparation does not establish enrollment, payment, identity verification, an accepted Play upload or production access. The existing Expo Android key must be verified and reused for store signing.
 
-The owner already authorised the US$25 Google registration fee on 7 October. Do not request that budget again. New legal agreements, credential changes and access grants still require the applicable secure owner interaction. Never inspect credentials, use a revoked Expo token, bypass a denied OAuth grant, publish identity documents or invent an organisation.
+If a new account is required, Google lists a one-time US$25 registration fee. Required legal agreements, identity checks, credential changes and access grants need the applicable secure owner interaction. Keep all authentication values and identity documents out of source, logs and artifacts. Do not invent an organisation or bypass an access restriction.
 
 ## Engineering and signing
 
