@@ -343,7 +343,7 @@ Deno.serve(async (req) => {
       responseHeaders["x-perkdrop-slug-preflight"] = "miss";
       return new Response(JSON.stringify({ ok: false, status: "not_found", deal: null }), { status: 404, headers: responseHeaders });
     }
-    detailIds = [...new Set((slugIndex.data || []).map((row: any) => String(row.id)))];
+    detailIds = [...new Set<string>((slugIndex.data || []).map((row: any) => String(row.id)))];
     responseHeaders["x-perkdrop-slug-preflight"] = "hit";
   }
   const scopedCatalogueQuery = (query: any) => detailIds ? query.in("id", detailIds) : query;
