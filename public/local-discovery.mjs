@@ -61,11 +61,26 @@ export function discoveryMatches(item, {query='', category='All', when='any'} = 
   // Category uses taxonomy and title, never unrelated conditions such as "no drinks".
   return !patterns[category] || patterns[category].test([item.category,item.vertical,item.kind,item.title].join(' ').toLowerCase());
 }
-export function discoveryCollections(items, {origin=null, savedIds=[]} = {}, now = new Date()) {
+export function discoveryTopic(item) {
+  const value=String(item?.vertical||item?.category||item?.kind||'').toLowerCase();
+  for(const [topic,pattern] of [['food',/food|drink|dining|restaurant|cafe/],['events',/event|festival|arts/],['family',/family|kids|children/],['beauty',/beauty|hair|wellness/],['experiences',/experience|activit|museum|gallery|tour/],['shopping',/shop|retail/]])if(pattern.test(value))return topic;
+  return value;
+}
+export function quickDiscoveryPlans(items, {origin=null} = {}, now = new Date()) {
+  const local=items.filter(item=>inSearchArea(item,origin)&&currentListing(item,now)&&['A','B'].includes(item.qualityGrade)&&freshness(item,now).state==='recent');
+  return [
+    {id:'free',title:'Spend nothing',icon:'$0',category:'Free',when:'week',href:'/free?when=week',note:'Free entry in the next 7 days'},
+    {id:'tonight',title:'Make tonight count',icon:'☾',category:'All',when:'tonight',href:'/near-me?when=tonight',note:'Reviewed evening times'},
+    {id:'weekend',title:'Sort the weekend',icon:'✦',category:'All',when:'weekend',href:'/weekend',note:'Checked weekend dates'},
+    {id:'family',title:'Take the kids',icon:'☀',category:'Family',when:'week',href:'/family?when=week',note:'Check ages and admission details'},
+  ].map(plan=>({...plan,count:uniquePlaces(local.filter(item=>discoveryMatches(item,plan,now))).length}));
+}
+export function discoveryCollections(items, {origin=null, savedIds=[], catalogue=items, preferences={}} = {}, now = new Date()) {
   const eligible = items.filter(item => currentListing(item, now) && ['A','B'].includes(item.qualityGrade) && freshness(item,now).state === 'recent');
-  const saved = new Set(savedIds), interests = new Set(items.filter(item=>saved.has(item.id)).map(item=>item.vertical||item.category));
-  const score = item => (interests.has(item.vertical||item.category)?30:0) + (availabilityMatches(item,'week',now)?18:0) + (isUnconditionallyFree(item)?8:0) + (item.featured?6:0) - Math.min(25,(distanceFrom(item,origin)??100)/8);
-  const ranked = [...eligible].sort((a,b)=>score(b)-score(a) || String(a.id).localeCompare(String(b.id)));
+  const saved = new Set(savedIds), interests = new Set(catalogue.filter(item=>saved.has(item.id)).map(discoveryTopic).filter(Boolean));
+  for(const vertical of Array.isArray(preferences.verticals)?preferences.verticals.slice(0,20):[])interests.add(discoveryTopic({vertical}));
+  const score = item => (interests.has(discoveryTopic(item))?30:0) + (availabilityMatches(item,'week',now)?18:0) + (isUnconditionallyFree(item)?8:0) + (item.featured?6:0) - Math.min(25,(distanceFrom(item,origin)??100)/8);
+  const ranked = [...eligible].sort((a,b)=>score(b)-score(a) || String(a.id).localeCompare(String(b.id))).map(item=>({...item,discoveryReason:interests.has(discoveryTopic(item))?'Matches your interests':isUnconditionallyFree(item)?'Free entry':availabilityMatches(item,'week',now)?'On in the next 7 days':'Recently source checked'}));
   return {
     free: uniquePlaces(nearestFirst(eligible.filter(item=>isUnconditionallyFree(item)&&availabilityMatches(item,'week',now)),origin),8),
     week: uniquePlaces(ranked.filter(item=>availabilityMatches(item,'week',now)),8),

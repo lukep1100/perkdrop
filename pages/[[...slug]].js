@@ -165,7 +165,7 @@ export default function Shell({ deal, venue, collection=[], collectionCity="Adel
       }),
       h("link", {
         rel: "stylesheet",
-        href: "/styles.css?v=v50-smart-discovery",
+        href: "/styles.css?v=v51-smart-plans",
       }),
     ),
     h(
@@ -183,7 +183,7 @@ export default function Shell({ deal, venue, collection=[], collectionCity="Adel
         h("p", {role:"status"}, "Loading your local guide…"),
       ),
     ),
-    h("script", { src: "/app.js?v=v50-smart-discovery", type:"module" }),
+    h("script", { src: "/app.js?v=v51-smart-plans", type:"module" }),
   );
 }
 export async function getServerSideProps({ params, resolvedUrl, req, res }) {

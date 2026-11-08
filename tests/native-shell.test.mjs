@@ -4,7 +4,7 @@ import vm from 'node:vm';
 import {readFile} from 'node:fs/promises';
 import {nativeNavigation,nativeSavedIds} from '../public/native-shell.mjs';
 import {validCoordinates} from '../public/discovery-rules.mjs';
-import {searchRadius} from '../public/local-discovery.mjs';
+import {searchRadius,discoveryMatches} from '../public/local-discovery.mjs';
 const source=await readFile(process.env.PERKDROP_WEB_APP_SOURCE||new URL('../public/app.js',import.meta.url),'utf8');
 const extract=(start,end)=>{const a=source.indexOf(start),b=source.indexOf(end,a);assert.ok(a>=0&&b>a);return source.slice(a,b);};
 const goSource=extract('  function go(href) {','  function brand()');
@@ -54,11 +54,18 @@ test('native map uses the requested radius and nationwide mode cannot inherit a 
 test('nationwide native map includes offers outside the previous web city',()=>{
   const code=extract('  function mapEntries() {','  function venueCard(');
   const deals=[{id:'adelaide'},{id:'sydney'}];
-  const context={nativeMode:'map',qs:new URLSearchParams('scope=australia'),state:{user:null,deals,businesses:[],query:'',mapFilter:'offers'},mapped:()=>true,searchMatches:()=>true,text:()=>'',cityDeals:()=>[deals[0]],venueGroups:rows=>rows.map(primary=>({primary,offers:[primary]})),placeKey:d=>d.id};
+  const context={nativeMode:'map',qs:new URLSearchParams('scope=australia'),state:{user:null,deals,businesses:[],query:'',mapFilter:'offers'},activeDiscoveryFilters:()=>({category:'All',when:'any'}),discoveryMatches,mapped:()=>true,searchMatches:()=>true,text:()=>'',cityDeals:()=>[deals[0]],venueGroups:rows=>rows.map(primary=>({primary,offers:[primary]})),placeKey:d=>d.id};
   context.searchOrigin=()=>context.nativeMode==='map'?null:{lat:-34.928,lng:138.6,radius:50};
   context.inSearchArea=(item,origin)=>!origin||item.id==='adelaide';
   assert.equal(vm.runInNewContext(code+'mapEntries().length',context),2);
   context.nativeMode='';assert.equal(vm.runInNewContext(code+'mapEntries().length',context),1);
+});
+test('native map honours the selected category and does not substitute unfiltered directory pins',()=>{
+  const code=extract('  function mapEntries() {','  function venueCard('),deals=[{id:'free',price:'Free'},{id:'paid',price:'$20'}];
+  const context={searchOrigin:()=>null,activeDiscoveryFilters:()=>({category:'Free',when:'any'}),discoveryMatches,inSearchArea:()=>true,state:{deals,businesses:[{id:'unfiltered-directory'}],query:'',mapFilter:'all'},mapped:()=>true,searchMatches:()=>true,text:()=>'',venueGroups:rows=>rows.map(primary=>({primary,offers:[primary]})),placeKey:d=>d.id};
+  assert.deepEqual([...vm.runInNewContext(code+'mapEntries().map(x=>x.id)',context)],['free']);
+  assert.deepEqual(nativeNavigation('/search?plan=free&credential=ignored'),{kind:'explore',query:'',category:'Free',when:'week'});
+  assert.equal(nativeNavigation('/search?category=Free&when=weekend').when,'weekend');
 });
 test('cached catalogue shows refresh progress before reporting a live failure',async()=>{
   const code=extract('  function catalogueNotice() {','  function shell(')+extract('  async function load() {','  async function retryCatalogue()');

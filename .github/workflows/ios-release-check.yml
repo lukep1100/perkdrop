@@ -8,6 +8,10 @@ on:
       - 'public/outing-rules.mjs'
       - 'public/venue-identity.mjs'
       - 'public/discovery-rules.mjs'
+      - 'public/local-discovery.mjs'
+      - 'public/native-shell.mjs'
+      - 'scripts/mobile-release.mjs'
+      - 'scripts/check-app-store-build.mjs'
       - '.github/workflows/ios-release-check.yml'
   workflow_dispatch:
 

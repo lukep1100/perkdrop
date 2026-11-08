@@ -1,6 +1,9 @@
 name: iOS TestFlight upload
 
 on:
+  push:
+    branches: [main]
+    paths: ['mobile/release.json']
   workflow_dispatch:
     inputs:
       build_number:
@@ -23,7 +26,7 @@ concurrency:
 
 jobs:
   upload:
-    if: github.repository == 'lukep1100/perkdrop'
+    if: github.repository == 'lukep1100/perkdrop' && (github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main')
     runs-on: macos-26
     timeout-minutes: 60
     environment: app-store-connect
@@ -31,9 +34,8 @@ jobs:
       CI: '1'
       EXPO_NO_TELEMETRY: '1'
       EXPO_PUBLIC_TRAFFIC_TYPE: public
-      EXPO_PUBLIC_PUSH_ENABLED: ${{ inputs.push_enabled && 'true' || 'false' }}
-      EXPO_PUBLIC_BUILD_NUMBER: ${{ inputs.build_number || '12' }}
-      PERKDROP_BUILD_NUMBER: ${{ inputs.build_number || '12' }}
+      PERKDROP_RELEASE_BUILD_INPUT: ${{ inputs.build_number }}
+      PERKDROP_RELEASE_PUSH_INPUT: ${{ inputs.push_enabled && 'true' || 'false' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -43,6 +45,14 @@ jobs:
           node-version: '24'
           cache: npm
           cache-dependency-path: mobile/package-lock.json
+      - name: Load the reviewed TestFlight release manifest
+        run: node scripts/mobile-release.mjs
+      - name: Confirm the candidate build number is unused in Apple
+        env:
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_P8: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
+        run: node scripts/check-app-store-build.mjs
       - name: Verify revision, toolchain and build number
         run: |
           set -euo pipefail
@@ -52,7 +62,7 @@ jobs:
           python3 - <<'PY'
           import os, subprocess
           number = os.environ['PERKDROP_BUILD_NUMBER']
-          assert number.isascii() and number.isdecimal() and 11 <= int(number) <= 9999
+          assert number.isascii() and number.isdecimal() and 12 <= int(number) <= 9999
           sdk = subprocess.check_output(['xcrun', '--sdk', 'iphoneos', '--show-sdk-version'], text=True).strip()
           assert int(sdk.split('.')[0]) >= 26, 'Use iOS 26 SDK or later.'
           print('Candidate version: 1.1.0 (' + number + ')')
@@ -251,6 +261,12 @@ jobs:
             echo 'Signed identity, embedded JavaScript, privacy manifests and the configured APNs mode were verified before upload.'
             echo 'Apple processing, physical-device testing and App Review remain separate steps.'
           } >> "$GITHUB_STEP_SUMMARY"
+      - name: Confirm Apple processed the uploaded build
+        env:
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_P8: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
+        run: node scripts/check-app-store-build.mjs --wait
       - name: Remove the temporary API key
         if: always()
         env:
