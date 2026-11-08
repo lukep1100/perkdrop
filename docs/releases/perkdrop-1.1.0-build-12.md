@@ -1,5 +1,7 @@
 # PerkDrop 1.1.0 / build 12 — release evidence
 
+**Historical record:** build 12 was superseded later on 8 November by [build 13](perkdrop-1.1.0-build-13.md). Use that record for the latest TestFlight candidate and draft submission.
+
 Recorded 8 November 2026. The public App Store version remains 1.0/build 11. Version 1.1.0 is a processed TestFlight candidate and a **Ready for Review draft**, not a submitted or approved public update.
 
 ## Shipped web and services

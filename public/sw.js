@@ -1,6 +1,6 @@
-const VERSION='v52-easy-discovery';
+const VERSION='v53-easy-actions';
 const CACHE=`perkdrop-${VERSION}`;
-const STATIC=['/offer-actions.mjs','/local-discovery.mjs','/availability.mjs?v=v39-venue-rails','/availability.mjs','/venue-identity.mjs','/outing-rules.mjs','/analytics.mjs','/app.js?v=v52-easy-discovery','/discovery-rules.mjs?v=v40-event-autopilot','/styles.css?v=v52-easy-discovery','/images/venue-unavailable.svg','/icon.svg','/manifest.webmanifest'];
+const STATIC=['/offer-actions.mjs','/local-discovery.mjs','/availability.mjs?v=v39-venue-rails','/availability.mjs','/venue-identity.mjs','/outing-rules.mjs','/analytics.mjs','/app.js?v=v53-easy-actions','/discovery-rules.mjs?v=v40-event-autopilot','/styles.css?v=v53-easy-actions','/images/venue-unavailable.svg','/icon.svg','/manifest.webmanifest'];
 // Cache public assets only. Availability, authenticated screens and passes are never cached.
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(STATIC)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('perkdrop-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
