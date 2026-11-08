@@ -54,6 +54,16 @@ test('new detail URLs are discovered only on the trusted source host',()=>{
  assert.deepEqual(eventLinks('<a href="/events/new-event/">New</a><a href="https://other.example/events/no/">No</a><a href="/events/new-event/?utm_source=x">Again</a>', 'https://council.example/events/'),['https://council.example/events/new-event/']);
  assert.equal(safeUrl(undefined,source.source_url),'');assert.equal(safeUrl('http://127.0.0.1/a',source.source_url),'');
 });
+test('event discovery prioritises real content over navigation and index view variants before applying its limit',()=>{
+ const menu=Array.from({length:12},(_,i)=>`<a href="/whats-on/old-${i}">Menu</a>`).join('');
+ const html=`<header>${menu}</header><main><a href="/whats-on/events?display=calendar">Calendar</a><a href="/whats-on/guide">Guide</a><a href="/whats-on/events/free-library-session">Free session</a><a href="/events/new-market">Market</a><a href="https://other.example/events/no">Other</a></main>`;
+ assert.deepEqual(eventLinks(html,'https://council.example/whats-on/events',2),['https://council.example/whats-on/events/free-library-session','https://council.example/events/new-market']);
+ assert.deepEqual(eventLinks(`<nav>${menu}</nav><a href="/events/new">New</a>`,'https://council.example/events',1),['https://council.example/events/new']);
+});
+test('structured event links in the document head remain discoverable when main content is scoped',()=>{
+ const html='<script type="application/ld+json">{"@type":"Event","url":"/events/announced"}</script><main><a href="/whats-on/guide">Guide</a></main>';
+ assert.deepEqual(eventLinks(html,'https://council.example/events',1),['https://council.example/events/announced']);
+});
 test('cached listings disappear at the exact end timestamp or venue-local midnight',()=>{
  const time=new Date('2026-10-25T13:30:00Z');
  assert.equal(listingEnded({endsAt:time.toISOString()},time),true);

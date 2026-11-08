@@ -47,5 +47,6 @@ test('test builds remain internal and public release configuration is separate',
 });
 test('this submission preparation does not silently enable push', () => {
   for (const profile of Object.values(eas.build)) assert.equal(profile.env.EXPO_PUBLIC_PUSH_ENABLED, 'false');
-  assert.match(metadata.reviewNotes, /Remote push is disabled/);
+  assert.match(metadata.reviewNotes, /Remote notifications are optional and require explicit user opt-in/);
+  const release=read('../release.json');assert.equal(release.channel,'testflight');assert.equal(typeof release.pushEnabled,'boolean');
 });

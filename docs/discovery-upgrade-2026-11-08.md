@@ -33,3 +33,7 @@ The web guide adds one-tap plans for free entry, tonight, the weekend and family
 Native Explore receives the same quick plans and explanations. Failed local enrichment has its own retryable status so an incomplete feed is not presented as a confirmed empty area.
 
 The existing signed upload workflow now also runs when a reviewed `mobile/release.json` change reaches main. This manifest explicitly selects TestFlight, version, unused build number and existing opt-in push mode. It reuses the same app-store-connect environment, signing credentials and concurrency boundary; no new access or public-store submission is introduced. Apple API checks reject duplicate build numbers before compiling and confirm processing after upload. Normal web commits do not trigger uploads. Real-iPhone acceptance and App Review remain required before a new public iOS release.
+
+## Official event index discovery
+
+Live Playford checks exposed a bounded-link problem: site-wide navigation could occupy all ten child-source positions ahead of actual event detail pages. The watcher now scans main content, removes header/navigation/footer links, ranks structured-event and direct event-detail URLs before broader guides, and rejects alternate views of its current index. Same-host/source verification, expiry, coordinates, media and publication gates are unchanged. Offline regression fixtures cover navigation starvation and JSON-LD in the document head. App Store draft copy is aligned to the native 1.1 feature set and its explicit opt-in notification mode.

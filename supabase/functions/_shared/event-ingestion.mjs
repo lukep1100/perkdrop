@@ -112,11 +112,16 @@ export function normalizeEvent(e,source,merchant,now=Date.now(),venues=[]) {
   return {title,summary:cleanText(e.description).slice(0,1800),starts_at:new Date(starts).toISOString(),ends_at:new Date(ends).toISOString(),price_text:pricing.priceText,unavailable,metadata:{event_url:canonical,timezone,end_date:endDate,location,city,state,latitude:lat,longitude:lng,timing,structured_event:true,detected_by:'perkdrop-event-watch-v3',price_kind:pricing.priceKind,price_verified:pricing.priceVerified,booking_required:array(e.offers).some(o=>!!text(o?.url)),booking_url:safeUrl(array(e.offers).map(o=>text(o?.url)).find(Boolean)||canonical,source.source_url),event_status:status,availability,auto_publish_eligible:eligible,verification_issue:!geo?'missing_verified_coordinates':!location?'missing_location':'',image_url:FALLBACK,image_alt:'PerkDrop neutral event image',image_rights_status:'perkdrop_owned_fallback',media_fallback:true,media_status:'placeholder',venue_type:'event venue'}};
 }
 export function eventLinks(html,base,limit=15) {
-  const urls=new Set(),origin=new URL(base);
-  const add=raw=>{const url=safeUrl(raw,base);if(!url)return;const u=new URL(url);if(u.hostname!==origin.hostname || u.href===origin.href || !/\/(?:events?|whats-on|whatson)\/[^/?#]+/i.test(u.pathname) || /\.(?:jpg|png|pdf|ics|svg)$/i.test(u.pathname) || /\/(?:category|tag|feed|page)\//i.test(u.pathname))return;urls.add(url);};
-  for(const m of html.matchAll(/<a\b[^>]*href\s*=\s*["']([^"']+)["']/gi)) add(m[1].replace(/&amp;/g,'&'));
-  for(const e of parseStructuredEvents(html)) add(e.url||e['@id']);
-  return [...urls].slice(0,limit);
+  const urls=new Map(),origin=new URL(base),path=u=>u.pathname.replace(/\/$/,'');
+  const add=(raw,structured=false)=>{const url=safeUrl(raw,base);if(!url)return;const u=new URL(url);if(u.hostname!==origin.hostname || path(u)===path(origin) || !/\/(?:events?|whats-on|whatson)\/[^/?#]+/i.test(u.pathname) || /\.(?:jpg|png|pdf|ics|svg)$/i.test(u.pathname) || /\/(?:category|tag|feed|page)\//i.test(u.pathname))return;
+    const priority=structured?0:/\/events?\/[^/?#]+/i.test(u.pathname)?1:2;
+    urls.set(url,Math.min(urls.get(url)??Infinity,priority));
+  };
+  // Site-wide navigation must not consume the bounded child-page allowance.
+  const content=(html.match(/<main\b[^>]*>([\s\S]*?)<\/main>/i)?.[1]||html).replace(/<(header|nav|footer)\b[^>]*>[\s\S]*?<\/\1>/gi,'');
+  for(const m of content.matchAll(/<a\b[^>]*href\s*=\s*["']([^"']+)["']/gi)) add(m[1].replace(/&amp;/g,'&'));
+  for(const e of parseStructuredEvents(html)) add(e.url||e['@id'],true);
+  return [...urls].sort((a,b)=>a[1]-b[1]).slice(0,limit).map(([url])=>url);
 }
 // A programme gets one card, showing its next live occurrence. Retain the other
 // verified sessions as evidence rather than inventing continuous opening hours.
