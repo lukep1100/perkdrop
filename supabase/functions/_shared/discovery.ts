@@ -17,10 +17,20 @@ export function publicOfferImage(item: {image_url?: string | null; media_status?
   return approvedImage(itemImage || merchantImage);
 }
 export function directoryVisible(m: any) {return Boolean(m)&&m.permanent_listing===true&&m.directory_status!=='removed';}
-export function eventEnded(item: {kind?: string; ends_at?: string | null}, now = new Date()) {
-  if (item.kind !== 'event' || !item.ends_at) return false;
+export function listingEnded(item: {ends_at?: string | null}, now = new Date()) {
+  if (!item.ends_at) return false;
   const end = Date.parse(item.ends_at);
   return Number.isFinite(end) && end <= now.getTime();
+}
+export function eventEnded(item: {kind?: string; ends_at?: string | null}, now = new Date()) {
+  return item.kind === 'event' && listingEnded(item, now);
+}
+// `availability.validUntil` is the expiry of the evidence that makes a
+// listing safe to show, not just a display hint. Keep it in the shared
+// discovery guard so browser, native and catalogue API paths can agree.
+export function evidenceEnded(item: {state?: string; availability?: {validUntil?: string | null; valid_until?: string | null} | null}, now = new Date()) {
+  const until = String(item.availability?.validUntil || item.availability?.valid_until || '');
+  return /^\d{4}-\d{2}-\d{2}$/.test(until) && until < localDay(String(item.state || ''), now);
 }
 export const accuracyHeld = (item: {metadata?: {accuracy_hold?: boolean} | null}) => item.metadata?.accuracy_hold === true;
 export const categoryVertical=(category: string)=>({food:'food','food & drink':'food',food_drink:'food',drinks:'drinks',events:'events',experiences:'experiences',experiences_entertainment:'experiences',shopping:'shopping',shopping_fashion:'shopping',freebies:'free',beauty:'beauty',beauty_wellness:'beauty',wellness:'wellness',hair:'hair',fitness:'fitness',fitness_sport:'fitness',activities:'activities',golf:'golf',tourism:'tourism',attractions_events:'tourism',stay:'stay',travel_accommodation:'stay',services:'services',services_other:'services'} as Record<string,string>)[String(category||'').toLowerCase()]||'other';

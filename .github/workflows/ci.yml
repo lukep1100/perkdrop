@@ -15,7 +15,7 @@ jobs:
       - run: node --check public/app.js
       - run: node --check public/sw.js
       - run: npm run build
-      - run: npm run lint && node --test tests/availability.test.mjs tests/selected-availability.test.mjs tests/outing-rules.test.mjs tests/analytics-contract.test.mjs tests/analytics-traffic.test.mjs tests/inline-scripts.test.mjs
+      - run: npm run lint && node --test tests/availability.test.mjs tests/selected-availability.test.mjs tests/outing-rules.test.mjs tests/analytics-contract.test.mjs tests/analytics-traffic.test.mjs tests/inline-scripts.test.mjs tests/deal-path.test.mjs tests/catalogue-lookup.test.mjs
   edge:
     runs-on: ubuntu-latest
     steps:
