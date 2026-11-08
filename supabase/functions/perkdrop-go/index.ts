@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
+import { isAutomatedAgent } from "../_shared/analytics-traffic.mjs";
 
 const allowedHost=(host:string)=>host==="perkdrop.au"||host==="www.perkdrop.au"||(host.endsWith(".vercel.app")&&host.includes("perkdrop"));
 const hashIp=async(ip:string)=>{const salt=Deno.env.get("PERKDROP_HASH_SALT")||"perkdrop";const digest=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(`${salt}:${ip}`));return Array.from(new Uint8Array(digest)).map(b=>b.toString(16).padStart(2,"0")).join("")};
@@ -18,6 +19,7 @@ Deno.serve(async(req)=>{
       const {data:activeOffer}=await supabase.from('merchant_offers').select('id,status').eq('id',merchantOfferId).eq('merchant_id',deal.merchant_id).eq('status','active').maybeSingle();
       if(activeOffer){
         const claimUrl=`https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-consumer-claim?drop=${encodeURIComponent(deal.id)}`;
+        if(isAutomatedAgent(req.headers.get('user-agent')))return Response.redirect(claimUrl,302);
         try{await Promise.all([
           supabase.from("outbound_clicks").insert({drop_id:deal.id,merchant_id:deal.merchant_id||null,merchant:deal.merchant||null,destination_url:claimUrl,source_page:sourcePage||null,city:deal.city||null,category:deal.category||null,session_id:sessionId,referrer:ref.slice(0,1000)||null,utm_source:url.searchParams.get("utm_source")?.slice(0,120)||null,utm_medium:url.searchParams.get("utm_medium")?.slice(0,120)||null,utm_campaign:url.searchParams.get("utm_campaign")?.slice(0,180)||null,device_hint:(req.headers.get("sec-ch-ua-mobile")||req.headers.get("user-agent")||"").slice(0,300),source_ip_hash:sourceIpHash}),
           supabase.from('engagement_events').insert({merchant_id:deal.merchant_id||null,catalogue_item_id:deal.id,merchant_offer_id:activeOffer.id,event_type:'redemption_page_open',session_id:sessionId,city:deal.city||null,source_page:sourcePage||'detail',referrer:ref.slice(0,1000)||null,source_ip_hash:sourceIpHash,user_agent:(req.headers.get('user-agent')||'').slice(0,300)||null,metadata:{visitor_id:(url.searchParams.get('vid')||'').slice(0,120)||null,traffic_type:url.searchParams.get('internal')==='1'?'internal':'public',destination_host:'khzpdyyywiucfhubxkev.supabase.co'}})
@@ -28,6 +30,7 @@ Deno.serve(async(req)=>{
     const original=typeof deal.metadata?.original_go_url==="string"?deal.metadata.original_go_url:"";const fallback=typeof deal.source==="string"&&!deal.source.includes("/functions/v1/perkdrop-go")?deal.source:"";
     let target:URL;try{target=new URL(original||fallback)}catch{return Response.redirect("https://perkdrop.au/deals",302)}if(target.protocol!=="https:") return Response.redirect("https://perkdrop.au/deals",302);
     try{if(ref&&!allowedHost(new URL(ref).host)) return Response.redirect(target.toString(),302)}catch{}
+    if(isAutomatedAgent(req.headers.get('user-agent')))return Response.redirect(target.toString(),302);
     try{
       await Promise.all([
         supabase.from("outbound_clicks").insert({drop_id:deal.id,merchant_id:deal.merchant_id||null,merchant:deal.merchant||null,destination_url:target.toString(),source_page:sourcePage||null,city:deal.city||null,category:deal.category||null,session_id:sessionId,referrer:ref.slice(0,1000)||null,utm_source:url.searchParams.get("utm_source")?.slice(0,120)||null,utm_medium:url.searchParams.get("utm_medium")?.slice(0,120)||null,utm_campaign:url.searchParams.get("utm_campaign")?.slice(0,180)||null,device_hint:(req.headers.get("sec-ch-ua-mobile")||req.headers.get("user-agent")||"").slice(0,300),source_ip_hash:sourceIpHash}),

@@ -424,11 +424,12 @@ import {nativeShellMode,nativeNavigation,nativeSavedIds} from '/native-shell.mjs
   }
   function route(d) {
     const target = String(d?.detailUrl || d?.slug || d?.id || "").trim();
-    return target
-      ? target.startsWith("/")
-        ? target
-        : `/deals/${encodeURIComponent(target)}`
-      : "/food";
+    try {
+      const url = new URL(target, 'https://perkdrop.au');
+      if (['https://perkdrop.au', 'https://www.perkdrop.au'].includes(url.origin) && /^\/deals\/[A-Za-z0-9][A-Za-z0-9_-]{0,159}$/.test(url.pathname)) return url.pathname;
+    } catch {}
+    const slug = String(d?.slug || d?.id || target).trim();
+    return /^[A-Za-z0-9][A-Za-z0-9_-]{0,159}$/.test(slug) ? `/deals/${slug}` : '/food';
   }
   function navUrl(d) {
     if (d.navigationUrl) return attributedRedirect(d.navigationUrl, "perkdrop-nav");

@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.102.0";
-import { isAustralianPoint, localDay, publicOfferImage, directoryVisible, categoryVertical, eventEnded, accuracyHeld } from "../_shared/discovery.ts";
+import { isAustralianPoint, localDay, publicOfferImage, directoryVisible, categoryVertical, listingEnded, evidenceEnded, accuracyHeld } from "../_shared/discovery.ts";
+import { catalogueSlugFilter } from "../_shared/catalogue-lookup.mjs";
 
 const headers = {
   "content-type": "application/json; charset=utf-8",
@@ -311,11 +312,18 @@ Deno.serve(async (req) => {
   // dependency. Keep a cheap, bounded index read ahead of the enrichment
   // path; valid base and multi-location slugs continue through the existing
   // visibility, expiry and offer/session safeguards below.
+  let detailIds: string[] | null = null;
   if (requestedSlug) {
+    const slugFilter = catalogueSlugFilter(requestedSlug);
+    if (!slugFilter) {
+      responseHeaders["x-perkdrop-slug-preflight"] = "miss";
+      return new Response(JSON.stringify({ ok: false, status: "not_found", deal: null }), { status: 404, headers: responseHeaders });
+    }
     const slugIndex = await queryWithRetry(() => supabase
       .from("catalogue_items")
       .select("id,slug,detail_url")
-      .limit(1000));
+      .or(slugFilter)
+      .limit(160));
     if (slugIndex.error) {
       const status = queryErrorLabel(slugIndex.error);
       responseHeaders["x-perkdrop-query-failure"] = "catalogue_items";
@@ -335,8 +343,10 @@ Deno.serve(async (req) => {
       responseHeaders["x-perkdrop-slug-preflight"] = "miss";
       return new Response(JSON.stringify({ ok: false, status: "not_found", deal: null }), { status: 404, headers: responseHeaders });
     }
+    detailIds = [...new Set<string>((slugIndex.data || []).map((row: any) => String(row.id)))];
     responseHeaders["x-perkdrop-slug-preflight"] = "hit";
   }
+  const scopedCatalogueQuery = (query: any) => detailIds ? query.in("id", detailIds) : query;
   const limit = Math.max(
     1,
     Math.min(500, Number(url.searchParams.get("limit") || 500) || 500),
@@ -349,12 +359,13 @@ Deno.serve(async (req) => {
     { data: campaigns, error: campaignError },
     { data: sessions, error: sessionError },
   ] = await runQueryWaves([
-    () => queryWithRetry(() => supabase
+    () => queryWithRetry(() => scopedCatalogueQuery(supabase
       .from("catalogue_items")
       .select(
         "venue_id,venue:discovery_venues(id,latitude,longitude,address),starts_at,timezone,schedule_verified_at,availability,quality_grade,quality_note,last_verified_at,id,merchant_id,merchant,title,description,category,kind,city,state,location,timing,end_date,ends_at,price,conditions,booking,source,verified,hot,featured,slug,detail_url,city_label,active,metadata,latitude,longitude,image_url,image_alt,media_status,cuisine,discount_percent,venue_type,offer_origin,exclusive,affiliate_url,affiliate_network",
-      )
+      ))
       .eq("active", true)
+      .eq("lifecycle_status", "active")
       // Exclude stale rows before the limit; the per-state local-day check
       // below remains the final guard for offers ending today.
       .or(`end_date.is.null,end_date.gte.${today}`)
@@ -473,7 +484,7 @@ Deno.serve(async (req) => {
     if (accuracyHeld(d)) continue;
     if (d.merchant_id && !directoryVisible(merchantMap.get(d.merchant_id))) continue;
     if (d.end_date && String(d.end_date) < localDay(d.state)) continue;
-    if (eventEnded(d, new Date(now))) continue;
+    if (listingEnded(d, new Date(now)) || evidenceEnded(d, new Date(now))) continue;
     const locs = locByDrop.get(d.id) || [];
     if (
       String(d.city || "").toLowerCase() === "australia-wide" &&
@@ -591,11 +602,11 @@ Deno.serve(async (req) => {
   if (requestedSlug) {
     list=list.filter(d=>d.slug===requestedSlug||d.detail_url===`/deals/${requestedSlug}`);
     if (!list.length) {
-      const {data:past,error:pastError}=await queryWithRetry(() => supabase.from('catalogue_items').select('id,merchant_id,slug,title,merchant,active,end_date,ends_at,kind,state,metadata').eq('slug',requestedSlug).maybeSingle());
+      const {data:past,error:pastError}=await queryWithRetry(() => supabase.from('catalogue_items').select('id,merchant_id,slug,title,merchant,active,end_date,ends_at,kind,state,availability,metadata').eq('slug',requestedSlug).maybeSingle());
       if(pastError){await recordFailure(supabase, requestId, "slug", ["catalogue_items"], [queryErrorLabel(pastError)], Date.now() - started);console.warn(JSON.stringify({msg:'catalogue_slug_query_failed',requestId,ms:Date.now()-started}));return new Response(JSON.stringify({ok:false,error:'catalogue_failed'}),{status:503,headers:responseHeaders});}
       const visible=past&&(!past.merchant_id||directoryVisible(merchantMap.get(past.merchant_id)));
       const held=visible&&accuracyHeld(past);
-      const ended=visible&&!held&&((past.end_date&&past.end_date<localDay(past.state))||eventEnded(past,new Date(now)));
+      const ended=visible&&!held&&((past.end_date&&past.end_date<localDay(past.state))||listingEnded(past,new Date(now))||evidenceEnded(past,new Date(now)));
       if(held||visible&&!past.active&&!ended)return new Response(JSON.stringify({ok:false,status:'unavailable',deal:null}),{status:404,headers:responseHeaders});
       return new Response(JSON.stringify({ok:false,status:ended?'ended':'not_found',deal:ended?{title:past.title,merchant:past.merchant,slug:past.slug}:null}),{status:ended?410:404,headers:responseHeaders});
     }

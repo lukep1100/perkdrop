@@ -14,7 +14,7 @@
     "test:harness": "node scripts/marketplace-harness.mjs",
     "test:discovery": "node --test tests/discovery-rules.test.mjs tests/event-ingestion.test.mjs tests/notification-worker.test.mjs",
     "test:inline-scripts": "node --test tests/inline-scripts.test.mjs",
-    "test:analytics": "node --test tests/analytics-contract.test.mjs",
+    "test:analytics": "node --test tests/analytics-contract.test.mjs tests/analytics-traffic.test.mjs",
     "test:saves": "node --test tests/saved-listings.test.mjs tests/deal-path.test.mjs",
     "test:availability": "node --test tests/availability.test.mjs tests/selected-availability.test.mjs",
     "test:native-ios": "node --test tests/native-ios-config.test.mjs",
@@ -27,7 +27,7 @@
     "@supabase/supabase-js": "^2.57.4",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
-    "next": "16.4.0",
+    "next": "16.4.5",
     "qrcode": "1.5.4",
     "react": "19.2.3",
     "react-dom": "19.2.3"
