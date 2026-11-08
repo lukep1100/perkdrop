@@ -10,7 +10,7 @@ const reply = (id: string, body: unknown, status = 200, extra: Record<string, st
 const recordFailure = async (sb: any, id: string, status: string, queries: string[], started: number) => {
   await sb.from("catalogue_api_failures").insert({ request_id: id, endpoint: "catalogue", failure_status: safe(status) || "dependency_failed", failed_queries: queries.map(safe), duration_ms: Math.min(120000, Math.max(0, Date.now() - started)) });
 };
-async function withRetry<T>(fn: () => Promise<T>, shouldRetry: (value: T) => boolean): Promise<T> {
+async function withRetry<T>(fn: () => PromiseLike<T>, shouldRetry: (value: T) => boolean): Promise<T> {
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
       const value = await fn();

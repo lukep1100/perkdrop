@@ -515,7 +515,7 @@ import {nativeShellMode,nativeNavigation,nativeSavedIds} from '/native-shell.mjs
   function recoveryPanel(candidates) {
     const origin=searchOrigin(),wider=widerArea(candidates,origin),outside=nearestFirst(candidates.filter(d=>!inSearchArea(d,origin)),origin);
     if(state.areaCatalogueLoading)return '<section class="discovery-recovery" role="status"><div class="recovery-radar" aria-hidden="true"><b>⌖</b></div><h2>Checking your local circle…</h2><p>Finding current listings around your selected area.</p></section>';
-    return `<section class="discovery-recovery"><div class="recovery-radar" aria-hidden="true"><i></i><b>⌖</b></div><div class="eyebrow">THERE’S MORE TO EXPLORE</div><h2>${origin?'A little quiet around here.':'Let’s find another good plan.'}</h2><p>${origin?`No current matches within ${searchRadius(origin.radius)} km of ${esc(origin.label)}. Try a wider circle, another date or a different area.`:'No current listings match these filters. Try another search or date.'}</p><div class="recovery-actions">${state.areaCatalogueError?'<button class="btn secondary" data-retry-area>Retry local listings</button>':''}${wider?`<button class="btn primary" data-radius="${wider.radius}">Search ${wider.radius} km · ${wider.count} more ${wider.count===1?'place':'places'} →</button>`:''}<button class="btn secondary" data-choose-area>Change area</button><button class="tool-btn" data-clear-discovery>Clear filters</button>${origin?'<a data-internal class="tool-btn" href="/search?scope=australia'+(state.query?'&q='+encodeURIComponent(state.query):'')+'">Browse Australia →</a>':''}</div>${outside.length?`<div class="outside-radius-note">${wider?'These picks are outside your selected radius.':'Ideas farther afield — these are across Australia, not nearby.'}</div>${dealRail(wider?'Worth a little extra travel':'A little farther afield',wider?wider.items:outside.slice(0,6),'/search?scope=australia','BEYOND YOUR SELECTED AREA')}`:''}</section>`;
+    return `<section class="discovery-recovery"><div class="recovery-radar" aria-hidden="true"><i></i><b>⌖</b></div><div class="eyebrow">THERE’S MORE TO EXPLORE</div><h2>${state.areaCatalogueError?'Local listings couldn’t refresh.':origin?'A little quiet around here.':'Let’s find another good plan.'}</h2><p>${state.areaCatalogueError?'We couldn’t check the complete local feed. Retry before assuming there are no options.':origin?`No current matches within ${searchRadius(origin.radius)} km of ${esc(origin.label)}. Try a wider circle, another date or a different area.`:'No current listings match these filters. Try another search or date.'}</p><div class="recovery-actions">${state.areaCatalogueError?'<button class="btn secondary" data-retry-area>Retry local listings</button>':''}${wider?`<button class="btn primary" data-radius="${wider.radius}">Search ${wider.radius} km · ${wider.count} more ${wider.count===1?'place':'places'} →</button>`:''}<button class="btn secondary" data-choose-area>Change area</button><button class="tool-btn" data-clear-discovery>Clear filters</button>${origin?'<a data-internal class="tool-btn" href="/search?scope=australia'+(state.query?'&q='+encodeURIComponent(state.query):'')+'">Browse Australia →</a>':''}</div>${outside.length?`<div class="outside-radius-note">${wider?'These picks are outside your selected radius.':'Ideas farther afield — these are across Australia, not nearby.'}</div>${dealRail(wider?'Worth a little extra travel':'A little farther afield',wider?wider.items:outside.slice(0,6),'/search?scope=australia','BEYOND YOUR SELECTED AREA')}`:''}</section>`;
   }
   const cityKey = (value) =>
     String(value || "")
@@ -1267,6 +1267,7 @@ import {nativeShellMode,nativeNavigation,nativeSavedIds} from '/native-shell.mjs
       state.party = Number(e.target.value);
     });
     $("#location-pill")?.addEventListener("click", () => {
+      state.areaRadius=searchRadius(searchOrigin()?.radius);
       state.locationOpen = true;
       render();
     });
@@ -1299,7 +1300,9 @@ import {nativeShellMode,nativeNavigation,nativeSavedIds} from '/native-shell.mjs
     $('#outing-filters')?.addEventListener('submit',e=>{e.preventDefault();const p=new URLSearchParams(location.search);for(const [k,v] of new FormData(e.currentTarget)){if(v)p.set(k,v);else p.delete(k);}go(state.route+'?'+p);});
     $$('[data-search-area]').forEach(b=>b.addEventListener('click',()=>{const area=state.searchAreas[Number(b.dataset.searchArea)];state.searchAreas=[];selectArea(area,state.user?.radius||25);}));
     $$('[data-area]').forEach(b=>b.addEventListener('click',()=>selectArea(state.areaResults[Number(b.dataset.area)],Number($('#area-radius')?.value)||25)));
-    $('#area-radius')?.addEventListener('input',e=>{$('#area-radius-label').textContent=searchRadius(e.target.value)+' km';});
+    $('#area-input')?.addEventListener('input',e=>{state.areaTerm=e.target.value;});
+    $('#search-input')?.addEventListener('input',e=>{state.query=e.target.value;});
+    $('#area-radius')?.addEventListener('input',e=>{state.areaRadius=searchRadius(e.target.value);$('#area-radius-label').textContent=state.areaRadius+' km';});
     $('#area-form')?.addEventListener('submit',async e=>{e.preventDefault();const term=clean($('#area-input').value),status=$('#area-status'),radius=Number($('#area-radius').value);status.textContent='Finding areas…';try{const r=await fetch('/api/areas?q='+encodeURIComponent(term)+'&state='+CITIES[state.city][1]);if(!r.ok)throw Error();const data=await r.json();if(data.areas.length===1){selectArea(data.areas[0],radius);return;}state.areaResults=data.areas;state.areaTerm=term;state.areaRadius=radius;state.areaMessage=data.areas.length?'Choose your suburb below.':'No matching suburb found. Try a nearby suburb or postcode.';render();}catch{status.textContent='Area search is unavailable. Choose a city below or try again.'}});
     $("#search-form")?.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -1459,6 +1462,10 @@ import {nativeShellMode,nativeNavigation,nativeSavedIds} from '/native-shell.mjs
     }
   });
   function render() {
+    const focused=document.activeElement,focusId=focused?.id;
+    const caret=focused&&typeof focused.selectionStart==='number'?[focused.selectionStart,focused.selectionEnd]:null;
+    if(focusId==='area-input')state.areaTerm=focused.value;
+    if(focusId==='search-input')state.query=focused.value;
     destroyMap();
     const app = $("#app");
     if (state.loading) {
@@ -1535,6 +1542,7 @@ import {nativeShellMode,nativeNavigation,nativeSavedIds} from '/native-shell.mjs
         '<main class="page"><div class="empty">That page could not be found.</div></main>',
       );
     bind();
+    if(focusId){const restored=document.getElementById(focusId);if(restored){restored.focus({preventScroll:true});if(caret&&restored.setSelectionRange)try{restored.setSelectionRange(...caret);}catch{}}}
     if(!state.route.startsWith('/deals/')&&!state.route.startsWith('/places/')&&!state.route.startsWith('/venues/'))loadFocusedCatalogue();
     requestAnimationFrame(() => {
       if (state.route === "/map") initMap();
