@@ -1,9 +1,81 @@
 {
-  "cli": {"version": ">= 16.0.0", "appVersionSource": "remote"},
-  "build": {
-    "preview": {"distribution": "internal", "android": {"buildType": "apk"}, "env": {"EXPO_PUBLIC_TRAFFIC_TYPE": "internal", "EXPO_PUBLIC_PUSH_ENABLED": "false"}},
-    "testflight": {"distribution": "store", "autoIncrement": true, "ios": {"image": "latest"}, "env": {"EXPO_PUBLIC_TRAFFIC_TYPE": "internal", "EXPO_PUBLIC_PUSH_ENABLED": "false"}},
-    "production": {"distribution": "store", "autoIncrement": true, "ios": {"image": "latest"}, "env": {"EXPO_PUBLIC_TRAFFIC_TYPE": "public", "EXPO_PUBLIC_PUSH_ENABLED": "false"}}
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "remote"
   },
-  "submit": {"production": {"ios": {"ascAppId": "6820120968"}}}
+  "build": {
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_TRAFFIC_TYPE": "internal",
+        "EXPO_PUBLIC_PUSH_ENABLED": "false"
+      }
+    },
+    "testflight": {
+      "distribution": "store",
+      "autoIncrement": true,
+      "ios": {
+        "image": "latest"
+      },
+      "env": {
+        "EXPO_PUBLIC_TRAFFIC_TYPE": "internal",
+        "EXPO_PUBLIC_PUSH_ENABLED": "false"
+      }
+    },
+    "production": {
+      "distribution": "store",
+      "autoIncrement": true,
+      "ios": {
+        "image": "latest"
+      },
+      "env": {
+        "EXPO_PUBLIC_TRAFFIC_TYPE": "public",
+        "EXPO_PUBLIC_PUSH_ENABLED": "false"
+      }
+    },
+    "play-internal": {
+      "distribution": "store",
+      "autoIncrement": true,
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_TRAFFIC_TYPE": "internal",
+        "EXPO_PUBLIC_PUSH_ENABLED": "false"
+      }
+    },
+    "play-production": {
+      "distribution": "store",
+      "autoIncrement": true,
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_TRAFFIC_TYPE": "public",
+        "EXPO_PUBLIC_PUSH_ENABLED": "false"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "ascAppId": "6820120968"
+      }
+    },
+    "play-internal": {
+      "android": {
+        "track": "internal",
+        "releaseStatus": "draft"
+      }
+    },
+    "play-production": {
+      "android": {
+        "track": "production",
+        "releaseStatus": "draft"
+      }
+    }
+  }
 }

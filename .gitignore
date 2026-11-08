@@ -6,3 +6,6 @@ node_modules
 .audit/
 
 supabase/.temp/
+
+__pycache__/
+*.pyc
