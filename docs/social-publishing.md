@@ -44,4 +44,10 @@ The media verifier exits nonzero when any original fails. A 200 image/png respon
 
 Today's original ZIP contains a truncated 04.png (1,114,112 bytes, SHA-256 21b97c8a69eed82bc91923d0ac780211fdb74c6b52d830cf71f05a43c1ca908b). Its IDAT chunk is incomplete; it must not be approved. The other four originals pass full decoding. The test explicitly covers this corruption and does not silently repair it.
 
+### New brand asset candidate (15 October 2026)
+
+`5f6e9a46ddc25fb6c844e535e96310746b8cfdfd6c59c7c33af6990e156817a0.png` is a new PerkDrop-owned, 1080×1080 generic local-discovery creative. It uses original, non-venue-specific brand artwork with copy: “LOCAL FINDS • ADELAIDE” and “KEEP EXPLORING ON PERKDROP.AU”. Its SHA-256 filename, byte size (38,164 bytes), complete PNG structure and dimensions have been locally verified.
+
+It is deliberately **not** a repair or substitution for the corrupted legacy `04.png`, and it must not be inserted into job `461112dc-4de4-4157-b3a0-770749f65959`. If used, it needs a distinct five-slide job with rights-confirmed assets, hosted verification, and a new explicit owner approval. The legacy job remains locked.
+
 Production migration version: 20260914080417_social_publishing_preview.sql. Existing legacy campaigns/posts and encrypted credentials are preserved.
