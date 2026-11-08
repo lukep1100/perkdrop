@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
+import { isBotAnalyticsEvent, isPublicAnalyticsEvent } from "../_shared/analytics-traffic.mjs";
 
 const allowedOrigins = new Set([
   "https://perkdrop.au",
@@ -194,7 +195,7 @@ Deno.serve(async (req) => {
 
   const [eventsResult, redemptionResult, claimsResult, dropsResult, offersResult, contactsResult] = await Promise.all([
     admin.from("engagement_events")
-      .select("event_type,catalogue_item_id,city,metadata,session_id,created_at")
+      .select("event_type,catalogue_item_id,city,metadata,session_id,created_at,user_agent")
       .gte("created_at", since).order("created_at", { ascending: false }).limit(20000),
     admin.from("redemptions")
       .select("id,catalogue_item_id,merchant_offer_id,party_size,status,gross_value,discount_value,commission_value,created_at,redeemed_at")
@@ -209,7 +210,7 @@ Deno.serve(async (req) => {
   const queryError = [eventsResult, redemptionResult, claimsResult, dropsResult, offersResult, contactsResult].find((x) => x.error)?.error;
   if (queryError) return json({ error: "analytics_unavailable" }, 500, origin);
 
-  const events = (eventsResult.data || []).filter(x=>x.metadata?.traffic_type!=='internal');
+  const events = (eventsResult.data || []).filter(isPublicAnalyticsEvent);
   const redemptions = redemptionResult.data || [];
   const claims = claimsResult.data || [];
   const drops = dropsResult.data || [];
@@ -306,7 +307,8 @@ Deno.serve(async (req) => {
     overview: {
       visitors: new Set(events.map((x) => x.metadata?.visitor_id || x.session_id).filter(Boolean)).size,
       sessions: new Set(events.map(x=>x.session_id).filter(Boolean)).size,
-      internalEventsExcluded: (eventsResult.data||[]).length-events.length,
+      internalEventsExcluded: (eventsResult.data||[]).filter(x=>x.metadata?.traffic_type==='internal').length,
+      botEventsExcluded: (eventsResult.data||[]).filter(x=>x.metadata?.traffic_type!=='internal'&&isBotAnalyticsEvent(x)).length,
       visitorDefinition: "Anonymous browser/install IDs; legacy rows use their old tracking ID. Not people.",
       plansCreated: eventCount("plan_created"), planShares:eventCount("plan_shared"), calendarExports:eventCount("calendar_export"),
       pageViews: eventCount("page_view"),

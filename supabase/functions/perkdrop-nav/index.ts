@@ -2,6 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
 import { directoryVisible } from "../_shared/discovery.ts";
 import { navigationDestination, validDropId } from "./rules.ts";
+import { isAutomatedAgent } from "../_shared/analytics-traffic.mjs";
 
 const hashIp=async(ip:string)=>{const salt=Deno.env.get('PERKDROP_HASH_SALT')||'perkdrop';const d=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(`${salt}:${ip}`));return Array.from(new Uint8Array(d)).map(b=>b.toString(16).padStart(2,'0')).join('')};
 
@@ -24,6 +25,7 @@ Deno.serve(async(req)=>{
     }
     const destination=navigationDestination(targetDeal);
     const target=`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`;
+    if(isAutomatedAgent(req.headers.get('user-agent')))return Response.redirect(target,302);
     const forwarded=req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()||'';let sourceIpHash:string|null=null;try{sourceIpHash=forwarded?await hashIp(forwarded):null}catch{}
     try{await service.from('engagement_events').insert({merchant_id:deal.merchant_id,catalogue_item_id:deal.id,event_type:'directions',session_id:(url.searchParams.get('sid')||'').slice(0,120)||null,city:deal.city||null,source_page:(url.searchParams.get('from')||'detail').slice(0,500),referrer:(req.headers.get('referer')||'').slice(0,1000)||null,source_ip_hash:sourceIpHash,user_agent:(req.headers.get('user-agent')||'').slice(0,300)||null,metadata:{destination,visitor_id:(url.searchParams.get('vid')||'').slice(0,120)||null,traffic_type:url.searchParams.get('internal')==='1'?'internal':'public'}})}catch{}
     return Response.redirect(target,302);
