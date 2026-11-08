@@ -1,6 +1,6 @@
 # PerkDrop App Store release runbook
 
-Status verified 8 November 2026: Apple approved iOS 1.0, build 11. The authorised manual release was accepted and App Store Connect shows **Ready for Distribution**, Australia only, for app ID `6820120968`. The Australian public lookup still returned zero results at the last check, so public download availability is not yet independently verified. App Analytics was unavailable; no install/download total is established.
+Status verified 8 November 2026: iOS 1.0, build 11 is approved and released. App Store Connect shows Australia **Available**, and the public product page is live at https://apps.apple.com/au/app/perkdrop/id6820120968 . A stale lookup result must not override the live page and country availability. No verified download/install total is established. Version 1.1.0 is the next discovery-upgrade candidate and is not the currently released binary.
 
 The original account, signing, upload, screenshots and review gates were completed for the approved release. The instructions below are retained for future binary updates, not as current launch blockers. Do not resubmit the approved build merely to deploy website or development-tool maintenance.
 
@@ -22,9 +22,13 @@ Australian public lookup: https://itunes.apple.com/lookup?id=6820120968&country=
 | Privacy URL | `https://perkdrop.au/privacy` |
 | Delete-data URL | `https://perkdrop.au/delete-account` |
 
-The iOS app is a Capacitor shell around the live PerkDrop product with a local offline fallback. Location permission is optional and used only after the user chooses nearby browsing.
+The released iOS app uses the native React Native/Expo source in `mobile/`, recovered from the tested build-11 branch `fix/ios-push-readiness-20261012` and integrated into the canonical project for this update. Home, search, saved items and private passes are native; the shared map and public detail sheets use the live website. The older Capacitor target under `ios/` is a legacy scaffold, not the source for build 11. Location permission remains optional and foreground-only.
 
-## Local commands
+## Native candidate commands
+
+Run `npm ci` inside `mobile/`, then `node --test tests/*.test.mjs` and `npx expo export --platform all`. The GitHub **iOS TestFlight upload** workflow generates the native project, compiles, signs and uploads the selected source ref with an unused build number. Version 1.1.0 uses build 12 as its initial candidate; confirm the latest accepted build before retrying. A new native binary needs TestFlight/device verification and Apple review.
+
+## Legacy Capacitor scaffold commands
 
 ```bash
 npm ci

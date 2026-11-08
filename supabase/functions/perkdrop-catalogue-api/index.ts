@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.102.0";
 import { isAustralianPoint, localDay, publicOfferImage, directoryVisible, categoryVertical, listingEnded, evidenceEnded, accuracyHeld } from "../_shared/discovery.ts";
-import { catalogueSlugFilter } from "../_shared/catalogue-lookup.mjs";
+import { catalogueSlugFilter, catalogueArea } from "../_shared/catalogue-lookup.mjs";
 
 const headers = {
   "content-type": "application/json; charset=utf-8",
@@ -345,6 +345,17 @@ Deno.serve(async (req) => {
     }
     detailIds = [...new Set<string>((slugIndex.data || []).map((row: any) => String(row.id)))];
     responseHeaders["x-perkdrop-slug-preflight"] = "hit";
+  }
+  if(!requestedSlug){
+    let area;
+    try{area=catalogueArea(url.searchParams);}catch{return new Response(JSON.stringify({ok:false,error:'valid_australian_area_required'}),{status:400,headers:responseHeaders});}
+    if(area){
+      const nearby=await queryWithRetry(()=>supabase.rpc('perkdrop_nearby_drop_ids',{p_lat:area.lat,p_lng:area.lng,p_radius_km:area.radius}).limit(500));
+      if(nearby.error){await recordFailure(supabase,requestId,'catalogue',['nearby_rpc'],[queryErrorLabel(nearby.error)],Date.now()-started);return new Response(JSON.stringify({ok:false,error:'nearby_unavailable'}),{status:503,headers:responseHeaders});}
+      detailIds=[...new Set<string>((nearby.data||[]).map((row:any)=>String(row.id)))];
+      responseHeaders['x-perkdrop-area-scope']='nearby';
+      if(!detailIds.length)return new Response(JSON.stringify({apiVersion:18,generatedAt:now,count:0,total:0,deals:[]}),{headers:responseHeaders});
+    }
   }
   const scopedCatalogueQuery = (query: any) => detailIds ? query.in("id", detailIds) : query;
   const limit = Math.max(
@@ -786,7 +797,7 @@ Deno.serve(async (req) => {
   });
   return new Response(
     JSON.stringify({
-      apiVersion: 17,
+      apiVersion: 18,
       generatedAt: new Date().toISOString(),
       count: list.length,
       total,
