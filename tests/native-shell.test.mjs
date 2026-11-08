@@ -4,6 +4,7 @@ import vm from 'node:vm';
 import {readFile} from 'node:fs/promises';
 import {nativeNavigation,nativeSavedIds} from '../public/native-shell.mjs';
 import {validCoordinates} from '../public/discovery-rules.mjs';
+import {searchRadius} from '../public/local-discovery.mjs';
 const source=await readFile(process.env.PERKDROP_WEB_APP_SOURCE||new URL('../public/app.js',import.meta.url),'utf8');
 const extract=(start,end)=>{const a=source.indexOf(start),b=source.indexOf(end,a);assert.ok(a>=0&&b>a);return source.slice(a,b);};
 const goSource=extract('  function go(href) {','  function brand()');
@@ -45,7 +46,7 @@ test('embedded frames never read the separate web guest credential',async()=>{
 });
 test('native map uses the requested radius and nationwide mode cannot inherit a web-only area',()=>{
   const code=extract('  const state = {','  const $ = ');
-  const context={nativeMode:'map',nativeSavedIds,validCoordinates,CITIES:{adelaide:['Adelaide']},store:{get:()=>'',json:()=>({lat:-34.9,lng:138.6,radius:25})},window:{PerkDropNativeSaved:[]},location:{pathname:'/map'},qs:new URLSearchParams('lat=-34.928&lng=138.601&radius=50')};
+  const context={nativeMode:'map',nativeSavedIds,validCoordinates,searchRadius,CITIES:{adelaide:['Adelaide']},store:{get:()=>'',json:()=>({lat:-34.9,lng:138.6,radius:25})},window:{PerkDropNativeSaved:[]},location:{pathname:'/map'},qs:new URLSearchParams('lat=-34.928&lng=138.601&radius=50')};
   assert.equal(vm.runInNewContext(code+'state.user.radius',context),50);
   context.qs=new URLSearchParams('scope=australia');
   assert.equal(vm.runInNewContext(code+'state.user',{...context}),null);
@@ -54,6 +55,8 @@ test('nationwide native map includes offers outside the previous web city',()=>{
   const code=extract('  function mapEntries() {','  function venueCard(');
   const deals=[{id:'adelaide'},{id:'sydney'}];
   const context={nativeMode:'map',qs:new URLSearchParams('scope=australia'),state:{user:null,deals,businesses:[],query:'',mapFilter:'offers'},mapped:()=>true,searchMatches:()=>true,text:()=>'',cityDeals:()=>[deals[0]],venueGroups:rows=>rows.map(primary=>({primary,offers:[primary]})),placeKey:d=>d.id};
+  context.searchOrigin=()=>context.nativeMode==='map'?null:{lat:-34.928,lng:138.6,radius:50};
+  context.inSearchArea=(item,origin)=>!origin||item.id==='adelaide';
   assert.equal(vm.runInNewContext(code+'mapEntries().length',context),2);
   context.nativeMode='';assert.equal(vm.runInNewContext(code+'mapEntries().length',context),1);
 });

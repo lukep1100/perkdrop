@@ -1,4 +1,5 @@
 // Presentation and public navigation only. This grants no account or API access.
+import {validCoordinates} from './discovery-rules.mjs';
 const SITE = 'https://perkdrop.au';
 export function nativeShellMode(value, bridgeAvailable) {
   if (!bridgeAvailable) return '';
@@ -44,6 +45,7 @@ export function readNativeNavigationMessage(data, documentUrl) {
   if (typeof data !== 'string' || data.length > 8192 || !mode || (mode === 'sheet' && nativeNavigation(documentUrl)?.kind !== 'page')) return null;
   try {
     const message = JSON.parse(data);
+    if(message?.type==='perkdrop:area' && mode==='map' && Number.isFinite(message.latitude) && Number.isFinite(message.longitude) && validCoordinates(message.latitude,message.longitude) && Number.isFinite(message.radius) && message.radius>=1 && message.radius<=200) return {kind:'area',point:{latitude:message.latitude,longitude:message.longitude,label:'Map area',radius:Math.round(message.radius)}};
     if (message?.type === 'perkdrop:save' && typeof message.id === 'string' && /^[a-z0-9_:.-]{1,240}$/i.test(message.id)) return {kind:'save', id:message.id};
     if (message?.type !== 'perkdrop:navigate') return null;
     if (mode !== 'map') return null;

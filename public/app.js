@@ -1,3 +1,4 @@
+import {searchRadius,validOrigin,inSearchArea,distanceLabel,widerArea,discoveryCollections,nearestFirst,mergeDiscoveryListings} from '/local-discovery.mjs';
 import { availabilityMatches, freshness, scheduleLabel, selectedAvailability, localClock } from '/availability.mjs?v=v39-venue-rails';
 import { venueKey, legacyVenueKey } from '/venue-identity.mjs';
 import { matchesOuting, suggestedDate } from '/outing-rules.mjs';
@@ -6,7 +7,7 @@ import { PLACEHOLDER, validCoordinates, safeImage, isUnconditionallyFree, fulfil
 import {nativeShellMode,nativeNavigation,nativeSavedIds} from '/native-shell.mjs';
 (() => {
   "use strict";
-  const VERSION = "v49-event-autopilot";
+  const VERSION = "v50-smart-discovery";
   const nativeMode=nativeShellMode(location.href,typeof window.ReactNativeWebView?.postMessage === 'function');
   if(nativeMode)document.documentElement.dataset.nativeShell=nativeMode;
   const API =
@@ -87,10 +88,12 @@ import {nativeShellMode,nativeNavigation,nativeSavedIds} from '/native-shell.mjs
     directoryError: "",
     mapFilter: "offers",
     detailMap: null,
+    radiusCircle: null,
+    radius: searchRadius(store.get("perkdrop_radius_v1"),50),
     viewedDeal: "",
     viewedMap: "",
     city: CITIES[store.get("perkdrop_city")] ? store.get("perkdrop_city") : "adelaide",
-    user: nativeMode==='map' && qs.get("scope")==="australia" ? null : validCoordinates(qs.get("lat"),qs.get("lng"))?{lat:Number(qs.get("lat")),lng:Number(qs.get("lng")),radius:Math.min(100,Math.max(1,Number(qs.get("radius"))||25)),label:qs.get("area")||"Selected area"}:store.json("perkdrop_area_v1", null),
+    user: nativeMode==='map' && qs.get("scope")==="australia" ? null : validCoordinates(qs.get("lat"),qs.get("lng"))?{lat:Number(qs.get("lat")),lng:Number(qs.get("lng")),radius:searchRadius(qs.get("radius")),label:qs.get("area")||"Selected area"}:store.json("perkdrop_area_v1", null),
     saved: nativeMode ? nativeSavedIds(window.PerkDropNativeSaved) : store.json("perkdrop_saved", []),
     followed: store.json("perkdrop_followed_merchants", []),
     preferences: store.json("perkdrop_preferences_v1", {}),
@@ -106,6 +109,11 @@ import {nativeShellMode,nativeNavigation,nativeSavedIds} from '/native-shell.mjs
     party: 1,
     locationOpen: false,
     areaResults: [],
+    areaCatalogueKey: "",
+    areaCatalogueRequest: 0,
+    areaCatalogueLoading: false,
+    areaCatalogueError: false,
+    focusedDeals: [],
     searchAreas: [],
     areaTerm:"",areaRadius:25,areaMessage:"",
     pageKey: "",
@@ -241,7 +249,7 @@ import {nativeShellMode,nativeNavigation,nativeSavedIds} from '/native-shell.mjs
     return rows;
   }
   function applyCatalogue(rows) {
-    state.deals = norm(rows).map(enrich).filter(d=>!listingEnded(d));
+    state.deals = mergeDiscoveryListings(norm(rows).map(enrich).filter(d=>!listingEnded(d)),state.focusedDeals);
   }
   function cacheCatalogue(rows) {
     if (!Array.isArray(rows) || rows.length > CATALOGUE_CACHE_MAX_ITEMS) return;
@@ -469,19 +477,45 @@ import {nativeShellMode,nativeNavigation,nativeSavedIds} from '/native-shell.mjs
         (Math.cos(a * r) * Math.cos(c * r) * (1 - Math.cos((d - b) * r))) / 2;
     return 12742 * Math.asin(Math.sqrt(x));
   }
-  function distLabel(d) {
-    if (!state.user || !mapped(d)) return "";
-    const km = distance(
-      state.user.lat,
-      state.user.lng,
-      d.latitude,
-      d.longitude,
-    );
-    return km < 1
-      ? `${Math.round(km * 1000)} m`
-      : km < 10
-        ? `${km.toFixed(1)} km`
-        : `${Math.round(km)} km`;
+  function searchOrigin() {
+    if(new URLSearchParams(location.search).get('scope')==='australia')return null;
+    if(validOrigin(state.user))return state.user;
+    const c=CITIES[state.city]||CITIES.adelaide;
+    return {lat:c[2],lng:c[3],label:c[0],radius:searchRadius(state.radius,50)};
+  }
+  function distLabel(d) { return distanceLabel(d,searchOrigin()); }
+  function setSearchRadius(value) {
+    const radius=searchRadius(value);
+    state.radius=radius;store.set('perkdrop_radius_v1',radius);
+    if(state.user){state.user={...state.user,radius};store.set('perkdrop_area_v1',JSON.stringify(state.user));}
+    const params=new URLSearchParams(location.search);params.delete('scope');
+    if(params.has('radius'))params.set('radius',String(radius));
+    history.replaceState({},'',location.pathname+(params.size?'?'+params:''));
+    render();
+  }
+  async function loadFocusedCatalogue(force=false){
+    const origin=searchOrigin(),key=origin?[origin.lat??origin.latitude,origin.lng??origin.longitude].map(n=>Number(n).toFixed(3)).join(','):'';
+    if(!key||!force&&state.areaCatalogueKey===key)return;
+    state.areaCatalogueKey=key;const request=++state.areaCatalogueRequest;state.areaCatalogueLoading=true;state.areaCatalogueError=false;queueMicrotask(()=>{if(request===state.areaCatalogueRequest)render();});
+    try{
+      const response=await fetch('https://khzpdyyywiucfhubxkev.supabase.co/functions/v1/perkdrop-nearby-api?lat='+key.split(',')[0]+'&lng='+key.split(',')[1]+'&radius_km=200&limit=200',{signal:AbortSignal.timeout(16000),cache:'no-store'});
+      if(!response.ok)throw Error('nearby_unavailable');const payload=await response.json();
+      if(request!==state.areaCatalogueRequest)return;
+      state.focusedDeals=norm(catalogueRows(payload)).map(enrich).filter(d=>!listingEnded(d));
+      state.deals=mergeDiscoveryListings(state.deals,state.focusedDeals);
+    }catch{if(request===state.areaCatalogueRequest)state.areaCatalogueError=true;}
+    finally{if(request===state.areaCatalogueRequest){state.areaCatalogueLoading=false;render();}}
+  }
+  function radiusControls() {
+    const origin=searchOrigin();
+    if(!origin)return '<div class="radius-national"><span>◎ Exploring across Australia</span><button class="tool-btn" data-choose-area>Choose a local area →</button></div>';
+    const radius=searchRadius(origin.radius);
+    return `<section class="radius-control" aria-label="Search distance"><div class="radius-heading"><div><span>SEARCH AROUND</span><button class="radius-area" data-choose-area>${esc(origin.label)} <span aria-hidden="true">⌄</span></button></div><output for="discovery-radius" data-radius-output>${radius}<small> km</small></output></div><label class="sr-only" for="discovery-radius">Search distance in kilometres</label><input id="discovery-radius" type="range" min="1" max="200" step="1" value="${radius}" aria-valuetext="${radius} kilometres"><div class="radius-scale"><span>1 km</span><span>Straight-line distance</span><span>200 km</span></div><div class="radius-presets">${[10,25,50,100].map(km=>`<button data-radius="${km}" aria-pressed="${radius===km}" class="${radius===km?'on':''}">${km} km</button>`).join('')}<a data-internal href="/map">See radius on map ↗</a></div></section>`;
+  }
+  function recoveryPanel(candidates) {
+    const origin=searchOrigin(),wider=widerArea(candidates,origin),outside=nearestFirst(candidates.filter(d=>!inSearchArea(d,origin)),origin);
+    if(state.areaCatalogueLoading)return '<section class="discovery-recovery" role="status"><div class="recovery-radar" aria-hidden="true"><b>⌖</b></div><h2>Checking your local circle…</h2><p>Finding current listings around your selected area.</p></section>';
+    return `<section class="discovery-recovery"><div class="recovery-radar" aria-hidden="true"><i></i><b>⌖</b></div><div class="eyebrow">THERE’S MORE TO EXPLORE</div><h2>${origin?'A little quiet around here.':'Let’s find another good plan.'}</h2><p>${origin?`No current matches within ${searchRadius(origin.radius)} km of ${esc(origin.label)}. Try a wider circle, another date or a different area.`:'No current listings match these filters. Try another search or date.'}</p><div class="recovery-actions">${state.areaCatalogueError?'<button class="btn secondary" data-retry-area>Retry local listings</button>':''}${wider?`<button class="btn primary" data-radius="${wider.radius}">Search ${wider.radius} km · ${wider.count} more ${wider.count===1?'place':'places'} →</button>`:''}<button class="btn secondary" data-choose-area>Change area</button><button class="tool-btn" data-clear-discovery>Clear filters</button>${origin?'<a data-internal class="tool-btn" href="/search?scope=australia'+(state.query?'&q='+encodeURIComponent(state.query):'')+'">Browse Australia →</a>':''}</div>${outside.length?`<div class="outside-radius-note">${wider?'These picks are outside your selected radius.':'Ideas farther afield — these are across Australia, not nearby.'}</div>${dealRail(wider?'Worth a little extra travel':'A little farther afield',wider?wider.items:outside.slice(0,6),'/search?scope=australia','BEYOND YOUR SELECTED AREA')}`:''}</section>`;
   }
   const cityKey = (value) =>
     String(value || "")
@@ -495,17 +529,7 @@ import {nativeShellMode,nativeNavigation,nativeSavedIds} from '/native-shell.mjs
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, " ")
       .trim();
-  function cityDeals() {
-    if(state.user)return state.deals.filter(d=>mapped(d)&&distance(state.user.lat,state.user.lng,d.latitude,d.longitude)<=(state.user.radius||25));
-    const market=CITIES[state.city],metroRadius=state.city==='gold-coast'?80:65;
-    return state.deals.filter((d) => {
-      const city = cityKey(d.city);
-      if(city === state.city || city === "australia-wide")return true;
-      // Catalogue sources often use a suburb for city while a visitor chooses
-      // the broader metro. Coordinates are the strongest available match.
-      return Boolean(market&&mapped(d)&&distance(market[2],market[3],d.latitude,d.longitude)<=metroRadius);
-    });
-  }
+  function cityDeals() { return state.deals.filter(d=>inSearchArea(d,searchOrigin())); }
   function hasPreferences(){
     const p=state.preferences||{};
     return Boolean(p.city||p.intent&&p.intent!=='any'||Array.isArray(p.verticals)&&p.verticals.length||p.radius_km);
@@ -548,8 +572,8 @@ import {nativeShellMode,nativeNavigation,nativeSavedIds} from '/native-shell.mjs
     return !Number.isNaN(e) && e >= n && e - n <= 7 * 86400000;
   }
   const weekend=d=>availabilityMatches(d,"weekend");
-  function list(kind) {
-    let x = kind==="near-me"&&state.user?state.deals.filter(d=>mapped(d)&&distance(state.user.lat,state.user.lng,d.latitude,d.longitude)<=(state.user.radius||25)):cityDeals();
+  function list(kind, candidates = cityDeals()) {
+    let x = candidates;
     const verticals = {
       beauty: "beauty",
       wellness: "wellness",
@@ -648,7 +672,7 @@ import {nativeShellMode,nativeNavigation,nativeSavedIds} from '/native-shell.mjs
     return `<footer class="site-footer"><div class="footer-grid"><div><a class="footer-brand" data-internal href="/">${brand()}</a><p>Your local shortlist for food, things to do, events, experiences and genuine perks — with the details clear before you go.</p><div class="socials"><a target="_blank" rel="noopener" href="https://www.instagram.com/perkdropofficial/">Instagram</a><a target="_blank" rel="noopener" href="https://www.tiktok.com/@perkdrop8">TikTok</a><a target="_blank" rel="noopener" href="https://www.facebook.com/perkdrop">Facebook</a></div></div><div><b>Discover</b><a data-internal href="/food">Food</a><a data-internal href="/events">Events</a><a data-internal href="/map">Map</a><a data-internal href="/about">About</a></div><div><b>Business</b><a data-internal href="/business">Create a Drop</a><a href="/claim">Claim your business</a><a href="/merchant-floor">Business sign in</a></div></div><div class="footer-legal"><a data-internal href="/terms">Terms</a> · <a data-internal href="/privacy">Privacy</a> · <a data-internal href="/merchant-terms">Merchant Terms</a> · <a data-internal href="/verification">Verification</a> · <a data-internal href="/affiliate">Affiliate Disclosure</a> · <a data-internal href="/contact">Contact</a></div></footer>`;
   }
   function locationMenu() {
-    return `<div class="location-menu" id="location-overlay"><div class="location-sheet" role="dialog" aria-modal="true" aria-labelledby="location-title"><button id="close-location" class="tool-btn" aria-label="Close location chooser">Close ✕</button><h3 id="location-title">Choose your area</h3><button id="use-location" class="btn primary">⌖ Use my live location</button><form id="area-form" class="area-form"><label for="area-input">Suburb or postcode</label><input id="area-input" value="${esc(state.areaTerm)}" placeholder="e.g. Elizabeth or 5112" required maxlength="80"><label for="area-radius">Distance from selected area</label><select id="area-radius"><option value="10" ${state.areaRadius===10?"selected":""}>10 km</option><option value="25" ${state.areaRadius===25?"selected":""}>25 km</option><option value="50" ${state.areaRadius===50?"selected":""}>50 km</option></select><button class="btn secondary">Use area</button><small>Choose a suburb to search around its approximate centre. Distances are straight-line estimates.</small><div id="area-status" role="status">${esc(state.areaMessage)}</div></form><div class="area-results">${state.areaResults.map((a,i)=>`<button class="btn secondary" data-area="${i}">${esc(a.name)} ${esc(a.state)} ${esc(a.postcode)}</button>`).join("")}</div><div class="city-grid">${Object.entries(
+    return `<div class="location-menu" id="location-overlay"><div class="location-sheet" role="dialog" aria-modal="true" aria-labelledby="location-title"><button id="close-location" class="tool-btn" aria-label="Close location chooser">Close ✕</button><h3 id="location-title">Choose your area</h3><button id="use-location" class="btn primary">⌖ Use my live location</button><form id="area-form" class="area-form"><label for="area-input">Suburb or postcode</label><input id="area-input" value="${esc(state.areaTerm)}" placeholder="e.g. Elizabeth or 5112" required maxlength="80"><label for="area-radius">Distance from selected area</label><input id="area-radius" type="range" min="1" max="200" value="${searchRadius(state.areaRadius)}" aria-valuetext="${searchRadius(state.areaRadius)} kilometres"><output id="area-radius-label">${searchRadius(state.areaRadius)} km</output><button class="btn secondary">Use area</button><small>Choose a suburb to search around its approximate centre. Distances are straight-line estimates.</small><div id="area-status" role="status">${esc(state.areaMessage)}</div></form><div class="area-results">${state.areaResults.map((a,i)=>`<button class="btn secondary" data-area="${i}">${esc(a.name)} ${esc(a.state)} ${esc(a.postcode)}</button>`).join("")}</div><div class="city-grid">${Object.entries(
       CITIES,
     )
       .map(
@@ -767,7 +791,7 @@ import {nativeShellMode,nativeNavigation,nativeSavedIds} from '/native-shell.mjs
       groups = venueGroups(xs),
       active = k === "saved" ? "saved" : "explore";
     return shell(
-      `<main class="page">${searchBox()}${outingControls()}${chips()}<section class="section"><div class="section-head"><div><div class="eyebrow">${eye}</div><h2>${esc(title)}</h2></div><span>${groups.length} place${groups.length === 1 ? "" : "s"} · ${xs.length} offer${xs.length === 1 ? "" : "s"}</span></div>${k === "near-me" && !state.user ? `<div class="empty"><p>Use your location to sort places by distance.</p><button id="near-location" class="btn primary">⌖ Use my location</button></div>` : ""}<div class="grid compact venue-grid">${groups.map(venueRailCard).join("")}</div>${!xs.length ? '<div class="empty">No confirmed choices match this area and filters yet. <a href="/radar">Watch for new local Drops</a> or <a href="/search">change your search</a>.</div>' : ""}</section></main>`,
+      `<main class="page">${searchBox()}${radiusControls()}${outingControls()}${chips()}<section class="section"><div class="section-head"><div><div class="eyebrow">${eye}</div><h2>${esc(title)}</h2></div><span>${groups.length} place${groups.length === 1 ? "" : "s"} · ${xs.length} offer${xs.length === 1 ? "" : "s"}</span></div>${k === "near-me" && !state.user ? `<div class="empty"><p>Use your location to sort places by distance.</p><button id="near-location" class="btn primary">⌖ Use my location</button></div>` : ""}<div class="grid compact venue-grid">${groups.map(venueRailCard).join("")}</div>${!xs.length ? recoveryPanel(list(k,state.deals)) : ""}</section></main>`,
       active,
     );
   }
@@ -785,7 +809,7 @@ import {nativeShellMode,nativeNavigation,nativeSavedIds} from '/native-shell.mjs
     return [...groups.values()].map(offers=>{
       const ordered=[...offers].sort((a,b)=>discoveryRank(b)-discoveryRank(a));
       return {primary:ordered[0],offers:ordered};
-    }).sort((a,b)=>(state.user&&mapped(a.primary)&&mapped(b.primary)?distance(state.user.lat,state.user.lng,a.primary.latitude,a.primary.longitude)-distance(state.user.lat,state.user.lng,b.primary.latitude,b.primary.longitude):discoveryRank(b.primary)-discoveryRank(a.primary)));
+    }).sort((a,b)=>{const origin=searchOrigin();return origin&&mapped(a.primary)&&mapped(b.primary)?distance(origin.lat??origin.latitude,origin.lng??origin.longitude,a.primary.latitude,a.primary.longitude)-distance(origin.lat??origin.latitude,origin.lng??origin.longitude,b.primary.latitude,b.primary.longitude):discoveryRank(b.primary)-discoveryRank(a.primary);});
   }
   function merchantPlaceCount(d) {
     const sameMerchant = state.deals.filter((candidate) => {
@@ -814,7 +838,8 @@ import {nativeShellMode,nativeNavigation,nativeSavedIds} from '/native-shell.mjs
     return `<article class="deal-card venue-rail-card ${d.imageFit==='contain'?'poster-card':''}"><a class="card-link" data-internal href="${esc(venueHref(d,group))}">${photoFrame(d)}<span class="badge">${esc(badge(d))}</span><span class="type-pill type-${t[0]}">${t[1]} ${t[2]}</span><div class="card-body"><div class="merchant-line"><span>${esc(d.merchant)}</span><span class="distance">${esc(distLabel(d))}</span></div><h3>${esc(d.title)}</h3><div class="meta">${esc(scheduleLabel(d))}</div><div class="meta">${esc(d.price||"Price to confirm")} · ${esc(d.location||d.city)}</div>${more}</div></a>${photoCredit(d)}${photoCredit(d,true)}<button class="save" aria-label="Save ${esc(d.title)}" aria-pressed="${state.saved.includes(d.id)}" data-save="${esc(d.id)}">${state.saved.includes(d.id)?'♥':'♡'}</button></article>`;
   }
   function dealRail(title, items, href, eyebrow = "DISCOVER") {
-    const picks=venueGroups(items).slice(0,12);
+    const order=new Map();items.forEach((item,index)=>{if(!order.has(placeKey(item)))order.set(placeKey(item),index);});
+    const picks=venueGroups(items).sort((a,b)=>order.get(placeKey(a.primary))-order.get(placeKey(b.primary))).slice(0,12);
     if (!picks.length) return "";
     return `<section class="discover-section ${picks.length === 1 ? "discover-section--solo" : ""}"><div class="section-head"><div><div class="eyebrow">${esc(eyebrow)}</div><h2>${esc(title)}</h2></div><a data-internal href="${esc(href)}">See all <span aria-hidden="true">→</span></a></div><div class="deal-rail ${picks.length === 1 ? "deal-rail--solo" : ""}" role="region" aria-label="${esc(title)}">${picks.map(venueRailCard).join("")}</div></section>`;
   }
@@ -827,7 +852,7 @@ import {nativeShellMode,nativeNavigation,nativeSavedIds} from '/native-shell.mjs
     const businessesWithMatchingOffers=new Set(xs.map(d=>String(d.merchantId||"")).filter(Boolean));
     const businesses=state.query?state.businesses.filter(b=>(nationwide||cityKey(b.market)===state.city)&&!businessesWithMatchingOffers.has(String(b.id||""))&&searchMatches([b.name,b.market,b.state,b.location,b.category,b.cuisine].join(" "),state.query)):[];
     return shell(
-      `<main class="page">${searchBox(state.query)}<label class="scope-control">Search area <select id="search-scope"><option value="local" ${nationwide?"":"selected"}>My area</option><option value="australia" ${nationwide?"selected":""}>All Australia</option></select></label>${outingControls()}${state.searchAreas.length?`<aside class="search-areas"><b>Looking near a suburb?</b><p>Choose an area to see nearby options.</p>${state.searchAreas.map((a,i)=>`<button class="btn secondary" data-search-area="${i}">${esc(a.name)} ${esc(a.state)} ${esc(a.postcode)}</button>`).join('')}</aside>`:''}${chips()}<section class="section"><div class="section-head"><div><div class="eyebrow">SEARCH</div><h2>${state.query ? `Results ${nationwide?"across Australia":"near "+esc(state.user?.label||CITIES[state.city][0])} for “${esc(state.query)}”` : "Explore PerkDrop"}</h2></div><span>${groups.length} place${groups.length === 1 ? "" : "s"} · ${xs.length} offer${xs.length === 1 ? "" : "s"}</span></div><div class="grid compact venue-grid">${groups.map(venueRailCard).join("")}</div>${!xs.length ? '<div class="empty">No matching offers in this area yet. Try another date, widen your distance in the location chooser, or select All Australia. <a href="/radar">Watch for new local Drops</a>. Business listings appear below when available.</div>' : ""}${businesses.length?'<h2>Businesses</h2><div class="grid">'+businesses.slice(0,100).map(b=>venueCard({...b,merchant:b.name})).join('')+'</div>':''}${state.directoryLoading?'<p role="status">Searching business listings…</p>':''}</section></main>`,
+      `<main class="page">${searchBox(state.query)}${radiusControls()}<label class="scope-control">Search area <select id="search-scope"><option value="local" ${nationwide?"":"selected"}>My area</option><option value="australia" ${nationwide?"selected":""}>All Australia</option></select></label>${outingControls()}${state.searchAreas.length?`<aside class="search-areas"><b>Looking near a suburb?</b><p>Choose an area to see nearby options.</p>${state.searchAreas.map((a,i)=>`<button class="btn secondary" data-search-area="${i}">${esc(a.name)} ${esc(a.state)} ${esc(a.postcode)}</button>`).join('')}</aside>`:''}${chips()}<section class="section"><div class="section-head"><div><div class="eyebrow">SEARCH</div><h2>${state.query ? `Results ${nationwide?"across Australia":"near "+esc(state.user?.label||CITIES[state.city][0])} for “${esc(state.query)}”` : "Explore PerkDrop"}</h2></div><span>${groups.length} place${groups.length === 1 ? "" : "s"} · ${xs.length} offer${xs.length === 1 ? "" : "s"}</span></div><div class="grid compact venue-grid">${groups.map(venueRailCard).join("")}</div>${!xs.length ? recoveryPanel(state.deals.filter(d=>searchMatches(text(d)+" "+d.city+" "+d.state,state.query)&&matchesOuting(d,outingFilters()))) : ""}${businesses.length?'<h2>Businesses</h2><div class="grid">'+businesses.slice(0,100).map(b=>venueCard({...b,merchant:b.name})).join('')+'</div>':''}${state.directoryLoading?'<p role="status">Searching business listings…</p>':''}</section></main>`,
       "explore",
     );
   }
@@ -991,9 +1016,9 @@ import {nativeShellMode,nativeNavigation,nativeSavedIds} from '/native-shell.mjs
     });
   }
   function mapEntries() {
-    const near=d=>!state.user||(mapped(d)&&distance(state.user.lat,state.user.lng,d.latitude,d.longitude)<=(state.user.radius||25));
-    const deals = (state.user?state.deals.filter(near):nativeMode==='map' && qs.get("scope")==="australia"?state.deals:cityDeals()).filter(d => mapped(d) && searchMatches(text(d), state.query));
-    const venues = state.businesses.filter(b => (state.user?near(b):nativeMode==='map' && qs.get("scope")==="australia" || cityKey(b.market) === state.city) && searchMatches([b.name,b.location,b.category,b.cuisine,b.venueType].join(' '),state.query));
+    const origin=searchOrigin(),near=d=>inSearchArea(d,origin);
+    const deals = (origin?state.deals.filter(near):state.deals).filter(d => mapped(d) && searchMatches(text(d), state.query));
+    const venues = state.businesses.filter(b => (!origin||near(b)) && searchMatches([b.name,b.location,b.category,b.cuisine,b.venueType].join(' '),state.query));
     const entries = new Map();
     for (const group of venueGroups(deals)) {
       const d = group.primary;
@@ -1010,10 +1035,10 @@ import {nativeShellMode,nativeNavigation,nativeSavedIds} from '/native-shell.mjs
     return '<article class="venue-card">'+(d.image?'<img class="venue-thumb" loading="lazy" src="'+esc(safeImage(d.image))+'" alt="'+esc(d.name||d.merchant)+'">':'')+'<h3>'+esc(d.merchant)+'</h3><p>'+esc(d.location)+'</p><p class="muted">Business listing · No active offer listed</p><a class="btn secondary" data-internal href="/venues/'+encodeURIComponent(d.slug)+'">View business</a></article>';
   }
   function mapPage() {
-    const xs = mapEntries(), pins=xs.filter(mapped);
-    const offers=xs.filter(x=>!x.business).flatMap(x=>x.offers||[]);
+    const xs=mapEntries(),pins=xs.filter(mapped),offers=xs.filter(x=>!x.business).flatMap(x=>x.offers||[]),origin=searchOrigin();
     const groupedOffers=venueGroups(offers).slice(0,12);
-    return shell('<main class="page map-page map-discover-page">'+searchBox(state.query)+chips()+'<section class="map-heading"><div><div class="eyebrow">EXPLORE YOUR AREA</div><h1>See what’s nearby</h1></div><div class="view-switch"><a data-internal href="/near-me">List</a><span>⌖ Map</span></div></section><div class="map-toolbar"><button id="map-location" class="btn primary">⌖ Near me</button><label class="map-filter-label">Show <select id="map-filter"><option value="all" '+(state.mapFilter==='all'?'selected':'')+'>Everything</option><option value="offers" '+(state.mapFilter==='offers'?'selected':'')+'>Offers</option></select></label></div><p class="muted map-legend">'+pins.length+' nearby place'+(pins.length===1?'':'s')+' on the map. Overlapping pins are spread; lines show their locations.</p>'+(state.directoryError?'<p role="status">Business listings could not load. Current offers are still shown.</p>':'')+'<div class="mapbox"><div id="perk-map" aria-label="Map of deals and businesses"><p role="status">Loading map…</p></div></div>'+(!xs.length?'<div class="empty">No matches in this area. Clear your search or choose another city.</div>':groupedOffers.length?'<section class="map-nearby"><div class="section-head"><div><div class="eyebrow">FROM THE MAP</div><h2>Nearby places</h2></div><a data-internal href="/near-me">List view</a></div><div class="deal-rail map-deal-rail">'+groupedOffers.map(venueRailCard).join('')+'</div></section>':'')+'</main>','map');
+    const matching=state.deals.filter(d=>mapped(d)&&searchMatches(text(d),state.query));
+    return shell(`<main class="page map-page map-discover-page">${searchBox(state.query)}<section class="map-heading"><div><div class="eyebrow">YOUR CIRCLE. YOUR PLANS.</div><h1>Find your next good thing.</h1></div><div class="view-switch"><a data-internal href="/near-me">List</a><span>⌖ Map</span></div></section>${radiusControls()}<div class="map-toolbar"><button id="map-location" class="btn primary">⌖ Near me</button><label class="map-filter-label">Show <select id="map-filter"><option value="all" ${state.mapFilter==='all'?'selected':''}>Everything</option><option value="offers" ${state.mapFilter==='offers'?'selected':''}>Current offers</option></select></label></div><p class="map-legend" role="status">${pins.length} current ${pins.length===1?'place':'places'}${origin?' within <span data-map-radius>'+searchRadius(origin.radius)+'</span> km of '+esc(origin.label):' across Australia'}. The shaded circle shows your selected search area.</p>${state.directoryError?'<p role="status">Business listings could not load. Current offers are still shown.</p>':''}<div class="mapbox"><div id="perk-map" aria-label="Map of current listings and selected distance"><p role="status">Loading map…</p></div><button class="map-search-centre" id="search-map-area">⌖ Search this map area</button></div>${!xs.length?recoveryPanel(matching):groupedOffers.length?`<section class="map-nearby"><div class="section-head"><div><div class="eyebrow">INSIDE YOUR CIRCLE</div><h2>Found on your map</h2></div><a data-internal href="/near-me">List view →</a></div><div class="deal-rail map-deal-rail">${groupedOffers.map(venueRailCard).join('')}</div></section>`:''}</main>`,'map');
   }
   function venuePage(b) {
     const offers=state.deals.filter(d=>d.merchantId===b.id);
@@ -1059,6 +1084,7 @@ import {nativeShellMode,nativeNavigation,nativeSavedIds} from '/native-shell.mjs
         state.map.remove();
       } catch {}
       state.map = null;
+      state.radiusCircle = null;
     }
   }
   async function initMap() {
@@ -1068,8 +1094,8 @@ import {nativeShellMode,nativeNavigation,nativeSavedIds} from '/native-shell.mjs
     try { await ensureLeaflet(); } catch { node.innerHTML="<p>Map unavailable. Use the listings and Directions links below.</p>"; return; }
     if (!node.isConnected) return;
     node.textContent="";
-    const c = CITIES[state.city] || CITIES.adelaide,
-      m = L.map(node,{zoomAnimation:false,fadeAnimation:false}).setView([c[2], c[3]], 12);
+    const c = CITIES[state.city] || CITIES.adelaide,origin=searchOrigin(),
+      m = L.map(node,{zoomAnimation:false,fadeAnimation:false}).setView(origin?[origin.lat??origin.latitude,origin.lng??origin.longitude]:[c[2], c[3]], 12);
     state.map = m;
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
@@ -1092,16 +1118,12 @@ import {nativeShellMode,nativeNavigation,nativeSavedIds} from '/native-shell.mjs
         if(placed.distanceTo(original)>2)L.polyline([point,display],{color:'#bba7ee',weight:1.2,opacity:.8,interactive:false}).addTo(stems);
       }
     }
-    if (state.user)
-      L.circleMarker([state.user.lat, state.user.lng], {
-        radius: 8,
-        weight: 3,
-        fillOpacity: 1,
-      })
-        .addTo(m)
-        .bindTooltip("You are here");
-    if (f.getLayers().length > 0)
-      m.fitBounds(f.getBounds().pad(0.12), { maxZoom: 15, animate:false });
+    if(origin){
+      const centre=[origin.lat??origin.latitude,origin.lng??origin.longitude];
+      state.radiusCircle=L.circle(centre,{radius:searchRadius(origin.radius)*1000,color:'#b886ff',weight:2,fillColor:'#a16aef',fillOpacity:.12,interactive:false}).addTo(m);
+      L.circleMarker(centre,{radius:7,color:'#fff',weight:3,fillColor:'#ac6dff',fillOpacity:1}).addTo(m).bindTooltip('Search centre: '+origin.label);
+      m.fitBounds(state.radiusCircle.getBounds(),{padding:[24,24],maxZoom:14,animate:false});
+    }else if(f.getLayers().length)m.fitBounds(f.getBounds().pad(.12),{maxZoom:15,animate:false});
     spreadPins();m.on('zoomend',spreadPins);
     if(state.viewedMap!==state.pageKey){track("map_open", {});state.viewedMap=state.pageKey;}
   }
@@ -1124,18 +1146,25 @@ import {nativeShellMode,nativeNavigation,nativeSavedIds} from '/native-shell.mjs
       .bindPopup(popup(d))
       .openPopup();
   }
+  function previewMapRadius(value){
+    const radius=searchRadius(value);
+    $$('[data-radius-output]').forEach(node=>{node.innerHTML=radius+'<small> km</small>';});
+    $$('[data-map-radius]').forEach(node=>{node.textContent=String(radius);});
+    state.radiusCircle?.setRadius(radius*1000);
+  }
+  window.addEventListener('perkdrop:radius',event=>{if(nativeMode==='map'&&Number.isFinite(event.detail?.radius))previewMapRadius(event.detail.radius);});
   function selectArea(area,radius){
-    state.user={lat:area.lat,lng:area.lng,label:`${area.name} ${area.state} ${area.postcode}`,radius};
+    state.user={lat:area.lat,lng:area.lng,label:`${area.name} ${area.state} ${area.postcode}`,radius:searchRadius(radius)};
     const markets=Object.entries(CITIES).filter(([,v])=>v[1]===area.state).sort(([,a],[,b])=>distance(area.lat,area.lng,a[2],a[3])-distance(area.lat,area.lng,b[2],b[3]));
     if(markets.length)state.city=markets[0][0];
-    store.set('perkdrop_area_v1',JSON.stringify(state.user));store.set('perkdrop_city',state.city);document.cookie=`perkdrop_city=${state.city}; Path=/; Max-Age=31536000; SameSite=Lax; Secure`;state.locationOpen=false;state.areaResults=[];go('/search');
+    store.set('perkdrop_area_v1',JSON.stringify(state.user));store.set('perkdrop_city',state.city);document.cookie=`perkdrop_city=${state.city}; Path=/; Max-Age=31536000; SameSite=Lax; Secure`;state.locationOpen=false;state.areaResults=[];render();
   }
   function requestLocation() {
     if (!navigator.geolocation) return toast("Location is not available.");
     navigator.geolocation.getCurrentPosition(
       (p) => {
         if(!validCoordinates(p.coords.latitude,p.coords.longitude)){state.locationOpen=true;render();toast("PerkDrop covers Australia. Choose an Australian city.");return;}
-        state.user = { lat: p.coords.latitude, lng: p.coords.longitude, radius:25, label:"Your location" };
+        state.user = { lat: p.coords.latitude, lng: p.coords.longitude, radius:searchRadius(searchOrigin()?.radius), label:"Your location" };
         let best = state.city,
           bd = Infinity;
         for (const [k, v] of Object.entries(CITIES)) {
@@ -1147,6 +1176,7 @@ import {nativeShellMode,nativeNavigation,nativeSavedIds} from '/native-shell.mjs
         }
         state.city = best;
         store.set("perkdrop_city", best);
+        store.set("perkdrop_area_v1",JSON.stringify(state.user));
         state.locationOpen = false;
         render();
         toast(`Using your location near ${CITIES[best][0]}`);
@@ -1203,6 +1233,23 @@ import {nativeShellMode,nativeNavigation,nativeSavedIds} from '/native-shell.mjs
     }
   }
   function bind() {
+    $$('[data-retry-area]').forEach(button=>button.addEventListener('click',()=>loadFocusedCatalogue(true)));
+    $$('[data-choose-area]').forEach(button=>button.addEventListener('click',()=>{state.locationOpen=true;state.areaRadius=searchRadius(searchOrigin()?.radius);render();}));
+    $$('[data-radius]').forEach(button=>button.addEventListener('click',()=>setSearchRadius(button.dataset.radius)));
+    $$('[data-clear-discovery]').forEach(button=>button.addEventListener('click',()=>{state.query='';go(state.route==='/'?'/':'/search');}));
+    const range=$('#discovery-radius');
+    range?.addEventListener('input',()=>previewMapRadius(range.value));
+    range?.addEventListener('change',()=>setSearchRadius(range.value));
+    $('#search-map-area')?.addEventListener('click',()=>{
+      if(!state.map)return;
+      const centre=state.map.getCenter(),radius=searchRadius(searchOrigin()?.radius);
+      if(!validCoordinates(centre.lat,centre.lng))return toast('Choose a map area in Australia.');
+      if(nativeMode==='map'){window.ReactNativeWebView.postMessage(JSON.stringify({type:'perkdrop:area',latitude:Number(centre.lat.toFixed(3)),longitude:Number(centre.lng.toFixed(3)),radius}));return;}
+      state.user={lat:Number(centre.lat.toFixed(3)),lng:Number(centre.lng.toFixed(3)),label:'Map area',radius};
+      store.set('perkdrop_area_v1',JSON.stringify(state.user));
+      const params=new URLSearchParams(location.search);params.delete('scope');history.replaceState({},'',location.pathname+(params.size?'?'+params:''));render();
+    });
+
     $("#retry-catalogue")?.addEventListener("click", retryCatalogue);
     $('#availability-filter')?.addEventListener('change',e=>go('/tonight?when='+encodeURIComponent(e.target.value)));
     $('#selected-time-form')?.addEventListener('submit',e=>{e.preventDefault();go('/tonight?when=selected&date='+encodeURIComponent($('#selected-date').value)+'&time='+encodeURIComponent($('#selected-time').value))});
@@ -1252,6 +1299,7 @@ import {nativeShellMode,nativeNavigation,nativeSavedIds} from '/native-shell.mjs
     $('#outing-filters')?.addEventListener('submit',e=>{e.preventDefault();const p=new URLSearchParams(location.search);for(const [k,v] of new FormData(e.currentTarget)){if(v)p.set(k,v);else p.delete(k);}go(state.route+'?'+p);});
     $$('[data-search-area]').forEach(b=>b.addEventListener('click',()=>{const area=state.searchAreas[Number(b.dataset.searchArea)];state.searchAreas=[];selectArea(area,state.user?.radius||25);}));
     $$('[data-area]').forEach(b=>b.addEventListener('click',()=>selectArea(state.areaResults[Number(b.dataset.area)],Number($('#area-radius')?.value)||25)));
+    $('#area-radius')?.addEventListener('input',e=>{$('#area-radius-label').textContent=searchRadius(e.target.value)+' km';});
     $('#area-form')?.addEventListener('submit',async e=>{e.preventDefault();const term=clean($('#area-input').value),status=$('#area-status'),radius=Number($('#area-radius').value);status.textContent='Finding areas…';try{const r=await fetch('/api/areas?q='+encodeURIComponent(term)+'&state='+CITIES[state.city][1]);if(!r.ok)throw Error();const data=await r.json();if(data.areas.length===1){selectArea(data.areas[0],radius);return;}state.areaResults=data.areas;state.areaTerm=term;state.areaRadius=radius;state.areaMessage=data.areas.length?'Choose your suburb below.':'No matching suburb found. Try a nearby suburb or postcode.';render();}catch{status.textContent='Area search is unavailable. Choose a city below or try again.'}});
     $("#search-form")?.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -1487,6 +1535,7 @@ import {nativeShellMode,nativeNavigation,nativeSavedIds} from '/native-shell.mjs
         '<main class="page"><div class="empty">That page could not be found.</div></main>',
       );
     bind();
+    if(!state.route.startsWith('/deals/')&&!state.route.startsWith('/places/')&&!state.route.startsWith('/venues/'))loadFocusedCatalogue();
     requestAnimationFrame(() => {
       if (state.route === "/map") initMap();
       const cur = dealFromRoute();
@@ -1519,6 +1568,7 @@ import {nativeShellMode,nativeNavigation,nativeSavedIds} from '/native-shell.mjs
     const rows = catalogueRows(j);
     applyCatalogue(rows);
     cacheCatalogue(rows);
+    state.areaCatalogueKey='';
   }
   async function loadConsumerState(){
     if(nativeMode)return; // Private native identity never enters the web frame.
@@ -1645,32 +1695,16 @@ import {nativeShellMode,nativeNavigation,nativeSavedIds} from '/native-shell.mjs
     return cards ? `<div class="hero-spotlight" aria-label="Featured local picks">${cards}</div>` : "";
   }
   function home() {
-    const all=cityDeals().filter(d=>['A','B'].includes(d.qualityGrade)&&freshness(d).state==='recent');
-    const photographed=all.filter(hasPhoto);
-    const imageFirst=photographed.length>=2?photographed:all;
-    const tonight=imageFirst.filter(d=>availabilityMatches(d,'tonight')),
-      food=imageFirst.filter(d=>isFood(d)||isDrink(d)),
-      free=imageFirst.filter(isFree),
-      events=imageFirst.filter(d=>isEvent(d)&&availabilityMatches(d,"week")),
-      weekendDrops=imageFirst.filter(weekend),
-      city=CITIES[state.city]?.[0]||state.city,
-      primary=tonight.length?tonight:venueGroups(imageFirst).slice(0,8).flatMap(g=>g.offers);
-    const personal=personalisedDeals(imageFirst);
-    const primaryPlaces=new Set(venueGroups(primary).map(group=>placeKey(group.primary)));
-    const foodPicks=food.filter(d=>!primaryPlaces.has(placeKey(d)));
-    const foodPlaces=new Set(venueGroups(foodPicks).map(group=>placeKey(group.primary)));
-    const freePicks=free.filter(d=>!primaryPlaces.has(placeKey(d))&&!foodPlaces.has(placeKey(d)));
-    const freePlaces=new Set(venueGroups(freePicks).map(group=>placeKey(group.primary)));
-    const weekendPicks=weekendDrops.filter(d=>!primaryPlaces.has(placeKey(d))&&!foodPlaces.has(placeKey(d))&&!freePlaces.has(placeKey(d)));
-    const weekendPlaces=new Set(venueGroups(weekendPicks).map(group=>placeKey(group.primary)));
-    const eventPicks=events.filter(d=>!primaryPlaces.has(placeKey(d))&&!foodPlaces.has(placeKey(d))&&!freePlaces.has(placeKey(d))&&!weekendPlaces.has(placeKey(d)));
-    const allGroups=venueGroups(all);
-    const heroGroups=venueGroups(imageFirst);
-    const summary=`${allGroups.length} places · ${all.length} current ${all.length===1?'perk':'perks'}`;
-    const planner=`<section class="discover-intro"><div class="discover-kicker"><span class="live-dot" aria-hidden="true"></span><span>${esc(city).toUpperCase()} GUIDE</span><span class="kicker-divider" aria-hidden="true"></span><span>${esc(summary)}</span></div><div class="discover-copy"><div class="discover-message"><h1>Don’t make plans yet.</h1><p>Open PerkDrop first. Swipe real local places, see the catch upfront, save what looks good, then use the map when you are ready to go.</p><div class="hero-proof"><span>Grouped by place</span><span>Current picks first</span><span>Photos where cleared</span></div></div>${spotlightPreview(heroGroups)}</div><div class="plan-pills" aria-label="Quick ways to browse"><a data-internal href="/tonight"><span>✦</span>Tonight</a><a data-internal href="/weekend"><span>◷</span>This weekend</a><a data-internal href="/near-me"><span>⌖</span>Near me</a></div>${searchBox('',`Search ${city} — food, events, free plans or places`)}${chips()}</section>`;
-    const mapShortcut=`<a class="map-shortcut" data-internal href="/map"><span class="map-shortcut-icon">⌖</span><span><small>LOCAL MAP</small><b>Open the live local map</b><em>One tap to see nearby food, events, free plans and venue groups.</em></span><i aria-hidden="true">→</i></a>`;
-    const personalRail=hasPreferences()&&personal.length?dealRail('Picked for your local guide',personal,'/preferences','FOR YOU'):'';
-    return shell(`<main class="page discover-page">${planner}${primary.length?dealRail(tonight.length?'Tonight in '+city:'Current local picks',primary,tonight.length?'/tonight':'/near-me',tonight.length?'AVAILABLE TONIGHT':'CURRENT PICKS'):''}${foodPicks.length?dealRail('Food & drink picks',foodPicks,'/food','EAT & DRINK'):''}${freePicks.length?dealRail('Free plans',freePicks,'/free','NO-COST PLANS'):''}${mapShortcut}${personalRail}${weekendPicks.length?dealRail('Make a weekend plan',weekendPicks,'/weekend','SAVE THIS FOR LATER'):''}${eventPicks.length?dealRail('Worth seeing this week',eventPicks,'/events','EVENTS & EXPERIENCES'):''}${!all.length?'<section class="empty"><h2>No local Drops yet</h2><p>Choose another city, or browse public offers across Australia.</p><a class="btn primary" data-internal href="/search">Explore all offers</a></section>':''}</main>`);
+    const origin=searchOrigin(),all=cityDeals().filter(d=>['A','B'].includes(d.qualityGrade)&&freshness(d).state==='recent'),groups=venueGroups(all);
+    const collections=discoveryCollections(all,{origin,savedIds:state.saved});
+    const free=collections.free,week=collections.week,suggested=collections.suggested;
+    const featured=groups.find(group=>hasPhoto(group.primary))||groups[0],d=featured?.primary;
+    const label=origin?.label||'Australia',summary=groups.length+' '+(groups.length===1?'place':'places')+' · '+all.length+' current listings';
+    const feature=d?`<a class="discovery-feature" data-internal href="${esc(venueHref(d,featured))}">${photoFrame(d)}<div class="feature-shade"></div><span class="feature-label">A GOOD LOCAL FIND</span><div class="feature-copy"><span>${esc(d.price||badge(d))} ${distLabel(d)?'· '+esc(distLabel(d)):''}</span><h2>${esc(d.merchant)}</h2><p>${esc(d.title)}</p></div><span class="feature-arrow" aria-hidden="true">↗</span></a>`:`<a class="discovery-feature discovery-feature--illustrated" data-internal href="/map"><span class="feature-label">YOUR NEXT GOOD PLAN</span><div class="orbit-art" aria-hidden="true"><i></i><b>⌖</b></div><div class="feature-copy"><h2>Start with your circle.</h2><p>Move the map. Set your distance. See what turns up.</p></div><span class="feature-arrow" aria-hidden="true">↗</span></a>`;
+    const hero=`<section class="discovery-command"><div class="discovery-welcome"><div class="eyebrow">LESS SCROLLING. BETTER PLANS.</div><h1>Your next<br><em>good thing.</em></h1><p>Food worth the trip. Free things to do. A plan you didn’t know you needed.</p><div class="discovery-live"><i></i>${esc(summary)}${origin?' around '+esc(label):' across Australia'}</div><a class="free-discovery-tile" data-internal href="/free"><div><span>GOOD PLANS. ZERO ENTRY FEE.</span><b>${free.length?free.length+' free picks this week':'Find your next free plan'}</b></div><i aria-hidden="true">↗</i></a></div>${d?'<div class="discovery-feature-wrap">'+feature+photoCredit(d)+'</div>':feature}</section>`;
+    const search=`<section class="discovery-search-panel">${searchBox('',`Search around ${label} — food, free events, places…`)}${radiusControls()}</section>`;
+    const allEligible=state.deals.filter(item=>['A','B'].includes(item.qualityGrade)&&freshness(item).state==='recent');
+    return shell(`<main class="page discover-page discovery-v2">${hero}${search}${chips()}${!all.length?recoveryPanel(allEligible):''}${dealRail('Free plans this week',free,'/free','THE ZERO-ENTRY-FEE LIST')}${dealRail(collections.personalised?'More your kind of thing':'A few good ideas',suggested.filter(item=>!free.slice(0,6).some(f=>f.id===item.id)),'/near-me',collections.personalised?'INSPIRED BY YOUR SAVED CATEGORIES':'CURRENT, SOURCE-CHECKED PICKS')}${dealRail('Something to look forward to',week.filter(item=>!free.some(f=>f.id===item.id)),'/events','HAPPENING IN THE NEXT SEVEN DAYS')}<a class="discovery-map-banner" data-internal href="/map"><div class="mini-radar" aria-hidden="true">⌖</div><div><span>YOUR CIRCLE. YOUR PLANS.</span><h2>Less searching. More exploring.</h2><p>Drag the map and choose how far you want to go.</p></div><b>↗</b></a>${all.length?dealRail('Keep exploring',nearestFirst(all,origin),'/search','ALL YOUR LOCAL FINDS'):''}</main>`);
   }
   const MARKET_PAGES = {
     beauty: ["beauty", "Beauty & wellness", "APPOINTMENTS & SELF-CARE"],
@@ -1728,7 +1762,7 @@ import {nativeShellMode,nativeNavigation,nativeSavedIds} from '/native-shell.mjs
         groups = venueGroups(items);
       document.title = `${title} | PerkDrop`;
       $("#app").innerHTML = shell(
-        `<main class="page">${searchBox()}${outingControls()}${chips()}<section class="section"><div class="section-head"><div><div class="eyebrow">${eye}</div><h2>${title}</h2></div><span>${groups.length} place${groups.length === 1 ? "" : "s"} · ${items.length} offer${items.length === 1 ? "" : "s"}</span></div>${key==='now'?'<p>Showing reviewed service windows that are open in the venue’s local time. Booking and listed conditions still apply.</p>':''}<div class="grid compact venue-grid">${groups.map(venueRailCard).join("")}</div>${!items.length ? '<div class="empty">No confirmed options match this view right now. Check back later or browse current deals and confirm directly with the venue.</div>' : ""}</section></main>`,
+        `<main class="page">${searchBox()}${radiusControls()}${outingControls()}${chips()}<section class="section"><div class="section-head"><div><div class="eyebrow">${eye}</div><h2>${title}</h2></div><span>${groups.length} place${groups.length === 1 ? "" : "s"} · ${items.length} offer${items.length === 1 ? "" : "s"}</span></div>${key==='now'?'<p>Showing reviewed service windows that are open in the venue’s local time. Booking and listed conditions still apply.</p>':''}<div class="grid compact venue-grid">${groups.map(venueRailCard).join("")}</div>${!items.length ? '<div class="empty">No confirmed options match this view right now. Check back later or browse current deals and confirm directly with the venue.</div>' : ""}</section></main>`,
         "explore",
       );
       bind();
